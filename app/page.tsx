@@ -1,65 +1,165 @@
-import Image from "next/image";
+import Link from 'next/link';
 
-export default function Home() {
+const CLERK_KEY = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || '';
+const CLERK_CONFIGURED = Boolean(CLERK_KEY && CLERK_KEY.startsWith('pk_') && CLERK_KEY !== 'pk_test_placeholder');
+
+export default async function HomePage() {
+  let userId: string | null = null;
+  if (CLERK_CONFIGURED) {
+    const { auth } = await import('@clerk/nextjs/server');
+    const session = await auth();
+    userId = session.userId;
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div
+      style={{
+        minHeight: '100vh',
+        background: 'var(--bg)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '2rem',
+      }}
+    >
+      <div style={{ textAlign: 'center', maxWidth: '600px' }}>
+        <h1
+          className="font-display"
+          style={{
+            fontSize: '5rem',
+            color: 'var(--text)',
+            lineHeight: 1,
+            marginBottom: '0.5rem',
+          }}
+        >
+          TRAINING
+          <span style={{ color: 'var(--accent)' }}>TINDER</span>
+        </h1>
+        <p
+          style={{
+            color: 'var(--text-muted)',
+            fontSize: '1.2rem',
+            marginBottom: '3rem',
+            lineHeight: 1.6,
+          }}
+        >
+          Find your perfect training partner. Match by sport, pace, and location.
+          Train harder. Together.
+        </p>
+
+        <div
+          style={{
+            display: 'flex',
+            gap: '1rem',
+            justifyContent: 'center',
+            flexWrap: 'wrap',
+          }}
+        >
+          {!userId ? (
+            <>
+              <Link
+                href="/sign-in"
+                style={{
+                  background: 'var(--accent)',
+                  color: 'white',
+                  padding: '0.875rem 2.5rem',
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  textDecoration: 'none',
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase',
+                  display: 'inline-block',
+                  transition: 'all 0.2s',
+                }}
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/sign-up"
+                style={{
+                  border: '1px solid var(--border)',
+                  color: 'var(--text)',
+                  padding: '0.875rem 2.5rem',
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  textDecoration: 'none',
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase',
+                  display: 'inline-block',
+                  transition: 'all 0.2s',
+                }}
+              >
+                Sign Up
+              </Link>
+            </>
+          ) : (
+            <Link
+              href="/dashboard"
+              style={{
+                background: 'var(--accent)',
+                color: 'white',
+                padding: '0.875rem 2.5rem',
+                fontWeight: 700,
+                fontSize: '1rem',
+                textDecoration: 'none',
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase',
+                display: 'inline-block',
+              }}
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+              Go to Dashboard
+            </Link>
+          )}
+        </div>
+
+        <div
+          style={{
+            display: 'flex',
+            gap: '2rem',
+            justifyContent: 'center',
+            marginTop: '4rem',
+            flexWrap: 'wrap',
+          }}
+        >
+          {[
+            { sport: 'Cycling', color: '#FF4500', emoji: '🚴' },
+            { sport: 'Running', color: '#00D4FF', emoji: '🏃' },
+            { sport: 'Triathlon', color: '#FFD700', emoji: '🏊' },
+            { sport: 'Trail Running', color: '#00CC44', emoji: '🏔️' },
+            { sport: 'Gravel', color: '#FF8800', emoji: '🚵' },
+            { sport: 'MTB', color: '#44FF88', emoji: '⛰️' },
+          ].map((item) => (
+            <div
+              key={item.sport}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '0.5rem',
+              }}
             >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              <div
+                style={{
+                  width: '48px',
+                  height: '48px',
+                  border: `1px solid ${item.color}33`,
+                  background: `${item.color}15`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.5rem',
+                }}
+              >
+                {item.emoji}
+              </div>
+              <span style={{ color: item.color, fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.1em' }}>
+                {item.sport.toUpperCase()}
+              </span>
+            </div>
+          ))}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      </div>
     </div>
   );
 }

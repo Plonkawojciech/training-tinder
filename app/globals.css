@@ -1,26 +1,142 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #0A0A0A;
+  --bg-card: #111111;
+  --bg-card-hover: #161616;
+  --border: #2A2A2A;
+  --accent: #FF4500;
+  --accent-glow: rgba(255, 69, 0, 0.3);
+  --text: #FFFFFF;
+  --text-muted: #888888;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+.font-display {
+  font-family: 'Bebas Neue', sans-serif;
+  letter-spacing: 0.05em;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+.glow-accent {
+  box-shadow: 0 0 20px var(--accent-glow);
+}
+
+.glow-accent-sm {
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.card-hover {
+  transition: all 0.2s ease;
+}
+
+.card-hover:hover {
+  background: var(--bg-card-hover);
+  box-shadow: 0 0 20px var(--accent-glow);
+  border-color: var(--accent) !important;
+}
+
+.sport-cycling { background: rgba(255, 69, 0, 0.15); color: #FF4500; border-color: rgba(255, 69, 0, 0.3); }
+.sport-running { background: rgba(0, 212, 255, 0.15); color: #00D4FF; border-color: rgba(0, 212, 255, 0.3); }
+.sport-triathlon { background: rgba(255, 215, 0, 0.15); color: #FFD700; border-color: rgba(255, 215, 0, 0.3); }
+.sport-swimming { background: rgba(68, 136, 255, 0.15); color: #4488FF; border-color: rgba(68, 136, 255, 0.3); }
+.sport-trail_running { background: rgba(0, 204, 68, 0.15); color: #00CC44; border-color: rgba(0, 204, 68, 0.3); }
+.sport-gravel { background: rgba(255, 136, 0, 0.15); color: #FF8800; border-color: rgba(255, 136, 0, 0.3); }
+.sport-duathlon { background: rgba(204, 68, 255, 0.15); color: #CC44FF; border-color: rgba(204, 68, 255, 0.3); }
+.sport-mtb { background: rgba(68, 255, 136, 0.15); color: #44FF88; border-color: rgba(68, 255, 136, 0.3); }
+
+.match-score-high { color: #00CC44; }
+.match-score-medium { color: #FFD700; }
+.match-score-low { color: #FF4500; }
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pulse-accent {
+  0%, 100% { box-shadow: 0 0 0 0 var(--accent-glow); }
+  50% { box-shadow: 0 0 20px 5px var(--accent-glow); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-slide-up { animation: slideUp 0.3s ease forwards; }
+.animate-fade-in { animation: fadeIn 0.2s ease forwards; }
+.animate-pulse-accent { animation: pulse-accent 2s infinite; }
+
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-card) 25%, #1a1a1a 50%, var(--bg-card) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.notification-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--accent);
+  border-radius: 50%;
+  position: absolute;
+  top: -2px;
+  right: -2px;
+}
+
+.rank-1 { color: #FFD700; }
+.rank-2 { color: #C0C0C0; }
+.rank-3 { color: #CD7F32; }
+
+.nav-active {
+  color: var(--accent);
+  background: rgba(255, 69, 0, 0.1);
+  border-left: 2px solid var(--accent);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 1px var(--accent) !important;
 }

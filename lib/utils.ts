@@ -1,0 +1,110 @@
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+export function formatPace(secondsPerKm: number): string {
+  if (!secondsPerKm || secondsPerKm <= 0) return '--:--';
+  const minutes = Math.floor(secondsPerKm / 60);
+  const seconds = Math.round(secondsPerKm % 60);
+  return `${minutes}:${seconds.toString().padStart(2, '0')} /km`;
+}
+
+export function formatPaceMin(secondsPerKm: number): string {
+  if (!secondsPerKm || secondsPerKm <= 0) return '--:--';
+  const minutes = Math.floor(secondsPerKm / 60);
+  const seconds = Math.round(secondsPerKm % 60);
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
+export function haversineDistance(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number {
+  const R = 6371;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function toRad(value: number): number {
+  return (value * Math.PI) / 180;
+}
+
+export function getSportColor(sport: string): string {
+  const colors: Record<string, string> = {
+    cycling: '#FF4500',
+    running: '#00D4FF',
+    triathlon: '#FFD700',
+    swimming: '#4488FF',
+    trail_running: '#00CC44',
+    gravel: '#FF8800',
+    duathlon: '#CC44FF',
+    mtb: '#44FF88',
+  };
+  return colors[sport] ?? '#888888';
+}
+
+export function getSportLabel(sport: string): string {
+  const labels: Record<string, string> = {
+    cycling: 'Cycling',
+    running: 'Running',
+    triathlon: 'Triathlon',
+    swimming: 'Swimming',
+    trail_running: 'Trail Running',
+    gravel: 'Gravel',
+    duathlon: 'Duathlon',
+    mtb: 'MTB',
+  };
+  return labels[sport] ?? sport;
+}
+
+export function getMatchScoreColor(score: number): string {
+  if (score >= 70) return '#00CC44';
+  if (score >= 40) return '#FFD700';
+  return '#FF4500';
+}
+
+export function getMatchScoreClass(score: number): string {
+  if (score >= 70) return 'match-score-high';
+  if (score >= 40) return 'match-score-medium';
+  return 'match-score-low';
+}
+
+export function formatRelativeTime(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  const now = new Date();
+  const diff = now.getTime() - d.getTime();
+  const seconds = Math.floor(diff / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  if (seconds < 60) return 'just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days < 7) return `${days}d ago`;
+  return d.toLocaleDateString();
+}
+
+export const SPORTS = [
+  { value: 'cycling', label: 'Cycling' },
+  { value: 'running', label: 'Running' },
+  { value: 'triathlon', label: 'Triathlon' },
+  { value: 'swimming', label: 'Swimming' },
+  { value: 'trail_running', label: 'Trail Running' },
+  { value: 'gravel', label: 'Gravel' },
+  { value: 'duathlon', label: 'Duathlon' },
+  { value: 'mtb', label: 'MTB' },
+] as const;
+
+export type SportType = typeof SPORTS[number]['value'];
