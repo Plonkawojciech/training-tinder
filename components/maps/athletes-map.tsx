@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { DARK_MAP_STYLE } from '@/lib/maps';
+import { loadGoogleMapsAPI } from '@/lib/maps-loader';
 import { getSportColor, getSportLabel } from '@/lib/utils';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -31,19 +32,14 @@ export function AthletesMap({ athletes }: AthletesMapProps) {
 
   useEffect(() => {
     async function init() {
-      const { Loader } = await import('@googlemaps/js-api-loader');
-      const loader = new Loader({
-        apiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
-        version: 'weekly',
-        libraries: ['marker'],
-      });
-      await (loader as unknown as { load: () => Promise<void> }).load();
+      await loadGoogleMapsAPI(['maps', 'marker']);
 
       if (!mapRef.current) return;
 
-      const center = athletes.length > 0
-        ? { lat: athletes[0].lat, lng: athletes[0].lng }
-        : { lat: 51.505, lng: -0.09 };
+      const center =
+        athletes.length > 0
+          ? { lat: athletes[0].lat, lng: athletes[0].lng }
+          : { lat: 51.505, lng: -0.09 };
 
       const map = new google.maps.Map(mapRef.current, {
         center,
@@ -121,10 +117,15 @@ export function AthletesMap({ athletes }: AthletesMapProps) {
               </div>
             )}
             <div>
-              <p className="text-white text-sm font-semibold">{popup.athlete.username ?? 'Athlete'}</p>
+              <p className="text-white text-sm font-semibold">
+                {popup.athlete.username ?? 'Athlete'}
+              </p>
               <span
                 className="text-xs px-1.5 py-0.5"
-                style={{ color: getSportColor(popup.athlete.sport), border: `1px solid ${getSportColor(popup.athlete.sport)}40` }}
+                style={{
+                  color: getSportColor(popup.athlete.sport),
+                  border: `1px solid ${getSportColor(popup.athlete.sport)}40`,
+                }}
               >
                 {getSportLabel(popup.athlete.sport)}
               </span>

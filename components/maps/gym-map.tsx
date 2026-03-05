@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { DARK_MAP_STYLE } from '@/lib/maps';
-import { initGoogleMaps } from '@/lib/maps-loader';
+import { loadGoogleMapsAPI } from '@/lib/maps-loader';
 import type { PlaceResult } from '@/lib/maps';
 
 export interface GymPlace extends PlaceResult {}
@@ -29,7 +29,7 @@ export function GymMap({ gyms, userLat, userLng, onSelectGym }: GymMapProps) {
 
   useEffect(() => {
     async function initMap() {
-      await initGoogleMaps(['maps', 'marker']);
+      await loadGoogleMapsAPI(['maps', 'marker']);
 
       if (!mapRef.current) return;
 
@@ -48,7 +48,7 @@ export function GymMap({ gyms, userLat, userLng, onSelectGym }: GymMapProps) {
       mapInstanceRef.current = map;
 
       if (userLat !== undefined && userLng !== undefined) {
-        const userMarker = new google.maps.Marker({
+        const uMarker = new google.maps.Marker({
           position: { lat: userLat, lng: userLng },
           map,
           icon: {
@@ -62,7 +62,7 @@ export function GymMap({ gyms, userLat, userLng, onSelectGym }: GymMapProps) {
           title: 'Your Location',
           zIndex: 1000,
         });
-        userMarkerRef.current = userMarker;
+        userMarkerRef.current = uMarker;
       }
 
       markersRef.current.forEach((m) => m.setMap(null));
@@ -152,7 +152,11 @@ export function GymMap({ gyms, userLat, userLng, onSelectGym }: GymMapProps) {
                   : 'bg-red-900/40 text-red-400 border border-red-800'
               }`}
             >
-              {selectedCard.gym.open_now === undefined ? 'Hours unknown' : selectedCard.gym.open_now ? 'Open now' : 'Closed'}
+              {selectedCard.gym.open_now === undefined
+                ? 'Hours unknown'
+                : selectedCard.gym.open_now
+                ? 'Open now'
+                : 'Closed'}
             </span>
           </div>
 

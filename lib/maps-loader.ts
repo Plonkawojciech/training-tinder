@@ -1,10 +1,14 @@
-// Google Maps initialization utility
-export async function initGoogleMaps(libraries: string[] = ['maps']) {
-  const { Loader } = await import('@googlemaps/js-api-loader');
-  const loader = new Loader({
-    apiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
-    version: 'weekly',
-    libraries: libraries as ('marker' | 'geocoding')[],
-  });
-  await (loader as unknown as { load: () => Promise<void> }).load();
+// Google Maps initialization utility using the functional API from @googlemaps/js-api-loader v2
+// setOptions() and importLibrary() replace the deprecated Loader class
+
+async function loadGoogleMapsAPI(libs: string[]) {
+  // Using named imports to avoid the deprecated Loader class
+  const mapsModule = await import('@googlemaps/js-api-loader');
+  mapsModule.setOptions({ apiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY! });
+  for (const lib of libs) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (mapsModule.importLibrary as (name: string) => Promise<any>)(lib);
+  }
 }
+
+export { loadGoogleMapsAPI };
