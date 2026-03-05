@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { DARK_MAP_STYLE } from '@/lib/maps';
+import { loadGoogleMapsAPI } from '@/lib/maps-loader';
 import { Search, MapPin, Loader } from 'lucide-react';
 
 interface SessionMapProps {
@@ -22,19 +23,14 @@ export function SessionMap({ lat, lng, onChange }: SessionMapProps) {
 
   useEffect(() => {
     async function init() {
-      const { Loader: GMLoader } = await import('@googlemaps/js-api-loader');
-      const gmLoader = new GMLoader({
-        apiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
-        version: 'weekly',
-        libraries: ['geocoding'],
-      });
-      await (gmLoader as unknown as { load: () => Promise<void> }).load();
+      await loadGoogleMapsAPI(['maps', 'geocoding']);
 
       if (!mapRef.current) return;
 
-      const center = lat !== undefined && lng !== undefined
-        ? { lat, lng }
-        : { lat: 51.505, lng: -0.09 };
+      const center =
+        lat !== undefined && lng !== undefined
+          ? { lat, lng }
+          : { lat: 51.505, lng: -0.09 };
 
       const map = new google.maps.Map(mapRef.current, {
         center,
@@ -123,7 +119,10 @@ export function SessionMap({ lat, lng, onChange }: SessionMapProps) {
 
       if (!res.ok) throw new Error('Not found');
 
-      const { lat: gLat, lng: gLng } = await res.json() as { lat: number; lng: number };
+      const { lat: gLat, lng: gLng } = (await res.json()) as {
+        lat: number;
+        lng: number;
+      };
       const pos = { lat: gLat, lng: gLng };
 
       mapInstanceRef.current.panTo(pos);
@@ -173,7 +172,9 @@ export function SessionMap({ lat, lng, onChange }: SessionMapProps) {
         )}
       </div>
 
-      <p className="text-xs text-[#555555]">Click anywhere on the map to set your session location</p>
+      <p className="text-xs text-[#555555]">
+        Click anywhere on the map to set your session location
+      </p>
     </div>
   );
 }

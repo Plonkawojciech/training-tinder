@@ -2,6 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
+import nextDynamic from 'next/dynamic';
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -10,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
 import { getSportLabel } from '@/lib/utils';
-import { useUser } from '@clerk/nextjs';
+import { useSafeUser } from '@/lib/auth';
 
 interface Participant {
   userId: string;
@@ -38,9 +39,9 @@ interface SessionDetail {
   creatorAvatar: string | null;
 }
 
-export default function SessionDetailPage({ params }: { params: Promise<{ id: string }> }) {
+function SessionDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { user } = useUser();
+  const user = useSafeUser();
   const router = useRouter();
   const [session, setSession] = useState<SessionDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -105,8 +106,8 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
 
   if (!session) return null;
 
-  const isCreator = user?.id === session.creatorId;
-  const isParticipant = session.participants.some((p) => p.userId === user?.id);
+  const isCreator = user.id === session.creatorId;
+  const isParticipant = session.participants.some((p) => p.userId === user.id);
   const isFull = session.participantCount >= session.maxParticipants;
   const fillPct = Math.min(100, (session.participantCount / session.maxParticipants) * 100);
 
@@ -264,3 +265,5 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
     </div>
   );
 }
+
+export default nextDynamic(() => Promise.resolve({ default: SessionDetailPageInner }), { ssr: false });

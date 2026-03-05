@@ -2,8 +2,9 @@
 
 export const dynamic = 'force-dynamic';
 
+import nextDynamic from 'next/dynamic';
 import { useState, useEffect } from 'react';
-import { useUser } from '@clerk/nextjs';
+import { useSafeUser } from '@/lib/auth';
 import { MessageSquare, Search } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
 import { ChatWindow } from '@/components/messages/chat-window';
@@ -27,8 +28,8 @@ interface ConversationPartner {
   lastMessageTime?: string;
 }
 
-export default function MessagesPage() {
-  const { user } = useUser();
+function MessagesPageInner() {
+  const user = useSafeUser();
   const [partners, setPartners] = useState<ConversationPartner[]>([]);
   const [selected, setSelected] = useState<ConversationPartner | null>(null);
   const [loading, setLoading] = useState(true);
@@ -58,7 +59,7 @@ export default function MessagesPage() {
     !searchQ || p.username?.toLowerCase().includes(searchQ.toLowerCase())
   );
 
-  if (!user) return null;
+  if (!user.isLoaded) return null;
 
   return (
     <div className="flex h-full">
@@ -124,7 +125,7 @@ export default function MessagesPage() {
       <div className="flex-1 min-w-0">
         {selected ? (
           <ChatWindow
-            currentUserId={user.id}
+            currentUserId={user.id || ''}
             partnerId={selected.clerkId}
             partnerName={selected.username}
             partnerAvatar={selected.avatarUrl}
@@ -142,3 +143,5 @@ export default function MessagesPage() {
     </div>
   );
 }
+
+export default nextDynamic(() => Promise.resolve({ default: MessagesPageInner }), { ssr: false });

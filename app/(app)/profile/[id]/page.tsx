@@ -2,6 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
+import nextDynamic from 'next/dynamic';
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, MessageSquare, Zap, Route, MapPin } from 'lucide-react';
@@ -10,7 +11,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getSportLabel, formatPaceMin, getMatchScoreColor } from '@/lib/utils';
-import { useUser } from '@clerk/nextjs';
+import { useSafeUser } from '@/lib/auth';
 
 interface UserProfile {
   id: number;
@@ -29,9 +30,9 @@ interface MatchData {
   distanceKm: number | null;
 }
 
-export default function UserProfilePage({ params }: { params: Promise<{ id: string }> }) {
+function UserProfilePageInner({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { user } = useUser();
+  const user = useSafeUser();
   const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [matchData, setMatchData] = useState<MatchData | null>(null);
@@ -39,7 +40,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
 
   useEffect(() => {
     if (!id) return;
-    if (user && id === user.id) {
+    if (user.id && id === user.id) {
       router.replace('/profile');
       return;
     }
@@ -69,7 +70,8 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
     }
 
     fetchData();
-  }, [id, user, router]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, user.id, router]);
 
   if (loading) {
     return (
@@ -196,3 +198,5 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
     </div>
   );
 }
+
+export default nextDynamic(() => Promise.resolve({ default: UserProfilePageInner }), { ssr: false });
