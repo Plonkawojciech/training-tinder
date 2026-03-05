@@ -39,6 +39,10 @@ export async function GET(request: Request) {
       city: currentUser.city,
       lat: currentUser.lat,
       lon: currentUser.lon,
+      gymName: currentUser.gymName,
+      strengthLevel: currentUser.strengthLevel,
+      trainingSplits: (currentUser.trainingSplits as string[] | null) ?? [],
+      goals: (currentUser.goals as string[] | null) ?? [],
     };
 
     const candidates: UserForMatching[] = allUsers
@@ -55,6 +59,10 @@ export async function GET(request: Request) {
         city: u.city,
         lat: u.lat,
         lon: u.lon,
+        gymName: u.gymName,
+        strengthLevel: u.strengthLevel,
+        trainingSplits: (u.trainingSplits as string[] | null) ?? [],
+        goals: (u.goals as string[] | null) ?? [],
       }));
 
     let ranked = rankMatches(currentForMatch, candidates);

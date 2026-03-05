@@ -12,6 +12,10 @@ export interface UserForMatching {
   city: string | null;
   lat: number | null;
   lon: number | null;
+  gymName?: string | null;
+  strengthLevel?: string | null;
+  trainingSplits?: string[] | null;
+  goals?: string[] | null;
 }
 
 export interface MatchResult {
@@ -22,6 +26,10 @@ export interface MatchResult {
     paceMatch: number;
     locationMatch: number;
     weeklyKmMatch: number;
+    gymMatch: number;
+    splitMatch: number;
+    strengthMatch: number;
+    goalMatch: number;
   };
   distanceKm: number | null;
 }
@@ -36,6 +44,10 @@ export function calculateMatchScore(
     paceMatch: 0,
     locationMatch: 0,
     weeklyKmMatch: 0,
+    gymMatch: 0,
+    splitMatch: 0,
+    strengthMatch: 0,
+    goalMatch: 0,
   };
 
   // Sport match (40 points)
@@ -102,6 +114,50 @@ export function calculateMatchScore(
       score += 5;
       breakdown.weeklyKmMatch = 5;
     }
+  }
+
+  // Gym match (+15 pts for same gym)
+  if (
+    currentUser.gymName &&
+    candidate.gymName &&
+    currentUser.gymName.toLowerCase().trim() === candidate.gymName.toLowerCase().trim()
+  ) {
+    score += 15;
+    breakdown.gymMatch = 15;
+  }
+
+  // Same training split (+10 pts)
+  if (
+    currentUser.trainingSplits?.length &&
+    candidate.trainingSplits?.length
+  ) {
+    const sharedSplits = currentUser.trainingSplits.filter((s) =>
+      candidate.trainingSplits!.includes(s)
+    );
+    if (sharedSplits.length > 0) {
+      score += 10;
+      breakdown.splitMatch = 10;
+    }
+  }
+
+  // Same strength level (+10 pts)
+  if (
+    currentUser.strengthLevel &&
+    candidate.strengthLevel &&
+    currentUser.strengthLevel === candidate.strengthLevel
+  ) {
+    score += 10;
+    breakdown.strengthMatch = 10;
+  }
+
+  // Overlapping goals (+5 pts each, up to +20 pts)
+  if (currentUser.goals?.length && candidate.goals?.length) {
+    const sharedGoals = currentUser.goals.filter((g) =>
+      candidate.goals!.includes(g)
+    );
+    const goalScore = Math.min(20, sharedGoals.length * 5);
+    score += goalScore;
+    breakdown.goalMatch = goalScore;
   }
 
   return {

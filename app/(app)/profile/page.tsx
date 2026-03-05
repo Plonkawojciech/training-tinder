@@ -2,14 +2,18 @@
 
 export const dynamic = 'force-dynamic';
 
+import nextDynamic from 'next/dynamic';
 import { useState, useEffect } from 'react';
-import { useUser } from '@clerk/nextjs';
+import { useSafeUser } from '@/lib/auth';
 import { Edit2, Save, X, Link2, Zap, Route, MapPin, Camera } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input, Textarea } from '@/components/ui/input';
 import { SPORTS, getSportLabel, getSportColor, formatPaceMin } from '@/lib/utils';
+import { StrengthBadge } from '@/components/gym/strength-badge';
+import { Big4Display } from '@/components/gym/big4-display';
+import { ProfileStatsSection } from '@/components/profile/stats-section';
 
 interface UserProfile {
   id: number;
@@ -24,15 +28,44 @@ interface UserProfile {
   lat: number | null;
   lon: number | null;
   availability: string[];
+  gymName: string | null;
+  strengthLevel: string | null;
+  trainingSplits: string[] | null;
+  goals: string[] | null;
+  heightCm: number | null;
 }
 
-export default function ProfilePage() {
-  const { user } = useUser();
+interface PRRecord {
+  exerciseName: string;
+  weightKg: number;
+  reps: number;
+}
+
+const STRENGTH_LEVELS = ['beginner', 'intermediate', 'advanced', 'elite'];
+const TRAINING_SPLITS = [
+  { value: 'push_pull_legs', label: 'Push/Pull/Legs' },
+  { value: 'full_body', label: 'Full Body' },
+  { value: 'upper_lower', label: 'Upper/Lower' },
+  { value: 'bro_split', label: 'Bro Split' },
+  { value: 'powerlifting', label: 'Powerlifting' },
+];
+const GOAL_OPTIONS = [
+  { value: 'strength', label: 'Strength', emoji: '💪' },
+  { value: 'hypertrophy', label: 'Hypertrophy', emoji: '🏋️' },
+  { value: 'endurance', label: 'Endurance', emoji: '🏃' },
+  { value: 'weight_loss', label: 'Weight Loss', emoji: '⚡' },
+  { value: 'athletic', label: 'Athletic', emoji: '🎯' },
+];
+const DAYS_OF_WEEK = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
+function ProfilePageInner() {
+  const user = useSafeUser();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [topPRs, setTopPRs] = useState<PRRecord[]>([]);
 
   const [form, setForm] = useState({
     username: '',
@@ -42,10 +75,20 @@ export default function ProfilePage() {
     paceSec: '',
     weeklyKm: '',
     city: '',
+    gymName: '',
+    strengthLevel: '',
+    trainingSplits: [] as string[],
+    goals: [] as string[],
+    availability: [] as string[],
+    heightCm: '',
   });
 
   useEffect(() => {
     fetchProfile();
+    fetch('/api/records')
+      .then((r) => r.json())
+      .then((data: { best: PRRecord[] }) => setTopPRs((data.best ?? []).slice(0, 3)))
+      .catch(() => {});
   }, []);
 
   async function fetchProfile() {
@@ -63,6 +106,12 @@ export default function ProfilePage() {
             paceSec: data.pacePerKm ? String(data.pacePerKm % 60).padStart(2, '0') : '',
             weeklyKm: data.weeklyKm ? String(data.weeklyKm) : '',
             city: data.city ?? '',
+            gymName: data.gymName ?? '',
+            strengthLevel: data.strengthLevel ?? '',
+            trainingSplits: data.trainingSplits ?? [],
+            goals: data.goals ?? [],
+            availability: data.availability ?? [],
+            heightCm: data.heightCm ? String(data.heightCm) : '',
           });
         }
       }
@@ -80,10 +129,36 @@ export default function ProfilePage() {
     }));
   }
 
+  function toggleSplit(split: string) {
+    setForm((prev) => ({
+      ...prev,
+      trainingSplits: prev.trainingSplits.includes(split)
+        ? prev.trainingSplits.filter((s) => s !== split)
+        : [...prev.trainingSplits, split],
+    }));
+  }
+
+  function toggleGoal(goal: string) {
+    setForm((prev) => ({
+      ...prev,
+      goals: prev.goals.includes(goal)
+        ? prev.goals.filter((g) => g !== goal)
+        : [...prev.goals, goal],
+    }));
+  }
+
+  function toggleAvailability(day: string) {
+    setForm((prev) => ({
+      ...prev,
+      availability: prev.availability.includes(day)
+        ? prev.availability.filter((d) => d !== day)
+        : [...prev.availability, day],
+    }));
+  }
+
   async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-
     setAvatarUploading(true);
     try {
       const fd = new FormData();
@@ -121,6 +196,12 @@ export default function ProfilePage() {
           pacePerKm,
           weeklyKm: form.weeklyKm ? parseInt(form.weeklyKm) : null,
           city: form.city,
+          gymName: form.gymName || null,
+          strengthLevel: form.strengthLevel || null,
+          trainingSplits: form.trainingSplits,
+          goals: form.goals,
+          availability: form.availability,
+          heightCm: form.heightCm ? parseInt(form.heightCm) : null,
         }),
       });
       await fetchProfile();
@@ -167,16 +248,11 @@ export default function ProfilePage() {
           <div className="relative">
             <Avatar
               src={profile?.avatarUrl}
-              fallback={profile?.username ?? user?.firstName ?? '?'}
+              fallback={profile?.username ?? user.username ?? '?'}
               size="xl"
             />
             <label className="absolute -bottom-1 -right-1 w-8 h-8 bg-[#FF4500] flex items-center justify-center cursor-pointer hover:shadow-[0_0_10px_rgba(255,69,0,0.5)] transition-all">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleAvatarUpload}
-                className="hidden"
-              />
+              <input type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
               {avatarUploading ? (
                 <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
               ) : (
@@ -194,23 +270,40 @@ export default function ProfilePage() {
                   onChange={(e) => setForm((p) => ({ ...p, username: e.target.value }))}
                   placeholder="Your athlete name"
                 />
-                <Input
-                  label="City"
-                  value={form.city}
-                  onChange={(e) => setForm((p) => ({ ...p, city: e.target.value }))}
-                  placeholder="Warsaw, Poland"
-                />
+                <div className="grid grid-cols-2 gap-3">
+                  <Input
+                    label="City"
+                    value={form.city}
+                    onChange={(e) => setForm((p) => ({ ...p, city: e.target.value }))}
+                    placeholder="Warsaw, Poland"
+                  />
+                  <Input
+                    label="Height (cm)"
+                    type="number"
+                    value={form.heightCm}
+                    onChange={(e) => setForm((p) => ({ ...p, heightCm: e.target.value }))}
+                    placeholder="180"
+                  />
+                </div>
               </div>
             ) : (
               <>
                 <h2 className="font-display text-2xl text-white tracking-wider">
                   {profile?.username ?? 'Set your name'}
                 </h2>
-                {profile?.city && (
-                  <div className="flex items-center gap-1 mt-1">
-                    <MapPin className="w-3 h-3 text-[#888888]" />
-                    <span className="text-sm text-[#888888]">{profile.city}</span>
-                  </div>
+                <div className="flex items-center gap-3 mt-1 flex-wrap">
+                  {profile?.city && (
+                    <div className="flex items-center gap-1">
+                      <MapPin className="w-3 h-3 text-[#888888]" />
+                      <span className="text-sm text-[#888888]">{profile.city}</span>
+                    </div>
+                  )}
+                  {profile?.strengthLevel && (
+                    <StrengthBadge level={profile.strengthLevel} size="sm" />
+                  )}
+                </div>
+                {profile?.gymName && (
+                  <p className="text-xs text-[#888888] mt-1">🏋️ {profile.gymName}</p>
                 )}
               </>
             )}
@@ -225,6 +318,7 @@ export default function ProfilePage() {
               value={form.bio}
               onChange={(e) => setForm((p) => ({ ...p, bio: e.target.value }))}
               placeholder="Tell other athletes about yourself..."
+              className="min-h-[120px]"
             />
           ) : (
             profile?.bio && (
@@ -233,6 +327,9 @@ export default function ProfilePage() {
           )}
         </div>
       </div>
+
+      {/* Training Stats (non-editing only) */}
+      {!editing && <ProfileStatsSection />}
 
       {/* Sports */}
       <div className="bg-[#111111] border border-[#2A2A2A] p-6 mb-4">
@@ -273,7 +370,211 @@ export default function ProfilePage() {
         )}
       </div>
 
-      {/* Stats */}
+      {/* Goals */}
+      <div className="bg-[#111111] border border-[#2A2A2A] p-6 mb-4">
+        <h3 className="font-display text-sm text-[#888888] tracking-wider mb-4">GOALS</h3>
+        {editing ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {GOAL_OPTIONS.map((goal) => {
+              const isSelected = form.goals.includes(goal.value);
+              return (
+                <button
+                  key={goal.value}
+                  type="button"
+                  onClick={() => toggleGoal(goal.value)}
+                  className="p-2.5 border text-xs font-medium transition-all flex items-center gap-2"
+                  style={
+                    isSelected
+                      ? { borderColor: '#FF4500', background: 'rgba(255,69,0,0.1)', color: '#FF4500' }
+                      : { borderColor: '#2A2A2A', background: 'transparent', color: '#888888' }
+                  }
+                >
+                  <span>{goal.emoji}</span>
+                  {goal.label}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {(profile?.goals ?? []).map((goal) => {
+              const opt = GOAL_OPTIONS.find((g) => g.value === goal);
+              return (
+                <span
+                  key={goal}
+                  className="flex items-center gap-1 px-2 py-1 border border-[rgba(255,69,0,0.3)] bg-[rgba(255,69,0,0.08)] text-[#FF4500] text-xs"
+                >
+                  {opt?.emoji} {opt?.label ?? goal}
+                </span>
+              );
+            })}
+            {(profile?.goals?.length ?? 0) === 0 && (
+              <p className="text-[#888888] text-sm">No goals set</p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Gym section */}
+      <div className="bg-[#111111] border border-[#2A2A2A] p-6 mb-4">
+        <h3 className="font-display text-sm text-[#888888] tracking-wider mb-4">GYM & STRENGTH</h3>
+        {editing ? (
+          <div className="flex flex-col gap-4">
+            <Input
+              label="Gym Name / Location"
+              value={form.gymName}
+              onChange={(e) => setForm((p) => ({ ...p, gymName: e.target.value }))}
+              placeholder="e.g. Gold's Gym, Warsaw"
+            />
+
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-2">
+                Strength Level
+              </label>
+              <div className="grid grid-cols-4 gap-2">
+                {STRENGTH_LEVELS.map((level) => {
+                  const colors: Record<string, string> = {
+                    beginner: '#00CC44', intermediate: '#FFD700',
+                    advanced: '#FF8800', elite: '#FF4500',
+                  };
+                  const color = colors[level];
+                  return (
+                    <button
+                      key={level}
+                      type="button"
+                      onClick={() => setForm((p) => ({ ...p, strengthLevel: level }))}
+                      className="p-2 border text-xs font-medium capitalize transition-all"
+                      style={
+                        form.strengthLevel === level
+                          ? { borderColor: color, background: `${color}20`, color }
+                          : { borderColor: '#2A2A2A', background: 'transparent', color: '#888888' }
+                      }
+                    >
+                      {level}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-2">
+                Training Split
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {TRAINING_SPLITS.map((split) => {
+                  const isSelected = form.trainingSplits.includes(split.value);
+                  return (
+                    <button
+                      key={split.value}
+                      type="button"
+                      onClick={() => toggleSplit(split.value)}
+                      className="p-2 border text-xs font-medium transition-all"
+                      style={
+                        isSelected
+                          ? { borderColor: '#FF4500', background: 'rgba(255,69,0,0.1)', color: '#FF4500' }
+                          : { borderColor: '#2A2A2A', background: 'transparent', color: '#888888' }
+                      }
+                    >
+                      {split.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {profile?.gymName && (
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-[#888888]">Gym:</span>
+                <span className="text-white">{profile.gymName}</span>
+              </div>
+            )}
+            {profile?.strengthLevel && (
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-[#888888]">Level:</span>
+                <StrengthBadge level={profile.strengthLevel} />
+              </div>
+            )}
+            {(profile?.trainingSplits ?? []).length > 0 && (
+              <div>
+                <p className="text-xs text-[#888888] mb-2">Training splits:</p>
+                <div className="flex flex-wrap gap-1">
+                  {(profile?.trainingSplits ?? []).map((split) => {
+                    const opt = TRAINING_SPLITS.find((s) => s.value === split);
+                    return (
+                      <span key={split} className="px-2 py-1 bg-[#1A1A1A] border border-[#2A2A2A] text-[#888888] text-xs">
+                        {opt?.label ?? split}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Personal Records showcase */}
+      {!editing && topPRs.length > 0 && (
+        <div className="mb-4">
+          <Big4Display records={topPRs} />
+        </div>
+      )}
+
+      {/* Availability */}
+      <div className="bg-[#111111] border border-[#2A2A2A] p-6 mb-4">
+        <h3 className="font-display text-sm text-[#888888] tracking-wider mb-4">AVAILABILITY</h3>
+        {editing ? (
+          <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+            {DAYS_OF_WEEK.map((day) => {
+              const isSelected = form.availability.includes(day);
+              return (
+                <button
+                  key={day}
+                  type="button"
+                  onClick={() => toggleAvailability(day)}
+                  className="p-2 border text-[10px] font-medium uppercase tracking-wider transition-all"
+                  style={
+                    isSelected
+                      ? { borderColor: '#FF4500', background: 'rgba(255,69,0,0.1)', color: '#FF4500' }
+                      : { borderColor: '#2A2A2A', background: 'transparent', color: '#888888' }
+                  }
+                >
+                  {day.slice(0, 3)}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="grid grid-cols-7 gap-1">
+            {DAYS_OF_WEEK.map((day) => {
+              const isAvailable = (profile?.availability ?? []).includes(day);
+              return (
+                <div
+                  key={day}
+                  className="flex flex-col items-center gap-1"
+                >
+                  <div
+                    className="w-full aspect-square flex items-center justify-center text-[10px] font-bold uppercase"
+                    style={{
+                      background: isAvailable ? 'rgba(255,69,0,0.15)' : '#0D0D0D',
+                      border: isAvailable ? '1px solid rgba(255,69,0,0.4)' : '1px solid #1A1A1A',
+                      color: isAvailable ? '#FF4500' : '#333333',
+                    }}
+                  >
+                    {day.slice(0, 1).toUpperCase()}
+                  </div>
+                  <span className="text-[8px] text-[#555555] uppercase">{day.slice(0, 3)}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Performance */}
       <div className="bg-[#111111] border border-[#2A2A2A] p-6 mb-4">
         <h3 className="font-display text-sm text-[#888888] tracking-wider mb-4">PERFORMANCE</h3>
         {editing ? (
@@ -357,3 +658,5 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+export default nextDynamic(() => Promise.resolve({ default: ProfilePageInner }), { ssr: false });

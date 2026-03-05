@@ -7,17 +7,21 @@ import {
   Step1SportsBio,
   Step2Performance,
   Step3Location,
+  Step3HalfGym,
   Step4Photo,
   type OnboardingData,
 } from '@/components/onboarding/steps';
 import { Button } from '@/components/ui/button';
+import { GYM_SPORTS } from '@/lib/utils';
 
-const STEPS = [
+const BASE_STEPS = [
   { title: 'Sports & Bio', subtitle: 'Tell us about your athletic identity' },
   { title: 'Performance', subtitle: 'Your pace and training volume' },
   { title: 'Location & Time', subtitle: 'Where and when you train' },
-  { title: 'Photo', subtitle: 'Put a face to your athlete profile' },
+  { title: 'Photo & Goals', subtitle: 'Put a face to your profile and set your goals' },
 ];
+
+const GYM_STEP = { title: 'Gym Profile', subtitle: 'Strength level and training preferences' };
 
 const initialData: OnboardingData = {
   username: '',
@@ -30,6 +34,10 @@ const initialData: OnboardingData = {
   lon: '',
   availability: [],
   avatarUrl: '',
+  gymName: '',
+  strengthLevel: '',
+  trainingSplits: [],
+  goals: [],
 };
 
 export default function OnboardingPage() {
@@ -38,6 +46,13 @@ export default function OnboardingPage() {
   const [data, setData] = useState<OnboardingData>(initialData);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  const hasGymSport = data.sportTypes.some((s) => GYM_SPORTS.includes(s));
+
+  // Build dynamic step list
+  const STEPS = hasGymSport
+    ? [...BASE_STEPS.slice(0, 3), GYM_STEP, BASE_STEPS[3]]
+    : BASE_STEPS;
 
   function handleChange(updates: Partial<OnboardingData>) {
     setData((prev) => ({ ...prev, ...updates }));
@@ -74,6 +89,10 @@ export default function OnboardingPage() {
         lon: data.lon ? parseFloat(data.lon) : null,
         availability: data.availability,
         avatarUrl: data.avatarUrl || null,
+        gymName: data.gymName || null,
+        strengthLevel: data.strengthLevel || null,
+        trainingSplits: data.trainingSplits,
+        goals: data.goals,
       };
 
       const res = await fetch('/api/users/profile', {
@@ -92,12 +111,17 @@ export default function OnboardingPage() {
     }
   }
 
-  const stepComponents = [
-    <Step1SportsBio key="1" data={data} onChange={handleChange} />,
-    <Step2Performance key="2" data={data} onChange={handleChange} />,
-    <Step3Location key="3" data={data} onChange={handleChange} />,
-    <Step4Photo key="4" data={data} onChange={handleChange} />,
-  ];
+  function getStepComponent() {
+    if (hasGymSport) {
+      // Steps with gym step inserted
+      const stepOrder = [Step1SportsBio, Step2Performance, Step3Location, Step3HalfGym, Step4Photo];
+      const Component = stepOrder[step];
+      return <Component key={step} data={data} onChange={handleChange} />;
+    }
+    const stepOrder = [Step1SportsBio, Step2Performance, Step3Location, Step4Photo];
+    const Component = stepOrder[step];
+    return <Component key={step} data={data} onChange={handleChange} />;
+  }
 
   return (
     <div
@@ -184,7 +208,7 @@ export default function OnboardingPage() {
             </p>
           </div>
 
-          {stepComponents[step]}
+          {getStepComponent()}
 
           {error && (
             <p style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '1rem' }}>{error}</p>
@@ -200,11 +224,7 @@ export default function OnboardingPage() {
               borderTop: '1px solid var(--border)',
             }}
           >
-            <Button
-              variant="ghost"
-              onClick={back}
-              disabled={step === 0}
-            >
+            <Button variant="ghost" onClick={back} disabled={step === 0}>
               <ChevronLeft className="w-4 h-4" />
               Back
             </Button>

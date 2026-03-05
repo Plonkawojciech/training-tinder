@@ -1,0 +1,233 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { ArrowLeft, Calendar, Target, User, Star, ChevronDown, ChevronUp } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { StrengthBadge } from '@/components/gym/strength-badge';
+import { getSportLabel, getSportColor } from '@/lib/utils';
+
+interface PlanWeek {
+  id: number;
+  planId: number;
+  weekNumber: number;
+  daysJson: Record<string, unknown>;
+  notes: string | null;
+}
+
+interface Plan {
+  id: number;
+  title: string;
+  description: string | null;
+  sportType: string;
+  difficulty: string;
+  durationWeeks: number;
+  isPublic: boolean;
+  createdAt: string;
+  creatorId: string;
+  weeks: PlanWeek[];
+  creator: { username: string | null; avatarUrl: string | null; clerkId: string } | null;
+}
+
+export default function PlanDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+  const [plan, setPlan] = useState<Plan | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
+  const [following, setFollowing] = useState(false);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/plans/${id}`)
+      .then((r) => r.json())
+      .then((data: Plan) => setPlan(data))
+      .catch(() => router.push('/gym/plans'))
+      .finally(() => setLoading(false));
+  }, [id, router]);
+
+  if (loading) {
+    return (
+      <div className="p-4 md:p-6 max-w-4xl mx-auto">
+        <div className="h-64 skeleton" />
+      </div>
+    );
+  }
+
+  if (!plan) return null;
+
+  const sportColor = getSportColor(plan.sportType);
+
+  const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+  return (
+    <div className="p-4 md:p-6 max-w-4xl mx-auto">
+      {/* Back button */}
+      <button
+        onClick={() => router.back()}
+        className="flex items-center gap-2 text-[#888888] hover:text-white text-sm mb-6 transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back to Plans
+      </button>
+
+      {/* Plan header */}
+      <div className="bg-[#111111] border border-[#2A2A2A] p-6 mb-4">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <span
+                className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 font-bold"
+                style={{ color: sportColor, background: `${sportColor}20`, border: `1px solid ${sportColor}40` }}
+              >
+                {getSportLabel(plan.sportType)}
+              </span>
+              <StrengthBadge level={plan.difficulty} size="sm" />
+            </div>
+            <h1 className="font-display text-3xl text-white tracking-wider mb-2">{plan.title}</h1>
+            {plan.description && (
+              <p className="text-[#888888] text-sm leading-relaxed">{plan.description}</p>
+            )}
+          </div>
+          <Button
+            onClick={() => setFollowing((f) => !f)}
+            variant={following ? 'outline' : 'default'}
+            size="sm"
+          >
+            {following ? 'Following Plan' : 'Follow Plan'}
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-3 gap-4 border-t border-[#1A1A1A] pt-4">
+          <div className="flex items-center gap-2 text-sm text-[#888888]">
+            <Calendar className="w-4 h-4 text-[#FF4500]" />
+            <span>{plan.durationWeeks} weeks</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-[#888888]">
+            <Target className="w-4 h-4 text-[#FF4500]" />
+            <span>{plan.weeks.length} weeks planned</span>
+          </div>
+          {plan.creator && (
+            <div className="flex items-center gap-2 text-sm text-[#888888]">
+              <User className="w-4 h-4 text-[#FF4500]" />
+              <span>{plan.creator.username ?? 'Unknown'}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Weekly breakdown */}
+      <div className="mb-6">
+        <h2 className="font-display text-sm text-[#888888] tracking-wider mb-3">WEEKLY BREAKDOWN</h2>
+
+        {plan.weeks.length === 0 ? (
+          <div className="bg-[#111111] border border-[#2A2A2A] p-6 text-center">
+            <p className="text-[#888888] text-sm">
+              No detailed weekly breakdown provided for this plan.
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {plan.weeks.map((week) => (
+              <div key={week.id} className="bg-[#111111] border border-[#2A2A2A]">
+                <button
+                  onClick={() => setExpandedWeek(expandedWeek === week.weekNumber ? null : week.weekNumber)}
+                  className="w-full flex items-center justify-between p-4 text-left"
+                >
+                  <div>
+                    <span className="font-semibold text-white text-sm">Week {week.weekNumber}</span>
+                    {week.notes && (
+                      <span className="text-xs text-[#888888] ml-3">{week.notes}</span>
+                    )}
+                  </div>
+                  {expandedWeek === week.weekNumber ? (
+                    <ChevronUp className="w-4 h-4 text-[#888888]" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-[#888888]" />
+                  )}
+                </button>
+
+                {expandedWeek === week.weekNumber && (
+                  <div className="border-t border-[#1A1A1A] p-4">
+                    {Object.keys(week.daysJson).length === 0 ? (
+                      <p className="text-xs text-[#555555]">No day-by-day breakdown provided</p>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {dayNames.map((day) => {
+                          const dayData = week.daysJson[day.toLowerCase()];
+                          if (!dayData) return null;
+                          return (
+                            <div key={day} className="p-3 bg-[#0D0D0D] border border-[#1A1A1A]">
+                              <p className="text-xs font-bold text-[#FF4500] uppercase tracking-wider mb-1">{day}</p>
+                              <p className="text-xs text-[#888888] whitespace-pre-wrap">
+                                {typeof dayData === 'string' ? dayData : JSON.stringify(dayData, null, 2)}
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Review section */}
+      <div className="bg-[#111111] border border-[#2A2A2A] p-6">
+        <h2 className="font-display text-sm text-[#888888] tracking-wider mb-4">LEAVE A REVIEW</h2>
+
+        <div className="mb-4">
+          <div className="flex items-center gap-1 mb-2">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <button
+                key={star}
+                onClick={() => setReviewRating(star)}
+                className="transition-colors"
+              >
+                <Star
+                  className="w-6 h-6"
+                  fill={star <= reviewRating ? '#FFD700' : 'transparent'}
+                  stroke={star <= reviewRating ? '#FFD700' : '#2A2A2A'}
+                />
+              </button>
+            ))}
+          </div>
+          <textarea
+            value={reviewComment}
+            onChange={(e) => setReviewComment(e.target.value)}
+            placeholder="Share your experience with this plan..."
+            className="w-full bg-[#0A0A0A] border border-[#2A2A2A] text-white px-3 py-2.5 text-sm focus:border-[#FF4500] focus:outline-none resize-none h-20 placeholder:text-[#444444]"
+          />
+        </div>
+
+        <Button
+          size="sm"
+          disabled={reviewRating === 0 || submittingReview}
+          onClick={async () => {
+            if (reviewRating === 0) return;
+            setSubmittingReview(true);
+            try {
+              await fetch(`/api/sessions/${plan.id}/review`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ rating: reviewRating, comment: reviewComment }),
+              });
+              setReviewRating(0);
+              setReviewComment('');
+            } finally {
+              setSubmittingReview(false);
+            }
+          }}
+        >
+          <Star className="w-4 h-4" />
+          Submit Review
+        </Button>
+      </div>
+    </div>
+  );
+}

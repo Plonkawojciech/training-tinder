@@ -50,6 +50,16 @@ export function getSportColor(sport: string): string {
     gravel: '#FF8800',
     duathlon: '#CC44FF',
     mtb: '#44FF88',
+    gym: '#FF4500',
+    powerlifting: '#FF6600',
+    crossfit: '#FF2200',
+    calisthenics: '#FFAA00',
+    olympic_weightlifting: '#FFD700',
+    bodybuilding: '#FF4500',
+    hiit: '#FF0066',
+    yoga: '#AA44FF',
+    boxing: '#FF3300',
+    martial_arts: '#CC0000',
   };
   return colors[sport] ?? '#888888';
 }
@@ -64,6 +74,16 @@ export function getSportLabel(sport: string): string {
     gravel: 'Gravel',
     duathlon: 'Duathlon',
     mtb: 'MTB',
+    gym: 'Gym',
+    powerlifting: 'Powerlifting',
+    crossfit: 'CrossFit',
+    calisthenics: 'Calisthenics',
+    olympic_weightlifting: 'Olympic Lifting',
+    bodybuilding: 'Bodybuilding',
+    hiit: 'HIIT',
+    yoga: 'Yoga',
+    boxing: 'Boxing',
+    martial_arts: 'Martial Arts',
   };
   return labels[sport] ?? sport;
 }
@@ -105,6 +125,26 @@ export const SPORTS = [
   { value: 'gravel', label: 'Gravel' },
   { value: 'duathlon', label: 'Duathlon' },
   { value: 'mtb', label: 'MTB' },
+  { value: 'gym', label: 'Gym' },
+  { value: 'powerlifting', label: 'Powerlifting' },
+  { value: 'crossfit', label: 'CrossFit' },
+  { value: 'calisthenics', label: 'Calisthenics' },
+  { value: 'olympic_weightlifting', label: 'Olympic Lifting' },
+  { value: 'bodybuilding', label: 'Bodybuilding' },
+  { value: 'hiit', label: 'HIIT' },
+  { value: 'yoga', label: 'Yoga' },
+  { value: 'boxing', label: 'Boxing' },
+  { value: 'martial_arts', label: 'Martial Arts' },
 ] as const;
 
 export type SportType = typeof SPORTS[number]['value'];
+
+export const GYM_SPORTS = [
+  'gym', 'powerlifting', 'crossfit', 'calisthenics',
+  'olympic_weightlifting', 'bodybuilding', 'hiit', 'yoga', 'boxing', 'martial_arts',
+];
+
+export function epley1RM(weight: number, reps: number): number {
+  if (reps === 1) return weight;
+  return Math.round(weight * (1 + reps / 30));
+}

@@ -36,6 +36,11 @@ export async function PUT(request: Request) {
       lon?: number | null;
       availability?: string[];
       avatarUrl?: string | null;
+      gymName?: string | null;
+      strengthLevel?: string | null;
+      trainingSplits?: string[];
+      goals?: string[];
+      heightCm?: number | null;
     };
 
     const existing = await db.select().from(users).where(eq(users.clerkId, userId)).limit(1);
@@ -55,6 +60,11 @@ export async function PUT(request: Request) {
           lat: body.lat ?? null,
           lon: body.lon ?? null,
           availability: body.availability ?? [],
+          gymName: body.gymName ?? null,
+          strengthLevel: body.strengthLevel ?? null,
+          trainingSplits: body.trainingSplits ?? [],
+          goals: body.goals ?? [],
+          heightCm: body.heightCm ?? null,
         })
         .returning();
       return NextResponse.json(created);
@@ -62,7 +72,7 @@ export async function PUT(request: Request) {
       const [updated] = await db
         .update(users)
         .set({
-          username: body.username ?? existing[0].username,
+          username: body.username !== undefined ? body.username : existing[0].username,
           bio: body.bio !== undefined ? body.bio : existing[0].bio,
           avatarUrl: body.avatarUrl !== undefined ? body.avatarUrl : existing[0].avatarUrl,
           sportTypes: body.sportTypes ?? existing[0].sportTypes,
@@ -72,6 +82,11 @@ export async function PUT(request: Request) {
           lat: body.lat !== undefined ? body.lat : existing[0].lat,
           lon: body.lon !== undefined ? body.lon : existing[0].lon,
           availability: body.availability ?? existing[0].availability,
+          gymName: body.gymName !== undefined ? body.gymName : existing[0].gymName,
+          strengthLevel: body.strengthLevel !== undefined ? body.strengthLevel : existing[0].strengthLevel,
+          trainingSplits: body.trainingSplits !== undefined ? body.trainingSplits : existing[0].trainingSplits,
+          goals: body.goals !== undefined ? body.goals : existing[0].goals,
+          heightCm: body.heightCm !== undefined ? body.heightCm : existing[0].heightCm,
           updatedAt: new Date(),
         })
         .where(eq(users.clerkId, userId))
