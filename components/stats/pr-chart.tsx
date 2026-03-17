@@ -55,14 +55,14 @@ export function PRChart({ data, exerciseName }: PRChartProps) {
         style={{ maxHeight: '140px' }}
       >
         {/* Area fill */}
-        <path d={areaD} fill="rgba(255,69,0,0.08)" />
+        <path d={areaD} fill="rgba(99,102,241,0.08)" />
 
         {/* Line */}
-        <path d={pathD} fill="none" stroke="#FF4500" strokeWidth="2" strokeLinejoin="round" />
+        <path d={pathD} fill="none" stroke="#6366F1" strokeWidth="2" strokeLinejoin="round" />
 
         {/* Points */}
         {points.map((p, i) => (
-          <circle key={i} cx={p.x} cy={p.y} r="3" fill="#FF4500" stroke="#0A0A0A" strokeWidth="2">
+          <circle key={i} cx={p.x} cy={p.y} r="3" fill="#6366F1" stroke="#0A0A0A" strokeWidth="2">
             <title>{`${p.date}: ${p.weightKg}kg x ${p.reps}`}</title>
           </circle>
         ))}
@@ -79,11 +79,11 @@ export function PRChart({ data, exerciseName }: PRChartProps) {
         {sorted.length > 0 && (
           <>
             <text x={paddingX} y={height - 2} textAnchor="start" fill="#555555" fontSize="8">
-              {new Date(sorted[0].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              {new Date(sorted[0].date).toLocaleDateString('pl-PL', { month: 'short', day: 'numeric' })}
             </text>
             {sorted.length > 1 && (
               <text x={width - paddingX} y={height - 2} textAnchor="end" fill="#555555" fontSize="8">
-                {new Date(sorted[sorted.length - 1].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                {new Date(sorted[sorted.length - 1].date).toLocaleDateString('pl-PL', { month: 'short', day: 'numeric' })}
               </text>
             )}
           </>

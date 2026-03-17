@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Dumbbell, Trophy, Flame, Plus, ChevronRight, TrendingUp, Users, MapPin, Radio } from 'lucide-react';
 import { WorkoutCard } from '@/components/gym/workout-card';
@@ -80,6 +80,7 @@ interface SpotterEntry {
 
 export default function GymHubPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const [stats, setStats] = useState<StatsSummary | null>(null);
   const [recentWorkouts, setRecentWorkouts] = useState<WorkoutLog[]>([]);
   const [prs, setPrs] = useState<PRRecord[]>([]);
@@ -89,79 +90,82 @@ export default function GymHubPage() {
   const [gymCheckins, setGymCheckins] = useState<ActiveCheckin[]>([]);
   const [gymSpotters, setGymSpotters] = useState<SpotterEntry[]>([]);
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const [statsRes, workoutsRes, prsRes, plansRes, profileRes] = await Promise.all([
-          fetch('/api/stats?type=summary'),
-          fetch('/api/workouts?mine=true&limit=6'),
-          fetch('/api/records'),
-          fetch('/api/plans?limit=4'),
-          fetch('/api/users/profile'),
-        ]);
+  const load = useCallback(async () => {
+    try {
+      const [statsRes, workoutsRes, prsRes, plansRes, profileRes] = await Promise.all([
+        fetch('/api/stats?type=summary'),
+        fetch('/api/workouts?mine=true&limit=6'),
+        fetch('/api/records'),
+        fetch('/api/plans?limit=4'),
+        fetch('/api/users/profile'),
+      ]);
 
-        if (statsRes.ok) setStats(await statsRes.json());
-        if (workoutsRes.ok) setRecentWorkouts(await workoutsRes.json());
-        if (prsRes.ok) {
-          const data = await prsRes.json() as { best: PRRecord[] };
-          setPrs(data.best ?? []);
-        }
-        if (plansRes.ok) setPlans((await plansRes.json()).slice(0, 4));
-
-        let userProfile: UserProfile | null = null;
-        if (profileRes.ok) {
-          userProfile = await profileRes.json() as UserProfile;
-          setProfile(userProfile);
-        }
-
-        if (userProfile?.gymName) {
-          const [checkinRes, spotterRes] = await Promise.all([
-            fetch(`/api/checkin?gymName=${encodeURIComponent(userProfile.gymName)}`),
-            fetch(`/api/spotter?gymName=${encodeURIComponent(userProfile.gymName)}`),
-          ]);
-          if (checkinRes.ok) {
-            const d = await checkinRes.json() as { myCheckin: unknown; checkins: ActiveCheckin[] };
-            setGymCheckins(d.checkins ?? []);
-          }
-          if (spotterRes.ok) setGymSpotters(await spotterRes.json());
-        }
-      } finally {
-        setLoading(false);
+      if (statsRes.ok) setStats(await statsRes.json());
+      if (workoutsRes.ok) setRecentWorkouts(await workoutsRes.json());
+      if (prsRes.ok) {
+        const data = await prsRes.json() as { best: PRRecord[] };
+        setPrs(data.best ?? []);
       }
+      if (plansRes.ok) setPlans((await plansRes.json()).slice(0, 4));
+
+      let userProfile: UserProfile | null = null;
+      if (profileRes.ok) {
+        userProfile = await profileRes.json() as UserProfile;
+        setProfile(userProfile);
+      }
+
+      if (userProfile?.gymName) {
+        const [checkinRes, spotterRes] = await Promise.all([
+          fetch(`/api/checkin?gymName=${encodeURIComponent(userProfile.gymName)}`),
+          fetch(`/api/spotter?gymName=${encodeURIComponent(userProfile.gymName)}`),
+        ]);
+        if (checkinRes.ok) {
+          const d = await checkinRes.json() as { myCheckin: unknown; checkins: ActiveCheckin[] };
+          setGymCheckins(d.checkins ?? []);
+        }
+        if (spotterRes.ok) setGymSpotters(await spotterRes.json());
+      }
+    } catch (err) {
+      console.error('GymHubPage load error:', err);
+    } finally {
+      setLoading(false);
     }
-    load();
   }, []);
+
+  useEffect(() => {
+    load();
+  }, [load, pathname]);
 
   return (
     <div className="p-4 md:p-6 max-w-6xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="font-display text-3xl text-white tracking-wider">GYM HUB</h1>
-          <p className="text-[#888888] text-sm mt-1">Your strength training command center</p>
+          <h1 className="font-display text-3xl text-white tracking-wider">HUB SIŁOWNI</h1>
+          <p className="text-[#888888] text-sm mt-1">Centrum treningu siłowego</p>
         </div>
         <Link href="/gym/log">
           <Button>
             <Plus className="w-4 h-4" />
-            Log Workout
+            Zaloguj Trening
           </Button>
         </Link>
       </div>
 
       {/* Quick Stats */}
       <div className="grid grid-cols-3 gap-3 mb-6">
-        <div className="bg-[#111111] border border-[#2A2A2A] p-4 text-center">
-          <div className="w-8 h-8 bg-[rgba(255,69,0,0.1)] border border-[rgba(255,69,0,0.2)] flex items-center justify-center mx-auto mb-2">
-            <Dumbbell className="w-4 h-4 text-[#FF4500]" />
+        <div className="bg-[var(--bg-card)] border border-[var(--border)] p-4 text-center">
+          <div className="w-8 h-8 bg-[rgba(99,102,241,0.1)] border border-[rgba(99,102,241,0.2)] flex items-center justify-center mx-auto mb-2">
+            <Dumbbell className="w-4 h-4 text-[#6366F1]" />
           </div>
           {loading ? (
             <div className="h-7 skeleton mb-1" />
           ) : (
             <p className="font-display text-2xl text-white">{stats?.weekWorkouts ?? 0}</p>
           )}
-          <p className="text-[10px] text-[#888888] uppercase tracking-wider">Workouts this week</p>
+          <p className="text-[10px] text-[#888888] uppercase tracking-wider">Treningi w tygodniu</p>
         </div>
-        <div className="bg-[#111111] border border-[#2A2A2A] p-4 text-center">
+        <div className="bg-[var(--bg-card)] border border-[var(--border)] p-4 text-center">
           <div className="w-8 h-8 bg-[rgba(255,215,0,0.1)] border border-[rgba(255,215,0,0.2)] flex items-center justify-center mx-auto mb-2">
             <Trophy className="w-4 h-4 text-[#FFD700]" />
           </div>
@@ -170,18 +174,18 @@ export default function GymHubPage() {
           ) : (
             <p className="font-display text-2xl text-white">{stats?.monthPRs ?? 0}</p>
           )}
-          <p className="text-[10px] text-[#888888] uppercase tracking-wider">PRs this month</p>
+          <p className="text-[10px] text-[#888888] uppercase tracking-wider">Rekordy w miesiącu</p>
         </div>
-        <div className="bg-[#111111] border border-[#2A2A2A] p-4 text-center">
-          <div className="w-8 h-8 bg-[rgba(255,136,0,0.1)] border border-[rgba(255,136,0,0.2)] flex items-center justify-center mx-auto mb-2">
-            <Flame className="w-4 h-4 text-[#FF8800]" />
+        <div className="bg-[var(--bg-card)] border border-[var(--border)] p-4 text-center">
+          <div className="w-8 h-8 bg-[rgba(167,139,250,0.1)] border border-[rgba(167,139,250,0.2)] flex items-center justify-center mx-auto mb-2">
+            <Flame className="w-4 h-4 text-[#A78BFA]" />
           </div>
           {loading ? (
             <div className="h-7 skeleton mb-1" />
           ) : (
             <p className="font-display text-2xl text-white">{stats?.totalSets ?? 0}</p>
           )}
-          <p className="text-[10px] text-[#888888] uppercase tracking-wider">Sets this month</p>
+          <p className="text-[10px] text-[#888888] uppercase tracking-wider">Serie w miesiącu</p>
         </div>
       </div>
 
@@ -191,9 +195,9 @@ export default function GymHubPage() {
           {/* Recent Workouts */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-display text-sm text-[#888888] tracking-wider">RECENT WORKOUTS</h2>
-              <Link href="/gym/log" className="text-xs text-[#FF4500] hover:text-[#FF6633] flex items-center gap-1">
-                View all <ChevronRight className="w-3 h-3" />
+              <h2 className="font-display text-sm text-[#888888] tracking-wider">OSTATNIE TRENINGI</h2>
+              <Link href="/gym/log" className="text-xs text-[#6366F1] hover:text-[#818CF8] flex items-center gap-1">
+                Zobacz wszystkie <ChevronRight className="w-3 h-3" />
               </Link>
             </div>
             {loading ? (
@@ -203,13 +207,13 @@ export default function GymHubPage() {
                 ))}
               </div>
             ) : recentWorkouts.length === 0 ? (
-              <div className="bg-[#111111] border border-[#2A2A2A] p-8 text-center">
+              <div className="bg-[var(--bg-card)] border border-[var(--border)] p-8 text-center">
                 <Dumbbell className="w-10 h-10 text-[#2A2A2A] mx-auto mb-3" />
-                <p className="text-[#888888] text-sm mb-3">No workouts logged yet</p>
+                <p className="text-[#888888] text-sm mb-3">Brak zalogowanych treningów</p>
                 <Link href="/gym/log">
                   <Button size="sm">
                     <Plus className="w-4 h-4" />
-                    Log First Workout
+                    Zaloguj pierwszy trening
                   </Button>
                 </Link>
               </div>
@@ -226,7 +230,7 @@ export default function GymHubPage() {
                     date={w.date}
                     creator={w.creator}
                     isOwn
-                    onClick={() => router.push(`/gym/log?view=${w.id}`)}
+                    onClick={() => router.push('/gym/records')}
                   />
                 ))}
               </div>
@@ -236,9 +240,9 @@ export default function GymHubPage() {
           {/* Featured Plans */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-display text-sm text-[#888888] tracking-wider">FEATURED PLANS</h2>
-              <Link href="/gym/plans" className="text-xs text-[#FF4500] hover:text-[#FF6633] flex items-center gap-1">
-                Browse all <ChevronRight className="w-3 h-3" />
+              <h2 className="font-display text-sm text-[#888888] tracking-wider">WYRÓŻNIONE PLANY</h2>
+              <Link href="/gym/plans" className="text-xs text-[#6366F1] hover:text-[#818CF8] flex items-center gap-1">
+                Przeglądaj wszystkie <ChevronRight className="w-3 h-3" />
               </Link>
             </div>
             {loading ? (
@@ -248,8 +252,8 @@ export default function GymHubPage() {
                 ))}
               </div>
             ) : plans.length === 0 ? (
-              <div className="bg-[#111111] border border-[#2A2A2A] p-6 text-center">
-                <p className="text-[#888888] text-sm">No public plans yet</p>
+              <div className="bg-[var(--bg-card)] border border-[var(--border)] p-6 text-center">
+                <p className="text-[#888888] text-sm">Brak publicznych planów</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -266,22 +270,22 @@ export default function GymHubPage() {
               <div className="flex items-center justify-between mb-3">
                 <h2 className="font-display text-sm text-[#888888] tracking-wider flex items-center gap-2">
                   <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse inline-block" />
-                  WHO&apos;S TRAINING NOW
+                  KTO TRENUJE TERAZ
                 </h2>
-                <Link href="/gym/live" className="text-xs text-[#FF4500] hover:text-[#FF6633] flex items-center gap-1">
-                  View all <ChevronRight className="w-3 h-3" />
+                <Link href="/gym/live" className="text-xs text-[#6366F1] hover:text-[#818CF8] flex items-center gap-1">
+                  Zobacz wszystkie <ChevronRight className="w-3 h-3" />
                 </Link>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {gymCheckins.slice(0, 4).map((item) => (
-                  <div key={item.checkin.id} className="bg-[#111111] border border-[#2A2A2A] p-3 flex items-center gap-3">
+                  <div key={item.checkin.id} className="bg-[var(--bg-card)] border border-[var(--border)] p-3 flex items-center gap-3">
                     <div className="w-8 h-8 bg-[#2A2A2A] flex items-center justify-center text-xs text-white shrink-0">
                       {(item.user?.username ?? 'U')[0].toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-white truncate">{item.user?.username ?? 'Unknown'}</p>
+                      <p className="text-sm text-white truncate">{item.user?.username ?? 'Nieznany'}</p>
                       {item.checkin.workoutType && (
-                        <span className="text-[10px] text-[#FF4500] border border-[#FF4500]/30 px-1">{item.checkin.workoutType}</span>
+                        <span className="text-[10px] text-[#6366F1] border border-[#6366F1]/30 px-1">{item.checkin.workoutType}</span>
                       )}
                     </div>
                     <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse shrink-0" />
@@ -297,22 +301,22 @@ export default function GymHubPage() {
               <div className="flex items-center justify-between mb-3">
                 <h2 className="font-display text-sm text-[#888888] tracking-wider flex items-center gap-2">
                   <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse inline-block" />
-                  OPEN SPOTTER REQUESTS
+                  PROŚBY O ASEKURACJĘ
                 </h2>
-                <Link href="/gym/live" className="text-xs text-[#FF4500] hover:text-[#FF6633] flex items-center gap-1">
-                  View all <ChevronRight className="w-3 h-3" />
+                <Link href="/gym/live" className="text-xs text-[#6366F1] hover:text-[#818CF8] flex items-center gap-1">
+                  Zobacz wszystkie <ChevronRight className="w-3 h-3" />
                 </Link>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {gymSpotters.slice(0, 2).map((s) => (
-                  <div key={s.request.id} className="bg-[#111111] border border-red-900/40 p-3">
+                  <div key={s.request.id} className="bg-[var(--bg-card)] border border-red-900/40 p-3">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-white text-sm font-semibold">{s.request.exercise}</span>
                       {s.request.weightKg && (
-                        <span className="text-xs text-[#FF4500] border border-[#FF4500]/30 px-1.5 py-0.5">{s.request.weightKg}kg</span>
+                        <span className="text-xs text-[#6366F1] border border-[#6366F1]/30 px-1.5 py-0.5">{s.request.weightKg}kg</span>
                       )}
                     </div>
-                    <p className="text-xs text-[#888888]">{s.requester?.username ?? 'Unknown'}</p>
+                    <p className="text-xs text-[#888888]">{s.requester?.username ?? 'Nieznany'}</p>
                     {s.request.message && <p className="text-xs text-[#555555] mt-1 italic">&ldquo;{s.request.message}&rdquo;</p>}
                   </div>
                 ))}
@@ -328,8 +332,8 @@ export default function GymHubPage() {
 
           {/* Spotter Request */}
           {profile?.gymName && (
-            <div className="bg-[#111111] border border-[#2A2A2A] p-4">
-              <h3 className="font-display text-sm text-[#888888] tracking-wider mb-3">NEED HELP?</h3>
+            <div className="bg-[var(--bg-card)] border border-[var(--border)] p-4">
+              <h3 className="font-display text-sm text-[#888888] tracking-wider mb-3">POTRZEBUJESZ POMOCY?</h3>
               <SpotterRequest gymName={profile.gymName} />
             </div>
           )}
@@ -338,10 +342,10 @@ export default function GymHubPage() {
           <Big4Display records={prs} />
 
           {/* Top lifts */}
-          <div className="bg-[#111111] border border-[#2A2A2A] p-4">
+          <div className="bg-[var(--bg-card)] border border-[var(--border)] p-4">
             <div className="flex items-center gap-2 mb-3">
-              <TrendingUp className="w-4 h-4 text-[#FF4500]" />
-              <h3 className="font-display text-sm text-[#888888] tracking-wider">TOP LIFTS</h3>
+              <TrendingUp className="w-4 h-4 text-[#6366F1]" />
+              <h3 className="font-display text-sm text-[#888888] tracking-wider">TOP REKORDY</h3>
             </div>
             {loading ? (
               <div className="flex flex-col gap-2">
@@ -350,52 +354,52 @@ export default function GymHubPage() {
                 ))}
               </div>
             ) : prs.length === 0 ? (
-              <p className="text-xs text-[#555555]">No PRs recorded yet</p>
+              <p className="text-xs text-[#555555]">Brak rekordów</p>
             ) : (
               <div className="flex flex-col gap-2">
                 {prs.slice(0, 6).map((pr) => (
-                  <div key={pr.exerciseName} className="flex items-center justify-between py-1.5 border-b border-[#1A1A1A] last:border-0">
+                  <div key={pr.exerciseName} className="flex items-center justify-between py-1.5 border-b border-[var(--border)] last:border-0">
                     <span className="text-xs text-[#888888] truncate">{pr.exerciseName}</span>
                     <span className="text-xs font-bold text-white ml-2 shrink-0">{pr.weightKg}kg</span>
                   </div>
                 ))}
               </div>
             )}
-            <Link href="/gym/records" className="flex items-center gap-1 text-xs text-[#FF4500] mt-3 hover:text-[#FF6633]">
-              All records <ChevronRight className="w-3 h-3" />
+            <Link href="/gym/records" className="flex items-center gap-1 text-xs text-[#6366F1] mt-3 hover:text-[#818CF8]">
+              Wszystkie rekordy <ChevronRight className="w-3 h-3" />
             </Link>
           </div>
 
           {/* Quick actions */}
-          <div className="bg-[#111111] border border-[#2A2A2A] p-4">
-            <h3 className="font-display text-sm text-[#888888] tracking-wider mb-3">QUICK ACTIONS</h3>
+          <div className="bg-[var(--bg-card)] border border-[var(--border)] p-4">
+            <h3 className="font-display text-sm text-[#888888] tracking-wider mb-3">SZYBKIE AKCJE</h3>
             <div className="flex flex-col gap-2">
-              <Link href="/gym/log" className="flex items-center justify-between p-2.5 border border-[#2A2A2A] hover:border-[#FF4500] transition-all text-sm text-[#888888] hover:text-white">
-                <span>Log Workout</span>
+              <Link href="/gym/log" className="flex items-center justify-between p-2.5 border border-[var(--border)] hover:border-[#6366F1] transition-all text-sm text-[#888888] hover:text-white">
+                <span>Zaloguj Trening</span>
                 <Dumbbell className="w-4 h-4" />
               </Link>
-              <Link href="/gym/records" className="flex items-center justify-between p-2.5 border border-[#2A2A2A] hover:border-[#FF4500] transition-all text-sm text-[#888888] hover:text-white">
-                <span>Personal Records</span>
+              <Link href="/gym/records" className="flex items-center justify-between p-2.5 border border-[var(--border)] hover:border-[#6366F1] transition-all text-sm text-[#888888] hover:text-white">
+                <span>Rekordy Osobiste</span>
                 <Trophy className="w-4 h-4" />
               </Link>
-              <Link href="/gym/finder" className="flex items-center justify-between p-2.5 border border-[#2A2A2A] hover:border-[#FF4500] transition-all text-sm text-[#888888] hover:text-white">
-                <span>Find Nearby Gym</span>
+              <Link href="/gym/finder" className="flex items-center justify-between p-2.5 border border-[var(--border)] hover:border-[#6366F1] transition-all text-sm text-[#888888] hover:text-white">
+                <span>Znajdź siłownię</span>
                 <MapPin className="w-4 h-4" />
               </Link>
-              <Link href="/gym/live" className="flex items-center justify-between p-2.5 border border-[#2A2A2A] hover:border-[#FF4500] transition-all text-sm text-[#888888] hover:text-white">
-                <span>Find Gym Partners</span>
+              <Link href="/gym/live" className="flex items-center justify-between p-2.5 border border-[var(--border)] hover:border-[#6366F1] transition-all text-sm text-[#888888] hover:text-white">
+                <span>Partnerzy siłowni</span>
                 <Radio className="w-4 h-4" />
               </Link>
-              <Link href="/discover" className="flex items-center justify-between p-2.5 border border-[#2A2A2A] hover:border-[#FF4500] transition-all text-sm text-[#888888] hover:text-white">
-                <span>Find Athletes</span>
+              <Link href="/discover" className="flex items-center justify-between p-2.5 border border-[var(--border)] hover:border-[#6366F1] transition-all text-sm text-[#888888] hover:text-white">
+                <span>Znajdź sportowców</span>
                 <Users className="w-4 h-4" />
               </Link>
-              <Link href="/gym/plans" className="flex items-center justify-between p-2.5 border border-[#2A2A2A] hover:border-[#FF4500] transition-all text-sm text-[#888888] hover:text-white">
-                <span>Training Plans</span>
+              <Link href="/gym/plans" className="flex items-center justify-between p-2.5 border border-[var(--border)] hover:border-[#6366F1] transition-all text-sm text-[#888888] hover:text-white">
+                <span>Plany treningowe</span>
                 <ChevronRight className="w-4 h-4" />
               </Link>
-              <Link href="/stats" className="flex items-center justify-between p-2.5 border border-[#2A2A2A] hover:border-[#FF4500] transition-all text-sm text-[#888888] hover:text-white">
-                <span>Progress Stats</span>
+              <Link href="/stats" className="flex items-center justify-between p-2.5 border border-[var(--border)] hover:border-[#6366F1] transition-all text-sm text-[#888888] hover:text-white">
+                <span>Postępy i statystyki</span>
                 <TrendingUp className="w-4 h-4" />
               </Link>
             </div>

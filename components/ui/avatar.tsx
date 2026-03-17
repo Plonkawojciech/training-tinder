@@ -5,10 +5,11 @@ interface AvatarProps extends React.HTMLAttributes<HTMLDivElement> {
   src?: string | null;
   alt?: string;
   fallback?: string;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 }
 
 const sizeMap = {
+  xs: 'w-6 h-6 text-[10px]',
   sm: 'w-8 h-8 text-xs',
   md: 'w-10 h-10 text-sm',
   lg: 'w-14 h-14 text-lg',
@@ -19,21 +20,17 @@ export function Avatar({ src, alt, fallback, size = 'md', className, ...props }:
   const [imgError, setImgError] = React.useState(false);
 
   const initials = fallback
-    ? fallback
-        .split(' ')
-        .map((w) => w[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2)
+    ? fallback.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2)
     : '?';
 
   return (
     <div
       className={cn(
-        'relative overflow-hidden bg-[#1A1A1A] border border-[#2A2A2A] flex items-center justify-center flex-shrink-0',
+        'relative overflow-hidden flex items-center justify-center flex-shrink-0 rounded-full',
         sizeMap[size],
         className
       )}
+      style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.2), rgba(167,139,250,0.15))' }}
       {...props}
     >
       {src && !imgError ? (
@@ -45,7 +42,7 @@ export function Avatar({ src, alt, fallback, size = 'md', className, ...props }:
           onError={() => setImgError(true)}
         />
       ) : (
-        <span className="font-display text-[#FF4500]">{initials}</span>
+        <span className="font-bold text-[#6366F1]">{initials}</span>
       )}
     </div>
   );

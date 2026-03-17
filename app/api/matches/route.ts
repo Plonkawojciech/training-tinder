@@ -1,17 +1,17 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { users, matches } from '@/lib/db/schema';
-import { eq, and, or } from 'drizzle-orm';
+import { eq, and, or, sql } from 'drizzle-orm';
 import { rankMatches, filterByLocation, filterBySport, type UserForMatching } from '@/lib/matching';
 
 export async function GET(request: Request) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const userId = await getAuthUserId();
+  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
 
   const { searchParams } = new URL(request.url);
   const sport = searchParams.get('sport') ?? 'all';
-  const maxDistanceKm = parseInt(searchParams.get('radius') ?? '50');
+  const maxDistanceKm = Math.max(1, parseInt(searchParams.get('radius') ?? '50') || 50);
 
   try {
     const currentUserRows = await db
@@ -25,7 +25,26 @@ export async function GET(request: Request) {
     }
 
     const currentUser = currentUserRows[0];
-    const allUsers = await db.select().from(users);
+
+    // Pre-filter by bbox when user has location
+    const radiusKmToLatDelta = maxDistanceKm / 111.32;
+    const radiusKmToLonDelta = currentUser.lat
+      ? maxDistanceKm / (111.32 * Math.cos((currentUser.lat * Math.PI) / 180))
+      : maxDistanceKm / 111.32;
+
+    const locationCondition =
+      currentUser.lat !== null && currentUser.lon !== null
+        ? sql`(${users.lat} IS NULL OR (
+            ${users.lat} BETWEEN ${currentUser.lat - radiusKmToLatDelta} AND ${currentUser.lat + radiusKmToLatDelta}
+            AND ${users.lon} BETWEEN ${currentUser.lon - radiusKmToLonDelta} AND ${currentUser.lon + radiusKmToLonDelta}
+          ))`
+        : sql`1=1`;
+
+    const allUsers = await db
+      .select()
+      .from(users)
+      .where(sql`${users.clerkId} != ${userId} AND ${locationCondition}`)
+      .limit(500);
 
     const currentForMatch: UserForMatching = {
       id: String(currentUser.id),
@@ -46,7 +65,6 @@ export async function GET(request: Request) {
     };
 
     const candidates: UserForMatching[] = allUsers
-      .filter((u) => u.clerkId !== userId)
       .map((u) => ({
         id: String(u.id),
         clerkId: u.clerkId,
@@ -72,13 +90,13 @@ export async function GET(request: Request) {
     return NextResponse.json(ranked);
   } catch (err) {
     console.error('GET /api/matches error:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const userId = await getAuthUserId();
+  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
 
   try {
     const { targetClerkId, score } = await request.json() as { targetClerkId: string; score: number };
@@ -106,6 +124,6 @@ export async function POST(request: Request) {
     return NextResponse.json(match);
   } catch (err) {
     console.error('POST /api/matches error:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
   }
 }

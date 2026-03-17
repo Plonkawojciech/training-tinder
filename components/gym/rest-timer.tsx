@@ -54,11 +54,11 @@ export function RestTimer({ defaultSeconds = 90 }: RestTimerProps) {
   const strokeDashoffset = circumference * (1 - progress / 100);
 
   return (
-    <div className="bg-[#111111] border border-[#2A2A2A] p-4">
+    <div className="bg-[var(--bg-card)] border border-[var(--border)] p-4">
       <div className="flex items-center gap-2 mb-3">
-        <Timer className="w-4 h-4 text-[#FF4500]" />
+        <Timer className="w-4 h-4 text-[#6366F1]" />
         <span className="text-xs font-semibold uppercase tracking-wider text-[#888888]">
-          Rest Timer
+          Zegar odpoczynku
         </span>
       </div>
 
@@ -72,7 +72,7 @@ export function RestTimer({ defaultSeconds = 90 }: RestTimerProps) {
               cy="32"
               r="28"
               fill="none"
-              stroke={remaining === 0 ? '#00CC44' : '#FF4500'}
+              stroke={remaining === 0 ? '#00CC44' : '#6366F1'}
               strokeWidth="4"
               strokeDasharray={circumference}
               strokeDashoffset={strokeDashoffset}
@@ -93,18 +93,18 @@ export function RestTimer({ defaultSeconds = 90 }: RestTimerProps) {
             <button
               type="button"
               onClick={() => setRunning((r) => !r)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#FF4500] text-white text-xs font-semibold uppercase tracking-wider hover:shadow-[0_0_12px_rgba(255,69,0,0.4)] transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#6366F1] text-white text-xs font-semibold uppercase tracking-wider hover:shadow-[0_0_12px_rgba(99,102,241,0.4)] transition-all"
             >
               {running ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-              {running ? 'Pause' : 'Start'}
+              {running ? 'Pauza' : 'Start'}
             </button>
             <button
               type="button"
               onClick={reset}
-              className="flex items-center gap-1.5 px-3 py-1.5 border border-[#2A2A2A] text-[#888888] text-xs hover:text-white hover:border-[#FF4500] transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 border border-[var(--border)] text-[#888888] text-xs hover:text-white hover:border-[#6366F1] transition-all"
             >
               <RotateCcw className="w-3 h-3" />
-              Reset
+              Resetuj
             </button>
           </div>
           <div className="flex gap-1">
@@ -116,7 +116,7 @@ export function RestTimer({ defaultSeconds = 90 }: RestTimerProps) {
                 className="px-2 py-1 text-[10px] border transition-all"
                 style={
                   totalSeconds === s
-                    ? { borderColor: '#FF4500', color: '#FF4500', background: 'rgba(255,69,0,0.1)' }
+                    ? { borderColor: '#6366F1', color: '#6366F1', background: 'rgba(99,102,241,0.1)' }
                     : { borderColor: '#2A2A2A', color: '#555555', background: 'transparent' }
                 }
               >

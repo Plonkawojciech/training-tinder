@@ -1,40 +1,16 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Filter, RefreshCw, Users, Dumbbell, Plus, ChevronRight } from 'lucide-react';
-import { AthleteCard } from '@/components/athletes/athlete-card';
-import { SportFilter } from '@/components/athletes/sport-filter';
-import { WorkoutCard } from '@/components/gym/workout-card';
-import { ActivityCard } from '@/components/feed/activity-card';
+import {
+  Activity, Dumbbell, Users, TrendingUp, Plus,
+  Compass, Calendar, ChevronRight, Zap, BarChart2,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
-
-interface MatchResult {
-  user: {
-    id: string;
-    clerkId: string;
-    username: string | null;
-    avatarUrl: string | null;
-    bio: string | null;
-    sportTypes: string[];
-    pacePerKm: number | null;
-    weeklyKm: number | null;
-    city: string | null;
-  };
-  score: number;
-  distanceKm: number | null;
-}
-
-interface WorkoutLog {
-  id: number;
-  name: string;
-  type: string;
-  durationMin: number | null;
-  date: string;
-  exercises: { id: number }[];
-  creator: { username: string | null; avatarUrl: string | null } | null;
-}
+import { ActivityCard } from '@/components/feed/activity-card';
+import { useLang } from '@/lib/lang';
+import { StravaRecentWidget } from '@/components/strava/strava-recent-widget';
 
 interface FeedItem {
   id: number;
@@ -47,72 +23,87 @@ interface FeedItem {
   isFollowing: boolean;
 }
 
-const RADIUS_OPTIONS = [5, 10, 25, 50, 100];
-type ActiveTab = 'partners' | 'gym';
+const HUBS = [
+  {
+    href: '/hubs/endurance',
+    label: 'Wytrzymałość',
+    subtitle: 'Bieganie · Kolarstwo · Pływanie',
+    icon: Activity,
+    gradient: 'linear-gradient(135deg, #6366F1 0%, #6D28D9 100%)',
+    emoji: '🏃',
+  },
+  {
+    href: '/hubs/strength',
+    label: 'Siłownia',
+    subtitle: 'Gym · Powerlifting · Rekordy',
+    icon: Dumbbell,
+    gradient: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+    emoji: '🏋️',
+  },
+  {
+    href: '/hubs/social',
+    label: 'Społeczność',
+    subtitle: 'Forum · Feed · Znajomi',
+    icon: Users,
+    gradient: 'linear-gradient(135deg, #D97706 0%, #B45309 100%)',
+    emoji: '🤝',
+  },
+  {
+    href: '/hubs/analytics',
+    label: 'Statystyki',
+    subtitle: 'Wykresy · Rekordy · Postęp',
+    icon: TrendingUp,
+    gradient: 'linear-gradient(135deg, #6366F1 0%, #A78BFA 100%)',
+    emoji: '📊',
+  },
+];
+
+const QUICK_ACTIONS = [
+  { href: '/discover', label: 'Odkryj', icon: Compass, color: '#6366F1' },
+  { href: '/gym/log', label: 'Trening', icon: Dumbbell, color: '#059669' },
+  { href: '/sessions/new', label: 'Sesja', icon: Calendar, color: '#D97706' },
+  { href: '/forum', label: 'Forum', icon: Users, color: '#DB2777' },
+];
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<ActiveTab>('partners');
-  const [matches, setMatches] = useState<MatchResult[]>([]);
-  const [recentWorkouts, setRecentWorkouts] = useState<WorkoutLog[]>([]);
-  const [feedPreview, setFeedPreview] = useState<FeedItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [gymLoading, setGymLoading] = useState(false);
-  const [sport, setSport] = useState('all');
-  const [radius, setRadius] = useState(50);
-  const [showFilters, setShowFilters] = useState(false);
+  const pathname = usePathname();
+  const { t } = useLang();
+  const [feed, setFeed] = useState<FeedItem[]>([]);
   const [hasProfile, setHasProfile] = useState<boolean | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
 
-  const fetchMatches = useCallback(async () => {
-    setLoading(true);
+  const fetchFeed = useCallback(async () => {
     try {
-      const res = await fetch(`/api/matches?sport=${sport}&radius=${radius}`);
-      if (res.ok) {
-        const data: MatchResult[] = await res.json();
-        setMatches(data);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [sport, radius]);
-
-  const fetchGymData = useCallback(async () => {
-    setGymLoading(true);
-    try {
-      const [workoutsRes, feedRes] = await Promise.all([
-        fetch('/api/workouts?mine=true&limit=4'),
-        fetch('/api/feed?limit=5'),
-      ]);
-      if (workoutsRes.ok) setRecentWorkouts(await workoutsRes.json());
-      if (feedRes.ok) setFeedPreview(await feedRes.json());
-    } finally {
-      setGymLoading(false);
+      const res = await fetch('/api/feed?limit=5');
+      if (res.ok) setFeed(await res.json());
+    } catch (err) {
+      console.error('fetchFeed error:', err);
     }
   }, []);
 
   useEffect(() => {
     async function checkProfile() {
-      const res = await fetch('/api/users/profile');
-      if (res.ok) {
+      try {
+        const res = await fetch('/api/users/profile');
+        if (!res.ok) return;
         const data: { username?: string } | null = await res.json();
         if (!data?.username) {
           router.push('/onboarding');
           return;
         }
+        setUsername(data.username);
         setHasProfile(true);
-        fetchMatches();
-        fetchGymData();
+        fetchFeed();
+      } catch (err) {
+        console.error('checkProfile error:', err);
       }
     }
     checkProfile();
-  }, [router, fetchMatches, fetchGymData]);
-
-  useEffect(() => {
-    if (hasProfile) fetchMatches();
-  }, [sport, radius, hasProfile, fetchMatches]);
+  }, [router, fetchFeed, pathname]);
 
   function handleFeedFollowToggle(targetId: string, following: boolean) {
-    setFeedPreview((prev) =>
+    setFeed((prev) =>
       prev.map((item) =>
         item.creator?.clerkId === targetId ? { ...item, isFollowing: following } : item
       )
@@ -122,255 +113,405 @@ export default function DashboardPage() {
   if (hasProfile === null) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-[#FF4500] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-[#6366F1] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="p-4 md:p-6 max-w-6xl mx-auto">
-      {/* Quick actions bar */}
-      <div className="flex items-center gap-3 mb-6 p-3 bg-[#111111] border border-[#2A2A2A]">
-        <Link href="/gym/log">
-          <Button size="sm">
-            <Dumbbell className="w-4 h-4" />
-            Log Workout
-          </Button>
-        </Link>
-        <Link href="/sessions/new">
-          <Button variant="outline" size="sm">
-            <Plus className="w-4 h-4" />
-            New Session
-          </Button>
-        </Link>
-        <span className="text-xs text-[#555555] ml-auto hidden sm:inline">
-          Find partners · Track progress · Connect
-        </span>
-      </div>
+    <div className="max-w-6xl mx-auto md:pb-8">
 
-      {/* Tabs */}
-      <div className="flex border-b border-[#2A2A2A] mb-6">
-        <button
-          onClick={() => setActiveTab('partners')}
-          className="px-4 py-2.5 text-sm font-medium uppercase tracking-wider border-b-2 transition-all"
-          style={
-            activeTab === 'partners'
-              ? { borderColor: '#FF4500', color: '#FF4500' }
-              : { borderColor: 'transparent', color: '#888888' }
-          }
-        >
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            Find Partners
-          </div>
-        </button>
-        <button
-          onClick={() => setActiveTab('gym')}
-          className="px-4 py-2.5 text-sm font-medium uppercase tracking-wider border-b-2 transition-all"
-          style={
-            activeTab === 'gym'
-              ? { borderColor: '#FF4500', color: '#FF4500' }
-              : { borderColor: 'transparent', color: '#888888' }
-          }
-        >
-          <div className="flex items-center gap-2">
-            <Dumbbell className="w-4 h-4" />
-            Gym Partners
-          </div>
-        </button>
-      </div>
+      {/* ── MOBILE VIEW ─────────────────────────────── */}
+      <div className="md:hidden flex flex-col" style={{ background: 'var(--bg)' }}>
 
-      {activeTab === 'partners' && (
-        <>
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="font-display text-3xl text-white tracking-wider">FIND PARTNERS</h1>
-              <p className="text-[#888888] text-sm mt-1">
-                {matches.length} athletes matching your profile
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowFilters((f) => !f)}
-              >
-                <Filter className="w-4 h-4" />
-                Filters
-              </Button>
-              <Button variant="ghost" size="icon-sm" onClick={fetchMatches} disabled={loading}>
-                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              </Button>
-            </div>
-          </div>
-
-          {/* Filters */}
-          {showFilters && (
-            <div className="mb-4 p-4 bg-[#111111] border border-[#2A2A2A] animate-slide-up">
-              <div className="flex items-center gap-4 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-[#888888] uppercase tracking-wider">Radius:</span>
-                  <div className="flex items-center gap-1">
-                    {RADIUS_OPTIONS.map((r) => (
-                      <button
-                        key={r}
-                        onClick={() => setRadius(r)}
-                        className="px-2 py-1 text-xs border transition-all"
-                        style={
-                          radius === r
-                            ? { background: '#FF4500', color: 'white', borderColor: '#FF4500' }
-                            : { background: 'transparent', color: '#888888', borderColor: '#2A2A2A' }
-                        }
-                      >
-                        {r}km
-                      </button>
-                    ))}
-                  </div>
-                </div>
+        {/* Hero greeting card */}
+        <div style={{ padding: '20px 16px 0' }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #6366F1 0%, #818CF8 60%, #A78BFA 100%)',
+            borderRadius: 24,
+            padding: '24px 20px',
+            marginBottom: 16,
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: '0 8px 32px rgba(99,102,241,0.4)',
+          }}>
+            {/* Decorative circles */}
+            <div style={{
+              position: 'absolute', top: -20, right: -20,
+              width: 100, height: 100, borderRadius: '50%',
+              background: 'rgba(255,255,255,0.08)',
+            }} />
+            <div style={{
+              position: 'absolute', bottom: -30, right: 40,
+              width: 60, height: 60, borderRadius: '50%',
+              background: 'rgba(255,255,255,0.06)',
+            }} />
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+              <div>
+                <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, marginBottom: 4 }}>
+                  {t('dash_ready')}
+                </p>
+                <h1 style={{ color: 'white', fontWeight: 800, fontSize: 22, letterSpacing: -0.5, lineHeight: 1.2 }}>
+                  {username ? `Cześć, ${username}! 👋` : 'TrainMate'}
+                </h1>
+              </div>
+              <div style={{
+                width: 44, height: 44, borderRadius: 14,
+                background: 'rgba(255,255,255,0.2)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Zap style={{ width: 22, height: 22, color: 'white' }} fill="white" />
               </div>
             </div>
-          )}
 
-          {/* Sport filter */}
-          <div className="mb-6">
-            <SportFilter selected={sport} onChange={setSport} />
-          </div>
-
-          {/* Match grid */}
-          {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="h-48 skeleton" />
+            {/* Quick sport pills */}
+            <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
+              {[
+                { sport: 'cycling', emoji: '🚴', label: 'Kolarstwo' },
+                { sport: 'running', emoji: '🏃', label: 'Bieganie' },
+                { sport: 'gym', emoji: '🏋️', label: 'Siłownia' },
+              ].map((s) => (
+                <Link
+                  key={s.sport}
+                  href={`/discover?sport=${s.sport}`}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 5,
+                    padding: '6px 12px', borderRadius: 99,
+                    background: 'rgba(255,255,255,0.15)',
+                    textDecoration: 'none', color: 'white',
+                    fontSize: 12, fontWeight: 600,
+                    backdropFilter: 'blur(8px)',
+                  }}
+                >
+                  {s.emoji} {s.label}
+                </Link>
               ))}
             </div>
-          ) : matches.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-4">
-              <Users className="w-12 h-12 text-[#2A2A2A]" />
-              <h3 className="font-display text-xl text-[#888888]">NO MATCHES FOUND</h3>
-              <p className="text-[#888888] text-sm text-center max-w-sm">
-                Try expanding your search radius or selecting different sports.
+          </div>
+        </div>
+
+        {/* Quick actions grid */}
+        <div style={{ padding: '0 16px 16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+            <Link href="/discover" style={{ textDecoration: 'none' }}>
+              <div style={{
+                background: 'var(--bg-card)', borderRadius: 20, padding: '16px',
+                boxShadow: 'var(--shadow-card)',
+                display: 'flex', alignItems: 'center', gap: 12,
+              }}>
+                <div style={{
+                  width: 44, height: 44, borderRadius: 14,
+                  background: 'rgba(99,102,241,0.12)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Compass style={{ width: 20, height: 20, color: '#6366F1' }} />
+                </div>
+                <div>
+                  <p style={{ color: 'var(--text)', fontWeight: 700, fontSize: 14 }}>Odkryj</p>
+                  <p style={{ color: 'var(--text-muted)', fontSize: 11 }}>Sportowcy</p>
+                </div>
+              </div>
+            </Link>
+
+            <Link href="/sessions/new" style={{ textDecoration: 'none' }}>
+              <div style={{
+                background: 'var(--bg-card)', borderRadius: 20, padding: '16px',
+                boxShadow: 'var(--shadow-card)',
+                display: 'flex', alignItems: 'center', gap: 12,
+              }}>
+                <div style={{
+                  width: 44, height: 44, borderRadius: 14,
+                  background: 'rgba(5,150,105,0.12)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Plus style={{ width: 20, height: 20, color: '#059669' }} />
+                </div>
+                <div>
+                  <p style={{ color: 'var(--text)', fontWeight: 700, fontSize: 14 }}>Nowa Sesja</p>
+                  <p style={{ color: 'var(--text-muted)', fontSize: 11 }}>Zaplanuj</p>
+                </div>
+              </div>
+            </Link>
+
+            <Link href="/sessions" style={{ textDecoration: 'none' }}>
+              <div style={{
+                background: 'var(--bg-card)', borderRadius: 20, padding: '16px',
+                boxShadow: 'var(--shadow-card)',
+                display: 'flex', alignItems: 'center', gap: 12,
+              }}>
+                <div style={{
+                  width: 44, height: 44, borderRadius: 14,
+                  background: 'rgba(217,119,6,0.12)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Calendar style={{ width: 20, height: 20, color: '#D97706' }} />
+                </div>
+                <div>
+                  <p style={{ color: 'var(--text)', fontWeight: 700, fontSize: 14 }}>Sesje</p>
+                  <p style={{ color: 'var(--text-muted)', fontSize: 11 }}>Treningi</p>
+                </div>
+              </div>
+            </Link>
+
+            <Link href="/gym/log" style={{ textDecoration: 'none' }}>
+              <div style={{
+                background: 'var(--bg-card)', borderRadius: 20, padding: '16px',
+                boxShadow: 'var(--shadow-card)',
+                display: 'flex', alignItems: 'center', gap: 12,
+              }}>
+                <div style={{
+                  width: 44, height: 44, borderRadius: 14,
+                  background: 'rgba(219,39,119,0.12)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Dumbbell style={{ width: 20, height: 20, color: '#DB2777' }} />
+                </div>
+                <div>
+                  <p style={{ color: 'var(--text)', fontWeight: 700, fontSize: 14 }}>Trening</p>
+                  <p style={{ color: 'var(--text-muted)', fontSize: 11 }}>Zaloguj</p>
+                </div>
+              </div>
+            </Link>
+          </div>
+        </div>
+
+        {/* TrainPilot integration banner */}
+        <div style={{ padding: '0 16px 16px' }}>
+          <a
+            href="https://trainpilot.vercel.app"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 14,
+              background: 'linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(129,140,248,0.05) 100%)',
+              borderRadius: 18,
+              border: '1px solid rgba(99,102,241,0.25)',
+              padding: '14px 16px', textDecoration: 'none',
+            }}
+          >
+            <div style={{
+              width: 42, height: 42, borderRadius: 13, flexShrink: 0,
+              background: 'linear-gradient(135deg, #6366F1, #818CF8)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Zap style={{ width: 20, height: 20, color: '#fff' }} fill="#fff" />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontFamily: 'Syne, Inter, sans-serif', fontWeight: 800, fontSize: 14, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                TrainPilot <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontFamily: 'Inter, sans-serif', fontSize: 12, letterSpacing: 0 }}>— analityka osobista</span>
               </p>
-              <Button onClick={() => { setSport('all'); setRadius(100); }}>
-                Reset Filters
-              </Button>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>FTP · CTL/ATL · Dieta · Sen · AI</p>
+            </div>
+            <ChevronRight style={{ width: 16, height: 16, color: '#6366F1', flexShrink: 0 }} />
+          </a>
+        </div>
+
+        {/* Strava widget */}
+        <div style={{ padding: '0 16px 16px' }}>
+          <StravaRecentWidget />
+        </div>
+
+        {/* Recent activity */}
+        {feed.length > 0 && (
+          <div style={{ padding: '0 16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <p style={{ color: 'var(--text)', fontWeight: 700, fontSize: 16 }}>{t('dash_recent')}</p>
+              <Link href="/feed" style={{ color: '#6366F1', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
+                Zobacz więcej
+              </Link>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {feed.slice(0, 3).map((item) => (
+                <ActivityCard
+                  key={item.id}
+                  id={item.id}
+                  type={item.type}
+                  dataJson={item.dataJson}
+                  createdAt={item.createdAt}
+                  creator={item.creator}
+                  isOwn={item.isOwn}
+                  isFollowing={item.isFollowing}
+                  onFollowToggle={handleFeedFollowToggle}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── DESKTOP VIEW ─────────────────────────────── */}
+      <div className="hidden md:block p-6">
+
+        {/* Welcome banner */}
+        <div
+          className="mb-8 p-6 rounded-[20px]"
+          style={{
+            background: 'linear-gradient(135deg, #6366F1 0%, #818CF8 60%, #A78BFA 100%)',
+            boxShadow: '0 8px 32px rgba(99,102,241,0.35)',
+            position: 'relative', overflow: 'hidden',
+          }}
+        >
+          <div style={{
+            position: 'absolute', top: -30, right: -30, width: 160, height: 160,
+            borderRadius: '50%', background: 'rgba(255,255,255,0.07)',
+          }} />
+          <div style={{
+            position: 'absolute', bottom: -40, right: 100, width: 100, height: 100,
+            borderRadius: '50%', background: 'rgba(255,255,255,0.05)',
+          }} />
+          <div className="flex items-center justify-between relative">
+            <div>
+              <p className="text-white/70 text-sm mb-1">{t('dash_ready')}</p>
+              <h1 className="text-white font-bold text-3xl tracking-tight">
+                {t('dash_welcome')}{username ? `, ${username}` : ''}
+              </h1>
+              <p className="text-white/60 text-sm mt-1">{t('dash_command')}</p>
+            </div>
+            <div className="w-14 h-14 rounded-[18px] flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.2)' }}>
+              <Zap className="w-7 h-7 text-white" fill="white" />
+            </div>
+          </div>
+        </div>
+
+        {/* Hub cards */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-bold text-base" style={{ color: 'var(--text)' }}>{t('dash_hubs')}</h2>
+          </div>
+          <div className="grid grid-cols-4 gap-3">
+            {HUBS.map((hub) => {
+              const Icon = hub.icon;
+              return (
+                <Link key={hub.href} href={hub.href} style={{ textDecoration: 'none' }}>
+                  <div
+                    className="p-5 rounded-[20px] transition-all hover:scale-[1.02] hover:shadow-[0_12px_40px_rgba(0,0,0,0.3)] group cursor-pointer h-full flex flex-col"
+                    style={{ background: hub.gradient }}
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="w-10 h-10 rounded-[12px] flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.2)' }}>
+                        <Icon className="w-5 h-5 text-white" />
+                      </div>
+                      <span className="text-2xl">{hub.emoji}</span>
+                    </div>
+                    <h3 className="font-bold text-white text-base mb-1">{hub.label}</h3>
+                    <p className="text-white/60 text-xs mb-3">{hub.subtitle}</p>
+                    <div className="mt-auto flex items-center gap-1 text-white/80 text-xs font-semibold">
+                      Wejdź <ChevronRight className="w-3 h-3" />
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Quick actions */}
+        <div className="mb-8">
+          <h2 className="font-bold text-base mb-4" style={{ color: 'var(--text)' }}>{t('dash_quick')}</h2>
+          <div className="grid grid-cols-4 gap-3">
+            {QUICK_ACTIONS.map((action) => {
+              const Icon = action.icon;
+              return (
+                <Link key={action.href} href={action.href} style={{ textDecoration: 'none' }}>
+                  <div
+                    className="flex flex-col items-center gap-3 p-5 rounded-[20px] transition-all hover:scale-[1.02] hover:shadow-[var(--shadow-elevated)] group text-center"
+                    style={{ background: 'var(--bg-card)', boxShadow: 'var(--shadow-card)' }}
+                  >
+                    <div
+                      className="w-12 h-12 rounded-[16px] flex items-center justify-center transition-all"
+                      style={{ background: `${action.color}18` }}
+                    >
+                      <Icon className="w-5 h-5" style={{ color: action.color }} />
+                    </div>
+                    <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
+                      {action.label}
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* TrainPilot banner */}
+        <div className="mb-8">
+          <a
+            href="https://trainpilot.vercel.app"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-4 p-5 rounded-[20px] transition-all hover:shadow-[0_8px_32px_rgba(99,102,241,0.2)]"
+            style={{
+              background: 'linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(129,140,248,0.05) 100%)',
+              border: '1px solid rgba(99,102,241,0.25)',
+              textDecoration: 'none',
+            }}
+          >
+            <div className="w-12 h-12 rounded-[16px] flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #6366F1, #818CF8)' }}>
+              <Zap className="w-6 h-6 text-white" fill="white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-base" style={{ color: 'var(--text)', fontFamily: 'Syne, Inter, sans-serif', letterSpacing: '-0.01em' }}>
+                TrainPilot — analityka osobista ↗
+              </p>
+              <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                FTP · CTL/ATL · Garmin · Sen · HRV · Dieta · AI Briefing
+              </p>
+            </div>
+            <div className="text-sm font-semibold px-4 py-2 rounded-[12px]" style={{ background: 'rgba(99,102,241,0.15)', color: '#6366F1' }}>
+              Otwórz
+            </div>
+          </a>
+        </div>
+
+        {/* Strava + Feed row */}
+        <div className="grid grid-cols-3 gap-6 mb-8">
+          <div className="col-span-1">
+            <StravaRecentWidget />
+          </div>
+
+          {/* Activity Feed — spans 2 cols */}
+          <div className="col-span-2">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-bold text-base" style={{ color: 'var(--text)' }}>{t('dash_recent')}</h2>
+            <Link href="/feed" className="text-sm font-semibold flex items-center gap-1" style={{ color: '#6366F1', textDecoration: 'none' }}>
+              Pełny feed <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+          {feed.length === 0 ? (
+            <div
+              className="p-10 text-center rounded-[20px]"
+              style={{ background: 'var(--bg-card)', boxShadow: 'var(--shadow-card)' }}
+            >
+              <BarChart2 className="w-10 h-10 mx-auto mb-3" style={{ color: 'var(--text-dim)' }} />
+              <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>
+                Brak aktywności. Obserwuj sportowców, by widzieć ich postępy!
+              </p>
+              <Link href="/discover">
+                <Button size="sm">
+                  <Compass className="w-4 h-4" />Odkryj Sportowców
+                </Button>
+              </Link>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {matches.map((match) => (
-                <AthleteCard
-                  key={match.user.clerkId}
-                  id={match.user.clerkId}
-                  username={match.user.username}
-                  avatarUrl={match.user.avatarUrl}
-                  bio={match.user.bio}
-                  sportTypes={match.user.sportTypes}
-                  pacePerKm={match.user.pacePerKm}
-                  weeklyKm={match.user.weeklyKm}
-                  city={match.user.city}
-                  score={match.score}
-                  distanceKm={match.distanceKm}
+            <div className="flex flex-col gap-3">
+              {feed.slice(0, 5).map((item) => (
+                <ActivityCard
+                  key={item.id}
+                  id={item.id}
+                  type={item.type}
+                  dataJson={item.dataJson}
+                  createdAt={item.createdAt}
+                  creator={item.creator}
+                  isOwn={item.isOwn}
+                  isFollowing={item.isFollowing}
+                  onFollowToggle={handleFeedFollowToggle}
                 />
               ))}
             </div>
           )}
-        </>
-      )}
-
-      {activeTab === 'gym' && (
-        <div>
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="font-display text-3xl text-white tracking-wider">GYM PARTNERS</h1>
-              <p className="text-[#888888] text-sm mt-1">Athletes with similar training styles</p>
-            </div>
-            <Link href="/gym">
-              <Button variant="outline" size="sm">
-                Gym Hub <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
-            </Link>
           </div>
-
-          {gymLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-32 skeleton" />
-              ))}
-            </div>
-          ) : (
-            <>
-              {/* Recent workouts */}
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="font-display text-sm text-[#888888] tracking-wider">YOUR RECENT WORKOUTS</h2>
-                  <Link href="/gym" className="text-xs text-[#FF4500] hover:text-[#FF6633] flex items-center gap-1">
-                    View all <ChevronRight className="w-3 h-3" />
-                  </Link>
-                </div>
-                {recentWorkouts.length === 0 ? (
-                  <div className="bg-[#111111] border border-[#2A2A2A] p-6 text-center">
-                    <Dumbbell className="w-8 h-8 text-[#2A2A2A] mx-auto mb-2" />
-                    <p className="text-[#888888] text-sm mb-3">No workouts logged yet</p>
-                    <Link href="/gym/log">
-                      <Button size="sm">
-                        <Plus className="w-4 h-4" />
-                        Log First Workout
-                      </Button>
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {recentWorkouts.map((w) => (
-                      <WorkoutCard
-                        key={w.id}
-                        id={w.id}
-                        name={w.name}
-                        type={w.type}
-                        durationMin={w.durationMin}
-                        exerciseCount={w.exercises?.length ?? 0}
-                        date={w.date}
-                        creator={w.creator}
-                        isOwn
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Activity feed preview */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="font-display text-sm text-[#888888] tracking-wider">ACTIVITY FEED</h2>
-                  <Link href="/feed" className="text-xs text-[#FF4500] hover:text-[#FF6633] flex items-center gap-1">
-                    Full feed <ChevronRight className="w-3 h-3" />
-                  </Link>
-                </div>
-                {feedPreview.length === 0 ? (
-                  <div className="bg-[#111111] border border-[#2A2A2A] p-6 text-center">
-                    <p className="text-[#888888] text-sm">No activity yet. Follow athletes to see their updates!</p>
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-3">
-                    {feedPreview.slice(0, 3).map((item) => (
-                      <ActivityCard
-                        key={item.id}
-                        id={item.id}
-                        type={item.type}
-                        dataJson={item.dataJson}
-                        createdAt={item.createdAt}
-                        creator={item.creator}
-                        isOwn={item.isOwn}
-                        isFollowing={item.isFollowing}
-                        onFollowToggle={handleFeedFollowToggle}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </>
-          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

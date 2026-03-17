@@ -39,9 +39,9 @@ export function SetTable({ sets, onChange, showOneRM = true }: SetTableProps) {
   return (
     <div>
       <div className="grid grid-cols-[40px_1fr_1fr_40px] gap-2 mb-2">
-        <div className="text-xs text-[#888888] uppercase tracking-wider text-center">Set</div>
-        <div className="text-xs text-[#888888] uppercase tracking-wider text-center">Weight (kg)</div>
-        <div className="text-xs text-[#888888] uppercase tracking-wider text-center">Reps</div>
+        <div className="text-xs text-[#888888] uppercase tracking-wider text-center">Seria</div>
+        <div className="text-xs text-[#888888] uppercase tracking-wider text-center">Ciężar (kg)</div>
+        <div className="text-xs text-[#888888] uppercase tracking-wider text-center">Powt.</div>
         <div />
       </div>
 
@@ -56,7 +56,7 @@ export function SetTable({ sets, onChange, showOneRM = true }: SetTableProps) {
             step="0.5"
             value={set.weight || ''}
             onChange={(e) => updateSet(i, 'weight', parseFloat(e.target.value) || 0)}
-            className="bg-[#0A0A0A] border border-[#2A2A2A] text-white px-2 py-2 text-sm text-center focus:border-[#FF4500] focus:outline-none"
+            className="bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] px-2 py-2 text-sm text-center focus:border-[#6366F1] focus:outline-none"
             placeholder="0"
           />
           <input
@@ -65,7 +65,7 @@ export function SetTable({ sets, onChange, showOneRM = true }: SetTableProps) {
             max="100"
             value={set.reps || ''}
             onChange={(e) => updateSet(i, 'reps', parseInt(e.target.value) || 0)}
-            className="bg-[#0A0A0A] border border-[#2A2A2A] text-white px-2 py-2 text-sm text-center focus:border-[#FF4500] focus:outline-none"
+            className="bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] px-2 py-2 text-sm text-center focus:border-[#6366F1] focus:outline-none"
             placeholder="0"
           />
           <button
@@ -81,18 +81,18 @@ export function SetTable({ sets, onChange, showOneRM = true }: SetTableProps) {
       <button
         type="button"
         onClick={addSet}
-        className="flex items-center gap-2 text-xs text-[#FF4500] hover:text-[#FF6633] mt-2 transition-colors"
+        className="flex items-center gap-2 text-xs text-[#6366F1] hover:text-[#818CF8] mt-2 transition-colors"
       >
         <Plus className="w-4 h-4" />
-        Add Set
+        Dodaj serię
       </button>
 
       {showOneRM && maxSet.rm > 0 && maxSet.reps > 1 && (
-        <div className="mt-3 p-2 bg-[rgba(255,69,0,0.08)] border border-[rgba(255,69,0,0.2)]">
+        <div className="mt-3 p-2 bg-[rgba(99,102,241,0.08)] border border-[rgba(99,102,241,0.2)]">
           <p className="text-xs text-[#888888]">
-            Estimated 1RM:{' '}
-            <span className="text-[#FF4500] font-bold">{maxSet.rm}kg</span>
-            <span className="text-[#555555] ml-2">(Epley formula)</span>
+            Szacowane 1RM:{' '}
+            <span className="text-[#6366F1] font-bold">{maxSet.rm}kg</span>
+            <span className="text-[#555555] ml-2">(formuła Epleya)</span>
           </p>
         </div>
       )}

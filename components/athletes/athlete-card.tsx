@@ -35,14 +35,14 @@ export function AthleteCard({
 
   return (
     <Link href={`/profile/${id}`} className="block">
-      <div className="bg-[#111111] border border-[#2A2A2A] card-hover p-4 flex flex-col gap-3">
+      <div className="bg-[var(--bg-card)] border border-[var(--border)] card-hover p-4 flex flex-col gap-3">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <Avatar src={avatarUrl} fallback={username ?? '?'} size="lg" />
             <div>
               <h3 className="font-semibold text-white text-sm">
-                {username ?? 'Anonymous Athlete'}
+                {username ?? 'Anonimowy sportowiec'}
               </h3>
               {city && (
                 <div className="flex items-center gap-1 mt-0.5">
@@ -50,7 +50,7 @@ export function AthleteCard({
                   <span className="text-xs text-[#888888]">{city}</span>
                   {distanceKm !== null && (
                     <span className="text-xs text-[#888888]">
-                      · {distanceKm < 1 ? '<1' : Math.round(distanceKm)}km away
+                      · {distanceKm < 1 ? '<1' : Math.round(distanceKm)}km stąd
                     </span>
                   )}
                 </div>
@@ -66,7 +66,7 @@ export function AthleteCard({
             >
               {score}%
             </div>
-            <span className="text-[10px] text-[#888888] uppercase tracking-wider">match</span>
+            <span className="text-[10px] text-[#888888] uppercase tracking-wider">dopasowanie</span>
           </div>
         </div>
 
@@ -90,10 +90,10 @@ export function AthleteCard({
         )}
 
         {/* Stats */}
-        <div className="flex items-center gap-4 pt-1 border-t border-[#1A1A1A]">
+        <div className="flex items-center gap-4 pt-1 border-t border-[var(--border)]">
           {pacePerKm && (
             <div className="flex items-center gap-1.5">
-              <Zap className="w-3.5 h-3.5 text-[#FF4500]" />
+              <Zap className="w-3.5 h-3.5 text-[#6366F1]" />
               <span className="text-xs text-[#888888]">
                 {formatPaceMin(pacePerKm)}/km
               </span>
@@ -101,8 +101,8 @@ export function AthleteCard({
           )}
           {weeklyKm && (
             <div className="flex items-center gap-1.5">
-              <Route className="w-3.5 h-3.5 text-[#FF4500]" />
-              <span className="text-xs text-[#888888]">{weeklyKm} km/wk</span>
+              <Route className="w-3.5 h-3.5 text-[#6366F1]" />
+              <span className="text-xs text-[#888888]">{weeklyKm} km/tydz.</span>
             </div>
           )}
         </div>

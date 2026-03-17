@@ -16,11 +16,11 @@ interface WorkoutCardProps {
 }
 
 const TYPE_COLORS: Record<string, string> = {
-  push: '#FF4500',
+  push: '#6366F1',
   pull: '#00D4FF',
   legs: '#00CC44',
   fullbody: '#FFD700',
-  upper: '#FF8800',
+  upper: '#A78BFA',
   lower: '#CC44FF',
   custom: '#888888',
 };
@@ -39,7 +39,7 @@ export function WorkoutCard({
 
   return (
     <div
-      className="bg-[#111111] border border-[#2A2A2A] p-4 hover:border-[#FF4500] transition-all cursor-pointer"
+      className="bg-[var(--bg-card)] border border-[var(--border)] p-4 hover:border-[#6366F1] transition-all cursor-pointer"
       onClick={onClick}
     >
       <div className="flex items-start justify-between mb-3">
@@ -53,14 +53,14 @@ export function WorkoutCard({
           </span>
         </div>
         {isOwn && (
-          <span className="text-[10px] text-[#555555] uppercase tracking-wider">You</span>
+          <span className="text-[10px] text-[#555555] uppercase tracking-wider">Ty</span>
         )}
       </div>
 
       <div className="flex items-center gap-4 text-xs text-[#888888]">
         <div className="flex items-center gap-1">
           <Dumbbell className="w-3 h-3" />
-          <span>{exerciseCount} exercise{exerciseCount !== 1 ? 's' : ''}</span>
+          <span>{exerciseCount} {exerciseCount === 1 ? 'ćwiczenie' : 'ćwiczeń'}</span>
         </div>
         {durationMin && (
           <div className="flex items-center gap-1">
@@ -70,13 +70,13 @@ export function WorkoutCard({
         )}
       </div>
 
-      <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#1A1A1A]">
+      <div className="flex items-center justify-between mt-3 pt-3 border-t border-[var(--border)]">
         {creator && !isOwn ? (
           <div className="flex items-center gap-2">
-            <div className="w-5 h-5 bg-[#FF4500] flex items-center justify-center text-[9px] font-bold text-white">
+            <div className="w-5 h-5 bg-[#6366F1] flex items-center justify-center text-[9px] font-bold text-white">
               {(creator.username ?? '?')[0].toUpperCase()}
             </div>
-            <span className="text-xs text-[#888888]">{creator.username ?? 'Unknown'}</span>
+            <span className="text-xs text-[#888888]">{creator.username ?? 'Nieznany'}</span>
           </div>
         ) : (
           <div />

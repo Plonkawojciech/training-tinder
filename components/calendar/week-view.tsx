@@ -42,7 +42,7 @@ export function WeekView({ sessions, onSessionClick }: WeekViewProps) {
       <div className="flex items-center justify-between">
         <button
           onClick={() => setWeekStart((w) => subWeeks(w, 1))}
-          className="p-2 text-[#888888] hover:text-white hover:bg-[#1A1A1A] transition-colors"
+          className="p-2 text-[#888888] hover:text-white hover:bg-[var(--bg-elevated)] transition-colors"
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
@@ -51,7 +51,7 @@ export function WeekView({ sessions, onSessionClick }: WeekViewProps) {
         </h2>
         <button
           onClick={() => setWeekStart((w) => addWeeks(w, 1))}
-          className="p-2 text-[#888888] hover:text-white hover:bg-[#1A1A1A] transition-colors"
+          className="p-2 text-[#888888] hover:text-white hover:bg-[var(--bg-elevated)] transition-colors"
         >
           <ChevronRight className="w-5 h-5" />
         </button>
@@ -62,14 +62,14 @@ export function WeekView({ sessions, onSessionClick }: WeekViewProps) {
         {days.map((day) => (
           <div
             key={day.toString()}
-            className="text-center pb-2 border-b border-[#2A2A2A]"
+            className="text-center pb-2 border-b border-[var(--border)]"
           >
             <p className="text-[10px] text-[#888888] uppercase tracking-wider">
               {format(day, 'EEE')}
             </p>
             <p
               className={`text-sm font-semibold mt-0.5 ${
-                isSameDay(day, today) ? 'text-[#FF4500]' : 'text-white'
+                isSameDay(day, today) ? 'text-[#6366F1]' : 'text-white'
               }`}
             >
               {format(day, 'd')}
@@ -87,17 +87,17 @@ export function WeekView({ sessions, onSessionClick }: WeekViewProps) {
           return (
             <div
               key={day.toString()}
-              className={`bg-[#111111] border p-2 min-h-[120px] ${
-                isToday ? 'border-t-2 border-t-[#FF4500] border-x-[#2A2A2A] border-b-[#2A2A2A]' : 'border-[#2A2A2A]'
+              className={`bg-[var(--bg-card)] border p-2 min-h-[120px] ${
+                isToday ? 'border-t-2 border-t-[#6366F1] border-x-[var(--border)] border-b-[var(--border)]' : 'border-[var(--border)]'
               }`}
             >
               {daySessions.map((session) => (
                 <button
                   key={session.id}
                   onClick={() => onSessionClick?.(session.id)}
-                  className="w-full text-left mb-1 p-1.5 bg-[#1A1A1A] border border-[#2A2A2A] hover:border-[#FF4500] transition-colors group"
+                  className="w-full text-left mb-1 p-1.5 bg-[var(--bg-elevated)] border border-[var(--border)] hover:border-[#6366F1] transition-colors group"
                 >
-                  <p className="text-[10px] text-white font-medium line-clamp-1 group-hover:text-[#FF4500] transition-colors">
+                  <p className="text-[10px] text-white font-medium line-clamp-1 group-hover:text-[#6366F1] transition-colors">
                     {session.title}
                   </p>
                   <div className="flex items-center gap-1 mt-0.5">

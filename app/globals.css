@@ -1,118 +1,217 @@
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
-:root {
-  --bg: #0A0A0A;
-  --bg-card: #111111;
-  --bg-card-hover: #161616;
-  --border: #2A2A2A;
-  --accent: #FF4500;
-  --accent-glow: rgba(255, 69, 0, 0.3);
-  --text: #FFFFFF;
-  --text-muted: #888888;
+:root, [data-theme="dark"] {
+  /* Pilot-matched dark palette (zinc/indigo) */
+  --bg: #09090B;
+  --bg-card: #111113;
+  --bg-elevated: #18181B;
+  --border: #1F1F23;
+  --border-subtle: #27272A;
+  --text: #FAFAFA;
+  --text-muted: #A1A1AA;
+  --text-dim: #71717A;
+  --accent: #6366F1;
+  --accent-light: rgba(99, 102, 241, 0.7);
+  --bg-card-hover: #18181B;
+  --accent-glow: rgba(99, 102, 241, 0.3);
+  --accent-dim: rgba(99, 102, 241, 0.15);
+  /* Pilot aliases */
+  --surface: var(--bg-card);
+  --surface-2: var(--bg-elevated);
+  --text-secondary: var(--text-muted);
+  --text-tertiary: var(--text-dim);
+  --success: #22C55E;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --info: #60A5FA;
+  --shadow-card: 0 1px 8px rgba(0, 0, 0, 0.3);
+  --shadow-elevated: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+  --nav-h: 60px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --page-pb: calc(var(--nav-h) + var(--safe-bottom) + 12px);
+  color-scheme: dark;
 }
 
-* {
+[data-theme="light"] {
+  /* Pilot-matched light palette */
+  --bg: #FAFAFA;
+  --bg-card: #FFFFFF;
+  --bg-elevated: #F4F4F5;
+  --border: #E4E4E7;
+  --border-subtle: #D4D4D8;
+  --text: #09090B;
+  --text-muted: #52525B;
+  --text-dim: #71717A;
+  --accent: #6366F1;
+  --accent-light: rgba(99, 102, 241, 0.6);
+  --bg-card-hover: #F4F4F5;
+  --accent-glow: rgba(99, 102, 241, 0.2);
+  --accent-dim: rgba(99, 102, 241, 0.1);
+  --surface: var(--bg-card);
+  --surface-2: var(--bg-elevated);
+  --text-secondary: var(--text-muted);
+  --text-tertiary: var(--text-dim);
+  --success: #16A34A;
+  --warning: #D97706;
+  --danger: #DC2626;
+  --info: #2563EB;
+  --shadow-card: 0 1px 4px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-elevated: 0 8px 32px rgba(0, 0, 0, 0.12);
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+  --nav-h: 60px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --page-pb: calc(var(--nav-h) + var(--safe-bottom) + 12px);
+  color-scheme: light;
+}
+
+*, *::before, *::after {
   box-sizing: border-box;
+  /* Remove iOS blue tap flash on interactive elements */
+  -webkit-tap-highlight-color: transparent;
 }
 
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden;
+  /* Prevent pull-to-refresh interfering with app swipe gestures */
+  overscroll-behavior-y: none;
 }
 
 body {
-  background: var(--bg);
+  overflow-x: hidden;
+  background-color: var(--bg);
   color: var(--text);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Prevent rubber-band scroll on iOS */
+  overscroll-behavior: none;
+  /* Prevent text size adjust on orientation change */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
-h1,
-h2,
+/* Brand / display headings use Syne (same as Pilot) */
+.font-display-brand,
 .font-display {
-  font-family: 'Bebas Neue', sans-serif;
-  letter-spacing: 0.05em;
+  font-family: var(--font-syne, 'Syne', 'Inter', sans-serif);
+  letter-spacing: -0.02em;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-syne, 'Syne', 'Inter', system-ui, sans-serif);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+/* Prevent iOS zoom-on-focus for all inputs — keep font-size ≥ 16px */
+input,
+textarea,
+select {
+  font-size: 16px;
 }
 
 ::-webkit-scrollbar {
   width: 4px;
   height: 4px;
 }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent); }
 
-::-webkit-scrollbar-track {
-  background: var(--bg);
+/* Hide scrollbar but keep scroll — used for horizontal pill rows etc. */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
+.no-scrollbar::-webkit-scrollbar { display: none; }
 
-::-webkit-scrollbar-thumb {
-  background: var(--border);
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--accent);
-}
-
-.glow-accent {
-  box-shadow: 0 0 20px var(--accent-glow);
-}
-
-.glow-accent-sm {
-  box-shadow: 0 0 10px var(--accent-glow);
+/* Cards — rounded + shadow */
+.card {
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  border: none;
 }
 
 .card-hover {
   transition: all 0.2s ease;
 }
-
 .card-hover:hover {
-  background: var(--bg-card-hover);
-  box-shadow: 0 0 20px var(--accent-glow);
   border-color: var(--accent) !important;
 }
 
-.sport-cycling { background: rgba(255, 69, 0, 0.15); color: #FF4500; border-color: rgba(255, 69, 0, 0.3); }
-.sport-running { background: rgba(0, 212, 255, 0.15); color: #00D4FF; border-color: rgba(0, 212, 255, 0.3); }
-.sport-triathlon { background: rgba(255, 215, 0, 0.15); color: #FFD700; border-color: rgba(255, 215, 0, 0.3); }
-.sport-swimming { background: rgba(68, 136, 255, 0.15); color: #4488FF; border-color: rgba(68, 136, 255, 0.3); }
-.sport-trail_running { background: rgba(0, 204, 68, 0.15); color: #00CC44; border-color: rgba(0, 204, 68, 0.3); }
-.sport-gravel { background: rgba(255, 136, 0, 0.15); color: #FF8800; border-color: rgba(255, 136, 0, 0.3); }
-.sport-duathlon { background: rgba(204, 68, 255, 0.15); color: #CC44FF; border-color: rgba(204, 68, 255, 0.3); }
-.sport-mtb { background: rgba(68, 255, 136, 0.15); color: #44FF88; border-color: rgba(68, 255, 136, 0.3); }
+/* Glows */
+.glow-accent { box-shadow: 0 0 24px var(--accent-glow); }
+.glow-accent-sm { box-shadow: 0 0 12px var(--accent-glow); }
 
-.match-score-high { color: #00CC44; }
-.match-score-medium { color: #FFD700; }
-.match-score-low { color: #FF4500; }
+/* Sport color pills */
+.sport-cycling    { background: rgba(99, 102, 241, 0.12); color: #818CF8; }
+.sport-running    { background: rgba(20, 184, 166, 0.12); color: #2DD4BF; }
+.sport-triathlon  { background: rgba(251, 191, 36, 0.12); color: #FCD34D; }
+.sport-swimming   { background: rgba(59, 130, 246, 0.12); color: #60A5FA; }
+.sport-trail_running { background: rgba(34, 197, 94, 0.12); color: #4ADE80; }
+.sport-gravel     { background: rgba(99, 102, 241, 0.08); color: #A5B4FC; }
+.sport-duathlon   { background: rgba(236, 72, 153, 0.12); color: #F472B6; }
+.sport-mtb        { background: rgba(34, 197, 94, 0.12); color: #86EFAC; }
+.sport-gym        { background: rgba(245, 158, 11, 0.12); color: #FCD34D; }
 
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+.match-score-high   { color: #22C55E; }
+.match-score-medium { color: #F59E0B; }
+.match-score-low    { color: #818CF8; }
+
+/* Ranks */
+.rank-1 { color: #FBBF24; }
+.rank-2 { color: #9CA3AF; }
+.rank-3 { color: #D97706; }
+
+/* Nav active — pill style */
+.nav-active {
+  color: var(--accent);
+  background: var(--accent-dim);
+  border-radius: var(--radius-sm);
 }
 
+/* Animations */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 @keyframes fadeIn {
   from { opacity: 0; }
-  to { opacity: 1; }
+  to   { opacity: 1; }
 }
-
 @keyframes pulse-accent {
   0%, 100% { box-shadow: 0 0 0 0 var(--accent-glow); }
-  50% { box-shadow: 0 0 20px 5px var(--accent-glow); }
+  50%       { box-shadow: 0 0 24px 6px var(--accent-glow); }
 }
-
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
+  0%   { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
 
-.animate-slide-up { animation: slideUp 0.3s ease forwards; }
-.animate-fade-in { animation: fadeIn 0.2s ease forwards; }
+.animate-slide-up    { animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+.animate-fade-in     { animation: fadeIn 0.2s ease forwards; }
 .animate-pulse-accent { animation: pulse-accent 2s infinite; }
 
+/* Skeleton loader */
 .skeleton {
-  background: linear-gradient(90deg, var(--bg-card) 25%, #1a1a1a 50%, var(--bg-card) 75%);
+  background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-elevated) 50%, var(--bg-card) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-md);
 }
 
+/* Notification dot */
 .notification-dot {
   width: 8px;
   height: 8px;
@@ -121,22 +220,43 @@ h2,
   position: absolute;
   top: -2px;
   right: -2px;
+  border: 2px solid var(--bg);
 }
 
-.rank-1 { color: #FFD700; }
-.rank-2 { color: #C0C0C0; }
-.rank-3 { color: #CD7F32; }
-
-.nav-active {
-  color: var(--accent);
-  background: rgba(255, 69, 0, 0.1);
-  border-left: 2px solid var(--accent);
-}
-
+/* Inputs — focus styles */
 input:focus,
 textarea:focus,
 select:focus {
   outline: none;
   border-color: var(--accent) !important;
-  box-shadow: 0 0 0 1px var(--accent) !important;
+  box-shadow: 0 0 0 3px var(--accent-dim) !important;
+}
+
+/* Focus-visible — keyboard accessibility */
+button:focus-visible, a:focus-visible, [role="button"]:focus-visible {
+  outline: 2px solid rgb(59 130 246);
+  outline-offset: 2px;
+}
+
+/* Frosted glass */
+.glass {
+  background: rgba(17, 17, 19, 0.9);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+[data-theme="light"] .glass {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+/* Safe-area aware page bottom padding — use on page wrapper divs on mobile */
+.page-pb {
+  padding-bottom: var(--page-pb);
+}
+@media (min-width: 768px) {
+  .page-pb { padding-bottom: 2rem; }
+}
+
+/* Nav bar links and standalone action buttons get proper touch target padding */
+nav a, nav button {
+  min-height: 44px;
 }

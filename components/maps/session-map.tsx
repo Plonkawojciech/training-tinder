@@ -23,7 +23,7 @@ export function SessionMap({ lat, lng, onChange }: SessionMapProps) {
 
   useEffect(() => {
     async function init() {
-      await loadGoogleMapsAPI(['maps', 'geocoding']);
+      await loadGoogleMapsAPI();
 
       if (!mapRef.current) return;
 
@@ -71,9 +71,9 @@ export function SessionMap({ lat, lng, onChange }: SessionMapProps) {
         map,
         icon: {
           path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
-          fillColor: '#FF4500',
+          fillColor: '#6366F1',
           fillOpacity: 1,
-          strokeColor: '#FF6633',
+          strokeColor: '#818CF8',
           strokeWeight: 1,
           scale: 1.8,
           anchor: new google.maps.Point(12, 22),
@@ -130,7 +130,7 @@ export function SessionMap({ lat, lng, onChange }: SessionMapProps) {
       placeMarker(pos, mapInstanceRef.current);
       onChange(gLat, gLng, search);
     } catch {
-      setError('Location not found. Try a different address.');
+      setError('Nie znaleziono lokalizacji. Spróbuj inny adres.');
     } finally {
       setSearching(false);
     }
@@ -145,35 +145,35 @@ export function SessionMap({ lat, lng, onChange }: SessionMapProps) {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search address or click map to set location..."
-            className="w-full bg-[#0A0A0A] border border-[#2A2A2A] text-white pl-9 pr-3 py-2.5 text-sm placeholder:text-[#444444]"
+            placeholder="Wyszukaj adres lub kliknij na mapę..."
+            className="w-full bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] pl-9 pr-3 py-2.5 text-sm placeholder:text-[#444444]"
           />
         </div>
         <button
           type="submit"
           disabled={searching}
-          className="px-4 py-2.5 bg-[#FF4500] text-white text-xs font-semibold uppercase tracking-wider hover:shadow-[0_0_15px_rgba(255,69,0,0.4)] disabled:opacity-50"
+          className="px-4 py-2.5 bg-[#6366F1] text-white text-xs font-semibold uppercase tracking-wider hover:shadow-[0_0_15px_rgba(99,102,241,0.4)] disabled:opacity-50"
         >
-          {searching ? <Loader className="w-4 h-4 animate-spin" /> : 'Find'}
+          {searching ? <Loader className="w-4 h-4 animate-spin" /> : 'Szukaj'}
         </button>
       </form>
 
       {error && <p className="text-xs text-red-400">{error}</p>}
 
       <div className="relative">
-        <div ref={mapRef} className="w-full h-64 border border-[#2A2A2A]" />
+        <div ref={mapRef} className="w-full h-64 border border-[var(--border)]" />
         {!ready && (
-          <div className="absolute inset-0 bg-[#0A0A0A] flex items-center justify-center border border-[#2A2A2A]">
+          <div className="absolute inset-0 bg-[var(--bg)] flex items-center justify-center border border-[var(--border)]">
             <div className="flex items-center gap-2 text-[#888888] text-sm">
-              <MapPin className="w-4 h-4 animate-bounce text-[#FF4500]" />
-              Loading map...
+              <MapPin className="w-4 h-4 animate-bounce text-[#6366F1]" />
+              Ładowanie mapy...
             </div>
           </div>
         )}
       </div>
 
       <p className="text-xs text-[#555555]">
-        Click anywhere on the map to set your session location
+        Kliknij na mapę, aby ustawić lokalizację sesji
       </p>
     </div>
   );

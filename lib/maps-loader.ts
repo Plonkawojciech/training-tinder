@@ -1,15 +1,44 @@
-// Google Maps initialization utility using the functional API from @googlemaps/js-api-loader v2
-// setOptions() and importLibrary() replace the deprecated Loader class
+// Google Maps initialization — simple script injection, single promise singleton
 
-async function loadGoogleMapsAPI(libs: string[]) {
-  // Using named imports - the functional API uses 'key' not 'apiKey'
-  const mapsModule = await import('@googlemaps/js-api-loader');
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (mapsModule.setOptions as (opts: Record<string, unknown>) => void)({ key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY! });
-  for (const lib of libs) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (mapsModule.importLibrary as (name: string) => Promise<any>)(lib);
-  }
+let _promise: Promise<void> | null = null;
+
+export function loadGoogleMapsAPI(_libs?: string[]): Promise<void> {
+  if (_promise) return _promise;
+
+  _promise = new Promise<void>((resolve, reject) => {
+    if (typeof window === 'undefined') {
+      reject(new Error('Server-side: cannot load Maps'));
+      return;
+    }
+
+    // Already loaded
+    if (window.google?.maps?.Map) {
+      resolve();
+      return;
+    }
+
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? '';
+    if (!apiKey) {
+      reject(new Error('Missing NEXT_PUBLIC_GOOGLE_MAPS_API_KEY'));
+      return;
+    }
+
+    const cb = '__gmcb_' + Math.random().toString(36).slice(2);
+    (window as unknown as Record<string, () => void>)[cb] = () => {
+      delete (window as unknown as Record<string, () => void>)[cb];
+      resolve();
+    };
+
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geocoding,marker&callback=${cb}&loading=async`;
+    script.async = true;
+    script.defer = true;
+    script.onerror = () => {
+      _promise = null;
+      reject(new Error('Google Maps script failed to load'));
+    };
+    document.head.appendChild(script);
+  });
+
+  return _promise;
 }
-
-export { loadGoogleMapsAPI };

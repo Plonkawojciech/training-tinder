@@ -76,7 +76,7 @@ function UserProfilePageInner({ params }: { params: Promise<{ id: string }> }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-[#FF4500] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-[#6366F1] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -105,7 +105,7 @@ function UserProfilePageInner({ params }: { params: Promise<{ id: string }> }) {
       </button>
 
       {/* Profile card */}
-      <div className="bg-[#111111] border border-[#2A2A2A] p-6 mb-4">
+      <div className="bg-[var(--bg-card)] border border-[var(--border)] p-6 mb-4">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-6">
             <Avatar
@@ -115,7 +115,7 @@ function UserProfilePageInner({ params }: { params: Promise<{ id: string }> }) {
             />
             <div>
               <h1 className="font-display text-3xl text-white tracking-wider">
-                {profile.username ?? 'Athlete'}
+                {profile.username ?? 'Sportowiec'}
               </h1>
               {profile.city && (
                 <div className="flex items-center gap-1 mt-1">
@@ -141,7 +141,7 @@ function UserProfilePageInner({ params }: { params: Promise<{ id: string }> }) {
             </div>
           </div>
 
-          <Link href={`/messages?partner=${profile.clerkId}`} onClick={() => {}}>
+          <Link href={`/messages?partner=${profile.clerkId}&name=${encodeURIComponent(profile.username ?? '')}`}>
             <Button size="sm">
               <MessageSquare className="w-4 h-4" />
               Message
@@ -155,7 +155,7 @@ function UserProfilePageInner({ params }: { params: Promise<{ id: string }> }) {
       </div>
 
       {/* Sports */}
-      <div className="bg-[#111111] border border-[#2A2A2A] p-6 mb-4">
+      <div className="bg-[var(--bg-card)] border border-[var(--border)] p-6 mb-4">
         <h3 className="font-display text-sm text-[#888888] tracking-wider mb-4">SPORTS</h3>
         <div className="flex flex-wrap gap-2">
           {profile.sportTypes.map((sport) => (
@@ -170,12 +170,12 @@ function UserProfilePageInner({ params }: { params: Promise<{ id: string }> }) {
       </div>
 
       {/* Performance stats */}
-      <div className="bg-[#111111] border border-[#2A2A2A] p-6">
+      <div className="bg-[var(--bg-card)] border border-[var(--border)] p-6">
         <h3 className="font-display text-sm text-[#888888] tracking-wider mb-4">PERFORMANCE</h3>
         <div className="grid grid-cols-2 gap-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[rgba(255,69,0,0.1)] border border-[rgba(255,69,0,0.2)] flex items-center justify-center">
-              <Zap className="w-5 h-5 text-[#FF4500]" />
+            <div className="w-10 h-10 bg-[rgba(99,102,241,0.1)] border border-[rgba(99,102,241,0.2)] flex items-center justify-center">
+              <Zap className="w-5 h-5 text-[#6366F1]" />
             </div>
             <div>
               <p className="font-display text-xl text-white">
@@ -185,8 +185,8 @@ function UserProfilePageInner({ params }: { params: Promise<{ id: string }> }) {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[rgba(255,69,0,0.1)] border border-[rgba(255,69,0,0.2)] flex items-center justify-center">
-              <Route className="w-5 h-5 text-[#FF4500]" />
+            <div className="w-10 h-10 bg-[rgba(99,102,241,0.1)] border border-[rgba(99,102,241,0.2)] flex items-center justify-center">
+              <Route className="w-5 h-5 text-[#6366F1]" />
             </div>
             <div>
               <p className="font-display text-xl text-white">{profile.weeklyKm ?? '--'}</p>

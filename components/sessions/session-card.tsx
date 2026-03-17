@@ -20,17 +20,8 @@ interface SessionCardProps {
 }
 
 export function SessionCard({
-  id,
-  title,
-  sportType,
-  date,
-  time,
-  location,
-  maxParticipants,
-  participantCount,
-  description,
-  status,
-  creatorName,
+  id, title, sportType, date, time, location,
+  maxParticipants, participantCount, description, status, creatorName,
 }: SessionCardProps) {
   const spotsLeft = maxParticipants - participantCount;
   const isFull = spotsLeft <= 0;
@@ -38,75 +29,75 @@ export function SessionCard({
 
   return (
     <Link href={`/sessions/${id}`} className="block">
-      <div className="bg-[#111111] border border-[#2A2A2A] card-hover p-4 flex flex-col gap-3">
+      <div className="bg-[var(--bg-card)] border border-[var(--border)] p-4 hover:border-[#6366F1] transition-all flex flex-col gap-3">
         {/* Header */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap mb-1">
+            <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
               <Badge sport={sportType}>{getSportLabel(sportType)}</Badge>
               {status === 'cancelled' && (
-                <Badge variant="outline" className="border-red-500 text-red-400">
-                  Cancelled
-                </Badge>
+                <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 text-red-400 bg-red-900/10 border border-red-800/30">
+                  Anulowana
+                </span>
               )}
               {isFull && status !== 'cancelled' && (
-                <Badge variant="muted">Full</Badge>
+                <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 text-[var(--text-muted)] bg-[var(--bg-elevated)] border border-[var(--border)]">
+                  Pełna
+                </span>
               )}
             </div>
-            <h3 className="font-semibold text-white text-sm line-clamp-1">{title}</h3>
+            <h3 className="font-semibold text-[var(--text)] text-sm line-clamp-1">{title}</h3>
           </div>
         </div>
 
         {description && (
-          <p className="text-xs text-[#888888] line-clamp-2 leading-relaxed">{description}</p>
+          <p className="text-xs text-[var(--text-muted)] line-clamp-2 leading-relaxed">{description}</p>
         )}
 
         {/* Details */}
         <div className="grid grid-cols-2 gap-2">
-          <div className="flex items-center gap-1.5">
-            <Calendar className="w-3.5 h-3.5 text-[#FF4500]" />
-            <span className="text-xs text-[#888888]">{date}</span>
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 flex items-center justify-center bg-[rgba(99,102,241,0.1)] border border-[rgba(99,102,241,0.2)]">
+              <Calendar className="w-3.5 h-3.5 text-[#6366F1]" />
+            </div>
+            <span className="text-xs text-[var(--text-muted)]">{date}</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5 text-[#FF4500]" />
-            <span className="text-xs text-[#888888]">{time}</span>
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 flex items-center justify-center bg-[rgba(99,102,241,0.1)] border border-[rgba(99,102,241,0.2)]">
+              <Clock className="w-3.5 h-3.5 text-[#6366F1]" />
+            </div>
+            <span className="text-xs text-[var(--text-muted)]">{time}</span>
           </div>
-          <div className="flex items-center gap-1.5 col-span-2">
-            <MapPin className="w-3.5 h-3.5 text-[#FF4500] shrink-0" />
-            <span className="text-xs text-[#888888] line-clamp-1">{location}</span>
+          <div className="flex items-center gap-2 col-span-2">
+            <div className="w-7 h-7 flex items-center justify-center bg-[rgba(99,102,241,0.1)] border border-[rgba(99,102,241,0.2)] shrink-0">
+              <MapPin className="w-3.5 h-3.5 text-[#6366F1]" />
+            </div>
+            <span className="text-xs text-[var(--text-muted)] truncate">{location}</span>
           </div>
         </div>
 
-        {/* Participants */}
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center justify-between">
+        {/* Participants bar */}
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
             <div className="flex items-center gap-1.5">
-              <Users className="w-3.5 h-3.5 text-[#888888]" />
-              <span className="text-xs text-[#888888]">
-                {participantCount}/{maxParticipants} athletes
-              </span>
+              <Users className="w-3 h-3 text-[var(--text-muted)]" />
+              <span className="text-xs text-[var(--text-muted)]">{participantCount}/{maxParticipants}</span>
             </div>
-            <span
-              className="text-xs font-semibold"
-              style={{ color: isFull ? '#888888' : '#FF4500' }}
-            >
-              {isFull ? 'Full' : `${spotsLeft} spots left`}
+            <span className={`text-xs font-semibold ${isFull ? 'text-[var(--text-muted)]' : 'text-[#6366F1]'}`}>
+              {isFull ? 'Pełna' : `${spotsLeft} miejsc`}
             </span>
           </div>
-          <div className="h-1 bg-[#1A1A1A] w-full">
+          <div className="h-1 bg-[var(--bg-elevated)] overflow-hidden">
             <div
               className="h-full transition-all duration-300"
-              style={{
-                width: `${fillPct}%`,
-                background: isFull ? '#888888' : '#FF4500',
-              }}
+              style={{ width: `${fillPct}%`, background: isFull ? 'var(--text-dim)' : '#6366F1' }}
             />
           </div>
         </div>
 
         {creatorName && (
-          <p className="text-[10px] text-[#444444] uppercase tracking-wider">
-            by {creatorName}
+          <p className="text-[10px] text-[var(--text-dim)]">
+            przez {creatorName}
           </p>
         )}
       </div>

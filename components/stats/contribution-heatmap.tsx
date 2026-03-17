@@ -24,10 +24,10 @@ function toDateString(date: Date): string {
 
 function getColor(count: number): string {
   if (count === 0) return '#0D0D0D';
-  if (count === 1) return 'rgba(255,69,0,0.25)';
-  if (count === 2) return 'rgba(255,69,0,0.5)';
-  if (count >= 3) return 'rgba(255,69,0,0.85)';
-  return '#FF4500';
+  if (count === 1) return 'rgba(99,102,241,0.25)';
+  if (count === 2) return 'rgba(99,102,241,0.5)';
+  if (count >= 3) return 'rgba(99,102,241,0.85)';
+  return '#6366F1';
 }
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -117,7 +117,7 @@ export function ContributionHeatmap({ data }: ContributionHeatmapProps) {
                         width: '12px',
                         height: '12px',
                         background: getColor(count),
-                        border: count > 0 ? '1px solid rgba(255,69,0,0.2)' : '1px solid #1A1A1A',
+                        border: count > 0 ? '1px solid rgba(99,102,241,0.2)' : '1px solid #1A1A1A',
                       }}
                     />
                   );

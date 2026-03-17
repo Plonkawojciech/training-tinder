@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { userAchievements, workoutLogs, personalRecords } from '@/lib/db/schema';
-import { eq, desc, and, gte } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 
 export async function GET() {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const userId = await getAuthUserId();
+  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
 
   try {
     const achievements = await db
@@ -88,6 +88,6 @@ export async function GET() {
     return NextResponse.json(allAchievements);
   } catch (err) {
     console.error('GET /api/achievements error:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
   }
 }

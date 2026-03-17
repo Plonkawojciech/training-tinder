@@ -1,55 +1,91 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
-import { activityFeed, userFollows, users } from '@/lib/db/schema';
-import { eq, or, desc, inArray } from 'drizzle-orm';
+import { friends, workoutLogs, users, feedComments } from '@/lib/db/schema';
+import { eq, or, and, inArray, desc } from 'drizzle-orm';
 
 export async function GET(request: Request) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const userId = await getAuthUserId();
+  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
 
   const { searchParams } = new URL(request.url);
-  const limit = parseInt(searchParams.get('limit') ?? '30');
+  const limit = Math.min(parseInt(searchParams.get('limit') ?? '50'), 50);
 
   try {
-    // Get following list
-    const following = await db
-      .select({ followingId: userFollows.followingId })
-      .from(userFollows)
-      .where(eq(userFollows.followerId, userId));
-
-    const followingIds = following.map((f) => f.followingId);
-    const allIds = [userId, ...followingIds];
-
-    const feedItems = await db
+    // Get all accepted friends' clerkIds
+    const friendRelations = await db
       .select()
-      .from(activityFeed)
-      .where(inArray(activityFeed.userId, allIds))
-      .orderBy(desc(activityFeed.createdAt))
+      .from(friends)
+      .where(
+        and(
+          or(eq(friends.requesterId, userId), eq(friends.receiverId, userId)),
+          eq(friends.status, 'accepted')
+        )
+      );
+
+    const friendIds = friendRelations.map((f) =>
+      f.requesterId === userId ? f.receiverId : f.requesterId
+    );
+
+    if (friendIds.length === 0) return NextResponse.json([]);
+
+    // Get friends' recent workoutLogs
+    const logs = await db
+      .select()
+      .from(workoutLogs)
+      .where(inArray(workoutLogs.userId, friendIds))
+      .orderBy(desc(workoutLogs.createdAt))
       .limit(limit);
 
-    const enriched = await Promise.all(
-      feedItems.map(async (item) => {
-        const creator = await db
-          .select({ username: users.username, avatarUrl: users.avatarUrl, clerkId: users.clerkId })
-          .from(users)
-          .where(eq(users.clerkId, item.userId))
-          .limit(1);
+    if (logs.length === 0) return NextResponse.json([]);
 
-        const isFollowing = followingIds.includes(item.userId);
+    // Batch-fetch user info for all log authors
+    const logUserIds = [...new Set(logs.map((l) => l.userId))];
+    const logUsers = await db
+      .select({ clerkId: users.clerkId, username: users.username, avatarUrl: users.avatarUrl })
+      .from(users)
+      .where(inArray(users.clerkId, logUserIds));
+    const userMap = Object.fromEntries(logUsers.map((u) => [u.clerkId, u]));
 
-        return {
-          ...item,
-          creator: creator[0] ?? null,
-          isFollowing,
-          isOwn: item.userId === userId,
-        };
-      })
-    );
+    // Batch-fetch all comments for these logs
+    const logIds = logs.map((l) => l.id);
+    const allComments = await db
+      .select()
+      .from(feedComments)
+      .where(inArray(feedComments.workoutLogId, logIds));
+
+    // Batch-fetch comment authors
+    const commentAuthorIds = [...new Set(allComments.map((c) => c.authorId))];
+    let commentAuthors: { clerkId: string; username: string | null; avatarUrl: string | null }[] = [];
+    if (commentAuthorIds.length > 0) {
+      commentAuthors = await db
+        .select({ clerkId: users.clerkId, username: users.username, avatarUrl: users.avatarUrl })
+        .from(users)
+        .where(inArray(users.clerkId, commentAuthorIds));
+    }
+    const authorMap = Object.fromEntries(commentAuthors.map((u) => [u.clerkId, u]));
+
+    // Assemble enriched logs
+    const enriched = logs.map((log) => {
+      const logComments = allComments
+        .filter((c) => c.workoutLogId === log.id)
+        .map((c) => ({
+          ...c,
+          authorName: authorMap[c.authorId]?.username ?? null,
+          authorAvatar: authorMap[c.authorId]?.avatarUrl ?? null,
+        }));
+
+      return {
+        ...log,
+        username: userMap[log.userId]?.username ?? null,
+        avatarUrl: userMap[log.userId]?.avatarUrl ?? null,
+        comments: logComments,
+      };
+    });
 
     return NextResponse.json(enriched);
   } catch (err) {
     console.error('GET /api/feed error:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
   }
 }

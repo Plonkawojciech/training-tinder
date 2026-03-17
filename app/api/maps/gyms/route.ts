@@ -1,20 +1,26 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { getAuthUserId } from '@/lib/server-auth';
 import { searchNearbyGyms } from '@/lib/maps';
 
 export async function GET(request: Request) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const userId = await getAuthUserId();
+  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
 
   const { searchParams } = new URL(request.url);
   const lat = parseFloat(searchParams.get('lat') ?? '');
   const lng = parseFloat(searchParams.get('lng') ?? '');
-  const radius = parseInt(searchParams.get('radius') ?? '5000');
+  const radiusRaw = parseInt(searchParams.get('radius') ?? '5000');
+  const radius = isNaN(radiusRaw) ? 5000 : radiusRaw;
 
   if (isNaN(lat) || isNaN(lng)) {
     return NextResponse.json({ error: 'lat and lng are required' }, { status: 400 });
   }
 
-  const gyms = await searchNearbyGyms(lat, lng, radius);
-  return NextResponse.json(gyms);
+  try {
+    const gyms = await searchNearbyGyms(lat, lng, radius);
+    return NextResponse.json(gyms);
+  } catch (err) {
+    console.error('GET /api/maps/gyms error:', err);
+    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+  }
 }

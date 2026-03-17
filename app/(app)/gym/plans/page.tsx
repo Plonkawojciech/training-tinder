@@ -20,9 +20,12 @@ interface Plan {
 }
 
 const DIFFICULTIES = ['beginner', 'intermediate', 'advanced', 'elite'];
-const GYM_SPORTS = SPORTS.filter((s) =>
-  ['gym', 'powerlifting', 'crossfit', 'calisthenics', 'olympic_weightlifting', 'bodybuilding', 'hiit'].includes(s.value)
-);
+const DIFFICULTY_LABELS: Record<string, string> = {
+  beginner: 'Początkujący',
+  intermediate: 'Średniozaawansowany',
+  advanced: 'Zaawansowany',
+  elite: 'Elita',
+};
 
 export default function PlansPage() {
   const [activeTab, setActiveTab] = useState<'browse' | 'mine'>('browse');
@@ -79,8 +82,7 @@ export default function PlansPage() {
       if (res.ok) {
         setShowCreate(false);
         setForm({ title: '', description: '', sportType: '', difficulty: 'intermediate', durationWeeks: '8', isPublic: true });
-        setActiveTab('mine');
-        loadPlans();
+        setActiveTab('mine'); // useEffect dependency triggers loadPlans() automatically
       }
     } finally {
       setCreating(false);
@@ -91,17 +93,17 @@ export default function PlansPage() {
     <div className="p-4 md:p-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="font-display text-3xl text-white tracking-wider">TRAINING PLANS</h1>
-          <p className="text-[#888888] text-sm mt-1">Browse and share structured training programs</p>
+          <h1 className="font-display text-3xl text-white tracking-wider">PLANY TRENINGOWE</h1>
+          <p className="text-[#888888] text-sm mt-1">Przeglądaj i udostępniaj plany treningowe</p>
         </div>
         <Button onClick={() => setShowCreate(true)}>
           <Plus className="w-4 h-4" />
-          Create Plan
+          Utwórz plan
         </Button>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-[#2A2A2A] mb-4">
+      <div className="flex border-b border-[var(--border)] mb-4">
         {(['browse', 'mine'] as const).map((tab) => (
           <button
             key={tab}
@@ -109,24 +111,24 @@ export default function PlansPage() {
             className="px-4 py-2.5 text-sm font-medium uppercase tracking-wider border-b-2 transition-all"
             style={
               activeTab === tab
-                ? { borderColor: '#FF4500', color: '#FF4500' }
+                ? { borderColor: '#6366F1', color: '#6366F1' }
                 : { borderColor: 'transparent', color: '#888888' }
             }
           >
-            {tab === 'browse' ? 'Browse Plans' : 'My Plans'}
+            {tab === 'browse' ? 'Wszystkie plany' : 'Moje plany'}
           </button>
         ))}
       </div>
 
       {/* Filters */}
       <div className="flex items-center gap-2 mb-4 flex-wrap">
-        <span className="text-xs text-[#555555] uppercase tracking-wider">Filter:</span>
+        <span className="text-xs text-[#555555] uppercase tracking-wider">Filtr:</span>
         <select
           value={sportFilter}
           onChange={(e) => setSportFilter(e.target.value)}
-          className="bg-[#111111] border border-[#2A2A2A] text-sm text-[#888888] px-2 py-1 focus:border-[#FF4500] focus:outline-none"
+          className="bg-[var(--bg-card)] border border-[var(--border)] text-sm text-[#888888] px-2 py-1 focus:border-[#6366F1] focus:outline-none"
         >
-          <option value="">All Sports</option>
+          <option value="">Wszystkie sporty</option>
           {SPORTS.map((s) => (
             <option key={s.value} value={s.value}>{s.label}</option>
           ))}
@@ -134,19 +136,19 @@ export default function PlansPage() {
         <select
           value={difficultyFilter}
           onChange={(e) => setDifficultyFilter(e.target.value)}
-          className="bg-[#111111] border border-[#2A2A2A] text-sm text-[#888888] px-2 py-1 focus:border-[#FF4500] focus:outline-none"
+          className="bg-[var(--bg-card)] border border-[var(--border)] text-sm text-[#888888] px-2 py-1 focus:border-[#6366F1] focus:outline-none"
         >
-          <option value="">All Levels</option>
+          <option value="">Wszystkie poziomy</option>
           {DIFFICULTIES.map((d) => (
-            <option key={d} value={d}>{d.charAt(0).toUpperCase() + d.slice(1)}</option>
+            <option key={d} value={d}>{DIFFICULTY_LABELS[d] ?? d}</option>
           ))}
         </select>
         {(sportFilter || difficultyFilter) && (
           <button
             onClick={() => { setSportFilter(''); setDifficultyFilter(''); }}
-            className="text-xs text-[#FF4500] flex items-center gap-1"
+            className="text-xs text-[#6366F1] flex items-center gap-1"
           >
-            <X className="w-3 h-3" /> Clear
+            <X className="w-3 h-3" /> Wyczyść
           </button>
         )}
       </div>
@@ -162,16 +164,16 @@ export default function PlansPage() {
         <div className="flex flex-col items-center justify-center py-16 gap-4">
           <BookOpen className="w-12 h-12 text-[#2A2A2A]" />
           <h3 className="font-display text-xl text-[#888888]">
-            {activeTab === 'mine' ? 'NO PLANS CREATED' : 'NO PLANS FOUND'}
+            {activeTab === 'mine' ? 'BRAK PLANÓW' : 'BRAK WYNIKÓW'}
           </h3>
           <p className="text-[#888888] text-sm text-center max-w-sm">
             {activeTab === 'mine'
-              ? 'Create your first training plan to share with the community'
-              : 'No plans match your filters. Try changing the filters or create one!'}
+              ? 'Utwórz swój pierwszy plan treningowy i podziel się nim ze społecznością'
+              : 'Brak planów pasujących do filtrów. Zmień filtry lub utwórz nowy!'}
           </p>
           <Button onClick={() => setShowCreate(true)}>
             <Plus className="w-4 h-4" />
-            Create Plan
+            Utwórz plan
           </Button>
         </div>
       ) : (
@@ -185,9 +187,9 @@ export default function PlansPage() {
       {/* Create Plan Modal */}
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="bg-[#111111] border border-[#2A2A2A] w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+          <div className="bg-[var(--bg-card)] border border-[var(--border)] w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-display text-xl text-white tracking-wider">CREATE PLAN</h3>
+              <h3 className="font-display text-xl text-white tracking-wider">UTWÓRZ PLAN</h3>
               <button onClick={() => setShowCreate(false)} className="text-[#888888] hover:text-white">
                 <X className="w-5 h-5" />
               </button>
@@ -195,25 +197,25 @@ export default function PlansPage() {
 
             <div className="flex flex-col gap-4">
               <Input
-                label="Title *"
+                label="Tytuł *"
                 value={form.title}
                 onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
-                placeholder="e.g. 12-Week Powerlifting Program"
+                placeholder="np. 12-tygodniowy program siłowy"
               />
 
               <Textarea
-                label="Description"
+                label="Opis"
                 value={form.description}
                 onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-                placeholder="Describe the program goals, who it's for, what equipment is needed..."
+                placeholder="Opisz cele programu, dla kogo jest i jaki sprzęt jest potrzebny..."
               />
 
               <div>
                 <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-2">
-                  Sport Type *
+                  Typ sportu *
                 </label>
                 <div className="grid grid-cols-3 gap-2">
-                  {SPORTS.slice(8).map((sport) => {
+                  {SPORTS.map((sport) => {
                     const color = getSportColor(sport.value);
                     const isSelected = form.sportType === sport.value;
                     return (
@@ -237,13 +239,13 @@ export default function PlansPage() {
 
               <div>
                 <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-2">
-                  Difficulty *
+                  Poziom trudności *
                 </label>
                 <div className="grid grid-cols-4 gap-2">
                   {DIFFICULTIES.map((d) => {
                     const colors: Record<string, string> = {
                       beginner: '#00CC44', intermediate: '#FFD700',
-                      advanced: '#FF8800', elite: '#FF4500',
+                      advanced: '#A78BFA', elite: '#6366F1',
                     };
                     const color = colors[d];
                     return (
@@ -251,14 +253,14 @@ export default function PlansPage() {
                         key={d}
                         type="button"
                         onClick={() => setForm((p) => ({ ...p, difficulty: d }))}
-                        className="p-2 border text-xs font-medium capitalize transition-all"
+                        className="p-2 border text-xs font-medium transition-all"
                         style={
                           form.difficulty === d
                             ? { borderColor: color, background: `${color}20`, color }
                             : { borderColor: '#2A2A2A', background: 'transparent', color: '#888888' }
                         }
                       >
-                        {d}
+                        {DIFFICULTY_LABELS[d] ?? d}
                       </button>
                     );
                   })}
@@ -266,7 +268,7 @@ export default function PlansPage() {
               </div>
 
               <Input
-                label="Duration (weeks)"
+                label="Czas trwania (tygodnie)"
                 type="number"
                 min="1"
                 max="52"
@@ -274,13 +276,13 @@ export default function PlansPage() {
                 onChange={(e) => setForm((p) => ({ ...p, durationWeeks: e.target.value }))}
               />
 
-              <div className="flex items-center justify-between p-3 border border-[#2A2A2A]">
-                <span className="text-sm text-[#888888]">Make plan public</span>
+              <div className="flex items-center justify-between p-3 border border-[var(--border)]">
+                <span className="text-sm text-[#888888]">Udostępnij plan publicznie</span>
                 <button
                   type="button"
                   onClick={() => setForm((p) => ({ ...p, isPublic: !p.isPublic }))}
                   className="w-10 h-5 transition-all relative"
-                  style={{ background: form.isPublic ? '#FF4500' : '#2A2A2A' }}
+                  style={{ background: form.isPublic ? '#6366F1' : '#2A2A2A' }}
                 >
                   <div
                     className="w-4 h-4 bg-white absolute top-0.5 transition-all"
@@ -292,11 +294,11 @@ export default function PlansPage() {
 
             <div className="flex gap-3 mt-6">
               <Button variant="outline" onClick={() => setShowCreate(false)} className="flex-1">
-                Cancel
+                Anuluj
               </Button>
               <Button onClick={handleCreate} loading={creating} className="flex-1">
                 <Plus className="w-4 h-4" />
-                Create Plan
+                Utwórz plan
               </Button>
             </div>
           </div>

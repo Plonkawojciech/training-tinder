@@ -20,10 +20,10 @@ export function Big4Display({ records }: Big4DisplayProps) {
   const recordMap = new Map(records.map((r) => [r.exerciseName, r]));
 
   return (
-    <div className="bg-[#111111] border border-[#2A2A2A] p-4">
+    <div className="bg-[var(--bg-card)] border border-[var(--border)] p-4">
       <div className="flex items-center gap-2 mb-4">
         <Trophy className="w-4 h-4 text-[#FFD700]" />
-        <h3 className="font-display text-sm text-[#888888] tracking-wider">BIG 4 LIFTS</h3>
+        <h3 className="font-display text-sm text-[#888888] tracking-wider">WIELKA CZWÓRKA</h3>
       </div>
       <div className="grid grid-cols-4 gap-3">
         {BIG4.map((lift, i) => {
@@ -34,8 +34,8 @@ export function Big4Display({ records }: Big4DisplayProps) {
               <div
                 className="w-full aspect-square flex flex-col items-center justify-center border mb-2"
                 style={{
-                  borderColor: pr ? 'rgba(255,69,0,0.4)' : '#1A1A1A',
-                  background: pr ? 'rgba(255,69,0,0.06)' : '#0D0D0D',
+                  borderColor: pr ? 'rgba(99,102,241,0.4)' : '#1A1A1A',
+                  background: pr ? 'rgba(99,102,241,0.06)' : '#0D0D0D',
                 }}
               >
                 {pr ? (
@@ -43,7 +43,7 @@ export function Big4Display({ records }: Big4DisplayProps) {
                     <p className="font-display text-lg text-white leading-none">{pr.weightKg}</p>
                     <p className="text-[10px] text-[#888888]">kg</p>
                     {oneRM && pr.reps > 1 && (
-                      <p className="text-[9px] text-[#FF4500] mt-1">~{oneRM} 1RM</p>
+                      <p className="text-[9px] text-[#6366F1] mt-1">~{oneRM} 1RM</p>
                     )}
                   </>
                 ) : (

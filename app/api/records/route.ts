@@ -1,38 +1,32 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { personalRecords, activityFeed } from '@/lib/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, and, sql } from 'drizzle-orm';
 
 export async function GET(request: Request) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const userId = await getAuthUserId();
+  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
 
   const { searchParams } = new URL(request.url);
   const exercise = searchParams.get('exercise');
 
   try {
-    let rows: typeof personalRecords.$inferSelect[];
-    if (exercise) {
-      rows = await db
-        .select()
-        .from(personalRecords)
-        .where(eq(personalRecords.userId, userId))
-        .orderBy(desc(personalRecords.achievedAt));
-      rows = rows.filter((r) => r.exerciseName.toLowerCase() === exercise.toLowerCase());
-    } else {
-      rows = await db
-        .select()
-        .from(personalRecords)
-        .where(eq(personalRecords.userId, userId))
-        .orderBy(desc(personalRecords.achievedAt));
-    }
+    const rows = await db
+      .select()
+      .from(personalRecords)
+      .where(
+        exercise
+          ? and(eq(personalRecords.userId, userId), sql`lower(${personalRecords.exerciseName}) = lower(${exercise})`)
+          : eq(personalRecords.userId, userId)
+      )
+      .orderBy(desc(personalRecords.achievedAt));
 
     // Get best per exercise
     const bestPerExercise: Record<string, typeof personalRecords.$inferSelect> = {};
     for (const row of rows) {
       const existing = bestPerExercise[row.exerciseName];
-      if (!existing || row.weightKg > existing.weightKg) {
+      if (!existing || (row.weightKg ?? 0) > (existing.weightKg ?? 0)) {
         bestPerExercise[row.exerciseName] = row;
       }
     }
@@ -43,13 +37,13 @@ export async function GET(request: Request) {
     });
   } catch (err) {
     console.error('GET /api/records error:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const userId = await getAuthUserId();
+  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
 
   try {
     const body = await request.json() as {
@@ -85,6 +79,6 @@ export async function POST(request: Request) {
     return NextResponse.json(pr);
   } catch (err) {
     console.error('POST /api/records error:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
   }
 }

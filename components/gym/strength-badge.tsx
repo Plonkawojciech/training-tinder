@@ -8,8 +8,8 @@ interface StrengthBadgeProps {
 const LEVEL_CONFIG: Record<string, { label: string; color: string }> = {
   beginner: { label: 'Beginner', color: '#00CC44' },
   intermediate: { label: 'Intermediate', color: '#FFD700' },
-  advanced: { label: 'Advanced', color: '#FF8800' },
-  elite: { label: 'Elite', color: '#FF4500' },
+  advanced: { label: 'Advanced', color: '#A78BFA' },
+  elite: { label: 'Elite', color: '#6366F1' },
 };
 
 export function StrengthBadge({ level, size = 'md' }: StrengthBadgeProps) {

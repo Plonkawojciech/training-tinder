@@ -1,62 +1,72 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { gymCheckins, users } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 
 export async function POST(request: Request) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const userId = await getAuthUserId();
+  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
 
-  const body = await request.json() as {
-    gymName: string;
-    gymPlaceId?: string;
-    lat?: number;
-    lng?: number;
-    workoutType?: string;
-  };
+  try {
+    const body = await request.json() as {
+      gymName: string;
+      gymPlaceId?: string;
+      lat?: number;
+      lng?: number;
+      workoutType?: string;
+    };
 
-  if (!body.gymName) {
-    return NextResponse.json({ error: 'gymName is required' }, { status: 400 });
+    if (!body.gymName) {
+      return NextResponse.json({ error: 'gymName is required' }, { status: 400 });
+    }
+
+    // Deactivate any previous active checkins
+    await db
+      .update(gymCheckins)
+      .set({ isActive: false, checkedOutAt: new Date() })
+      .where(and(eq(gymCheckins.userId, userId), eq(gymCheckins.isActive, true)));
+
+    const [checkin] = await db
+      .insert(gymCheckins)
+      .values({
+        userId,
+        gymName: body.gymName,
+        gymPlaceId: body.gymPlaceId ?? null,
+        lat: body.lat ?? null,
+        lon: body.lng ?? null,
+        workoutType: body.workoutType ?? null,
+        isActive: true,
+      })
+      .returning();
+
+    return NextResponse.json(checkin);
+  } catch (err) {
+    console.error('POST /api/checkin error:', err);
+    return NextResponse.json({ error: 'Bad request or internal server error' }, { status: 400 });
   }
-
-  // Deactivate any previous active checkins
-  await db
-    .update(gymCheckins)
-    .set({ isActive: false, checkedOutAt: new Date() })
-    .where(and(eq(gymCheckins.userId, userId), eq(gymCheckins.isActive, true)));
-
-  const [checkin] = await db
-    .insert(gymCheckins)
-    .values({
-      userId,
-      gymName: body.gymName,
-      gymPlaceId: body.gymPlaceId ?? null,
-      lat: body.lat ?? null,
-      lon: body.lng ?? null,
-      workoutType: body.workoutType ?? null,
-      isActive: true,
-    })
-    .returning();
-
-  return NextResponse.json(checkin);
 }
 
 export async function DELETE() {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const userId = await getAuthUserId();
+  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
 
-  await db
-    .update(gymCheckins)
-    .set({ isActive: false, checkedOutAt: new Date() })
-    .where(and(eq(gymCheckins.userId, userId), eq(gymCheckins.isActive, true)));
+  try {
+    await db
+      .update(gymCheckins)
+      .set({ isActive: false, checkedOutAt: new Date() })
+      .where(and(eq(gymCheckins.userId, userId), eq(gymCheckins.isActive, true)));
 
-  return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error('DELETE /api/checkin error:', err);
+    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+  }
 }
 
 export async function GET(request: Request) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const userId = await getAuthUserId();
+  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
 
   const { searchParams } = new URL(request.url);
   const gymPlaceId = searchParams.get('gymPlaceId');
@@ -117,8 +127,10 @@ export async function GET(request: Request) {
 
   const results = await query;
 
+  const validCheckins = results.filter((r) => r.user !== null);
+
   return NextResponse.json({
     myCheckin: myCheckin[0] ?? null,
-    checkins: results,
+    checkins: validCheckins,
   });
 }

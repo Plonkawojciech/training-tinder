@@ -98,7 +98,6 @@ export default function GymLivePage() {
 
   const myCheckin = data?.myCheckin;
   const allCheckins = data?.checkins ?? [];
-  const otherCheckins = allCheckins.filter((c) => c.checkin.userId !== myCheckin?.userId);
 
   // Group by gym for the map view
   const gymGroups = allCheckins.reduce<Record<string, CheckinUser[]>>((acc, c) => {
@@ -115,23 +114,23 @@ export default function GymLivePage() {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
             <div className="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse" />
-            <span className="font-display text-xs text-green-400 tracking-wider">LIVE NOW</span>
+            <span className="font-display text-xs text-green-400 tracking-wider">NA ŻYWO</span>
           </div>
-          <h1 className="font-display text-3xl text-white tracking-wider">WHO&apos;S AT THE GYM</h1>
+          <h1 className="font-display text-3xl text-white tracking-wider">KTO JEST NA SIŁOWNI</h1>
         </div>
         <div className="flex items-center gap-2">
           <Radio className="w-4 h-4 text-green-400" />
-          <span className="text-xs text-[#888888]">Auto-refreshes every 30s</span>
+          <span className="text-xs text-[#888888]">Odświeża co 30s</span>
         </div>
       </div>
 
       {/* My status */}
       {myCheckin && (
-        <div className="bg-[#111111] border border-[#FF4500]/30 p-4 mb-6">
+        <div className="bg-[var(--bg-card)] border border-[#6366F1]/30 p-4 mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-2 h-2 bg-[#FF4500] rounded-full animate-pulse" />
+            <div className="w-2 h-2 bg-[#6366F1] rounded-full animate-pulse" />
             <p className="text-white text-sm">
-              You are checked in at <span className="text-[#FF4500] font-semibold">{myCheckin.gymName}</span>
+              Jesteś zameldowany w <span className="text-[#6366F1] font-semibold">{myCheckin.gymName}</span>
               {myCheckin.workoutType && (
                 <span className="text-[#888888]"> — {myCheckin.workoutType}</span>
               )}
@@ -147,15 +146,15 @@ export default function GymLivePage() {
           {!loading && Object.keys(gymGroups).length > 0 && (
             <div>
               <h2 className="font-display text-sm text-[#888888] tracking-wider mb-3 flex items-center gap-2">
-                <Users className="w-4 h-4 text-[#FF4500]" />
-                ACTIVE GYMS ({Object.keys(gymGroups).length})
+                <Users className="w-4 h-4 text-[#6366F1]" />
+                AKTYWNE SIŁOWNIE ({Object.keys(gymGroups).length})
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {Object.entries(gymGroups).map(([gym, users]) => (
-                  <div key={gym} className="bg-[#111111] border border-[#2A2A2A] p-3 flex items-center justify-between">
+                  <div key={gym} className="bg-[var(--bg-card)] border border-[var(--border)] p-3 flex items-center justify-between">
                     <div>
                       <p className="text-white text-sm font-semibold truncate">{gym}</p>
-                      <p className="text-xs text-[#888888]">{users.length} athlete{users.length !== 1 ? 's' : ''}</p>
+                      <p className="text-xs text-[#888888]">{users.length} {users.length === 1 ? 'sportowiec' : 'sportowców'}</p>
                     </div>
                     <div className="flex -space-x-1">
                       {users.slice(0, 3).map((u) => (
@@ -178,7 +177,7 @@ export default function GymLivePage() {
                         )
                       ))}
                       {users.length > 3 && (
-                        <div className="w-6 h-6 bg-[#FF4500] flex items-center justify-center text-[10px] text-white border border-[#111111]">
+                        <div className="w-6 h-6 bg-[#6366F1] flex items-center justify-center text-[10px] text-white border border-[#111111]">
                           +{users.length - 3}
                         </div>
                       )}
@@ -192,8 +191,8 @@ export default function GymLivePage() {
           {/* All active checkins */}
           <div>
             <h2 className="font-display text-sm text-[#888888] tracking-wider mb-3 flex items-center gap-2">
-              <Dumbbell className="w-4 h-4 text-[#FF4500]" />
-              ALL ACTIVE CHECK-INS ({allCheckins.length})
+              <Dumbbell className="w-4 h-4 text-[#6366F1]" />
+              WSZYSCY ZAMELDOWANI ({allCheckins.length})
             </h2>
 
             {loading ? (
@@ -203,15 +202,15 @@ export default function GymLivePage() {
                 ))}
               </div>
             ) : allCheckins.length === 0 ? (
-              <div className="bg-[#111111] border border-[#2A2A2A] p-8 text-center">
+              <div className="bg-[var(--bg-card)] border border-[var(--border)] p-8 text-center">
                 <Users className="w-10 h-10 text-[#2A2A2A] mx-auto mb-3" />
-                <p className="text-[#888888] text-sm">No one is checked in right now</p>
-                <p className="text-xs text-[#555555] mt-1">Be the first to check in!</p>
+                <p className="text-[#888888] text-sm">Nikt teraz nie jest zameldowany</p>
+                <p className="text-xs text-[#555555] mt-1">Bądź pierwszy!</p>
               </div>
             ) : (
               <div className="flex flex-col gap-3">
                 {allCheckins.map((item) => (
-                  <div key={item.checkin.id} className="bg-[#111111] border border-[#2A2A2A] p-4 flex items-center gap-3">
+                  <div key={item.checkin.id} className="bg-[var(--bg-card)] border border-[var(--border)] p-4 flex items-center gap-3">
                     {item.user?.avatarUrl ? (
                       <Image
                         src={item.user.avatarUrl}
@@ -228,9 +227,9 @@ export default function GymLivePage() {
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-white text-sm font-semibold">{item.user?.username ?? 'Unknown'}</span>
+                        <span className="text-white text-sm font-semibold">{item.user?.username ?? 'Nieznany'}</span>
                         {item.checkin.workoutType && (
-                          <span className="text-[10px] text-[#FF4500] border border-[#FF4500]/30 px-1.5 py-0.5">
+                          <span className="text-[10px] text-[#6366F1] border border-[#6366F1]/30 px-1.5 py-0.5">
                             {item.checkin.workoutType}
                           </span>
                         )}
@@ -248,11 +247,11 @@ export default function GymLivePage() {
 
                     {item.user?.clerkId && item.checkin.userId !== myCheckin?.userId && (
                       <Link
-                        href={`/messages?userId=${item.user.clerkId}`}
-                        className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 border border-[#2A2A2A] text-[#888888] hover:text-white hover:border-[#00D4FF] text-xs font-semibold uppercase tracking-wider transition-all"
+                        href={`/messages?partner=${item.user.clerkId}&name=${encodeURIComponent(item.user.username ?? '')}`}
+                        className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 border border-[var(--border)] text-[#888888] hover:text-white hover:border-[#00D4FF] text-xs font-semibold uppercase tracking-wider transition-all"
                       >
                         <MessageSquare className="w-3 h-3" />
-                        Message
+                        Napisz
                       </Link>
                     )}
                   </div>
@@ -266,11 +265,11 @@ export default function GymLivePage() {
             <div>
               <h2 className="font-display text-sm text-[#888888] tracking-wider mb-3 flex items-center gap-2">
                 <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse inline-block" />
-                OPEN SPOTTER REQUESTS ({spotters.length})
+                PROŚBY O ASEKURACJĘ ({spotters.length})
               </h2>
               <div className="flex flex-col gap-3">
                 {spotters.map((s) => (
-                  <div key={s.request.id} className="bg-[#111111] border border-red-900/40 p-4">
+                  <div key={s.request.id} className="bg-[var(--bg-card)] border border-red-900/40 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-2 flex-1">
                         {s.requester?.avatarUrl ? (
@@ -287,7 +286,7 @@ export default function GymLivePage() {
                           </div>
                         )}
                         <div>
-                          <p className="text-white text-sm font-semibold">{s.requester?.username ?? 'Unknown'}</p>
+                          <p className="text-white text-sm font-semibold">{s.requester?.username ?? 'Nieznany'}</p>
                           <p className="text-xs text-[#888888]">{s.request.gymName}</p>
                         </div>
                       </div>
@@ -299,7 +298,7 @@ export default function GymLivePage() {
                     <div className="mt-3 flex items-center gap-3 flex-wrap">
                       <span className="text-sm text-white font-semibold">{s.request.exercise}</span>
                       {s.request.weightKg && (
-                        <span className="text-xs text-[#FF4500] border border-[#FF4500]/30 px-2 py-0.5">
+                        <span className="text-xs text-[#6366F1] border border-[#6366F1]/30 px-2 py-0.5">
                           {s.request.weightKg} kg
                         </span>
                       )}
@@ -315,14 +314,14 @@ export default function GymLivePage() {
                         disabled={acceptingId === s.request.id}
                         className="flex-1 py-2 bg-red-600 text-white text-xs font-semibold uppercase tracking-wider hover:bg-red-700 disabled:opacity-50 transition-all"
                       >
-                        {acceptingId === s.request.id ? 'Accepting...' : "I'll Help!"}
+                        {acceptingId === s.request.id ? 'Akceptowanie...' : 'Pomogę!'}
                       </button>
                       {s.requester?.clerkId && (
                         <Link
-                          href={`/messages?userId=${s.requester.clerkId}`}
-                          className="px-4 py-2 border border-[#2A2A2A] text-[#888888] hover:text-white hover:border-[#00D4FF] text-xs font-semibold uppercase tracking-wider transition-all"
+                          href={`/messages?partner=${s.requester.clerkId}&name=${encodeURIComponent(s.requester.username ?? '')}`}
+                          className="px-4 py-2 border border-[var(--border)] text-[#888888] hover:text-white hover:border-[#00D4FF] text-xs font-semibold uppercase tracking-wider transition-all"
                         >
-                          Message
+                          Napisz
                         </Link>
                       )}
                     </div>
@@ -337,54 +336,54 @@ export default function GymLivePage() {
         <div className="flex flex-col gap-4">
           {/* Spotter request button */}
           {myCheckin && (
-            <div className="bg-[#111111] border border-[#2A2A2A] p-4">
-              <h3 className="font-display text-sm text-[#888888] tracking-wider mb-3">NEED HELP?</h3>
+            <div className="bg-[var(--bg-card)] border border-[var(--border)] p-4">
+              <h3 className="font-display text-sm text-[#888888] tracking-wider mb-3">POTRZEBUJESZ POMOCY?</h3>
               <SpotterRequest gymName={myCheckin.gymName} gymPlaceId={myCheckin.gymPlaceId} />
             </div>
           )}
 
           {/* Stats */}
-          <div className="bg-[#111111] border border-[#2A2A2A] p-4">
-            <h3 className="font-display text-sm text-[#888888] tracking-wider mb-3">LIVE STATS</h3>
+          <div className="bg-[var(--bg-card)] border border-[var(--border)] p-4">
+            <h3 className="font-display text-sm text-[#888888] tracking-wider mb-3">STATYSTYKI NA ŻYWO</h3>
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-[#888888]">Athletes training</span>
+                <span className="text-xs text-[#888888]">Trenujących sportowców</span>
                 <span className="font-display text-lg text-white">{allCheckins.length}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs text-[#888888]">Active gyms</span>
+                <span className="text-xs text-[#888888]">Aktywnych siłowni</span>
                 <span className="font-display text-lg text-white">{Object.keys(gymGroups).length}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs text-[#888888]">Spotter requests</span>
-                <span className="font-display text-lg text-[#FF4500]">{spotters.length}</span>
+                <span className="text-xs text-[#888888]">Prośby o asekurację</span>
+                <span className="font-display text-lg text-[#6366F1]">{spotters.length}</span>
               </div>
             </div>
           </div>
 
           {/* Quick links */}
-          <div className="bg-[#111111] border border-[#2A2A2A] p-4">
-            <h3 className="font-display text-sm text-[#888888] tracking-wider mb-3">QUICK LINKS</h3>
+          <div className="bg-[var(--bg-card)] border border-[var(--border)] p-4">
+            <h3 className="font-display text-sm text-[#888888] tracking-wider mb-3">SZYBKIE LINKI</h3>
             <div className="flex flex-col gap-2">
               <Link
                 href="/gym"
-                className="flex items-center justify-between p-2.5 border border-[#2A2A2A] hover:border-[#FF4500] text-sm text-[#888888] hover:text-white transition-all"
+                className="flex items-center justify-between p-2.5 border border-[var(--border)] hover:border-[#6366F1] text-sm text-[#888888] hover:text-white transition-all"
               >
-                <span>Gym Hub</span>
+                <span>Centrum siłowni</span>
                 <Dumbbell className="w-4 h-4" />
               </Link>
               <Link
                 href="/gym/finder"
-                className="flex items-center justify-between p-2.5 border border-[#2A2A2A] hover:border-[#FF4500] text-sm text-[#888888] hover:text-white transition-all"
+                className="flex items-center justify-between p-2.5 border border-[var(--border)] hover:border-[#6366F1] text-sm text-[#888888] hover:text-white transition-all"
               >
-                <span>Find Gyms</span>
+                <span>Znajdź siłownię</span>
                 <span className="text-xs">📍</span>
               </Link>
               <Link
                 href="/discover"
-                className="flex items-center justify-between p-2.5 border border-[#2A2A2A] hover:border-[#FF4500] text-sm text-[#888888] hover:text-white transition-all"
+                className="flex items-center justify-between p-2.5 border border-[var(--border)] hover:border-[#6366F1] text-sm text-[#888888] hover:text-white transition-all"
               >
-                <span>Find Partners</span>
+                <span>Znajdź partnerów</span>
                 <span className="text-xs">🤝</span>
               </Link>
             </div>

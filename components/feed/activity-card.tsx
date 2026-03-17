@@ -34,7 +34,7 @@ function ActivityIcon({ type }: { type: string }) {
 }
 
 const TYPE_COLORS: Record<string, string> = {
-  workout_completed: '#FF4500',
+  workout_completed: '#6366F1',
   pr_set: '#FFD700',
   session_joined: '#00D4FF',
   plan_shared: '#00CC44',
@@ -47,10 +47,10 @@ function ActivityContent({ type, data }: { type: string; data: Record<string, un
       return (
         <div>
           <p className="text-sm text-white">
-            Completed <span className="text-[#FF4500] font-semibold">{String(data.workoutName ?? 'a workout')}</span>
+            Ukończono <span className="text-[#6366F1] font-semibold">{String(data.workoutName ?? 'trening')}</span>
           </p>
           <p className="text-xs text-[#888888] mt-1">
-            {String(data.type ?? '').toUpperCase()} · {String(data.exerciseCount ?? 0)} exercises
+            {String(data.type ?? '').toUpperCase()} · {String(data.exerciseCount ?? 0)} ćwiczeń
             {data.durationMin ? ` · ${data.durationMin}min` : ''}
           </p>
         </div>
@@ -59,24 +59,24 @@ function ActivityContent({ type, data }: { type: string; data: Record<string, un
       return (
         <div>
           <p className="text-sm text-white">
-            Set a new PR on <span className="text-[#FFD700] font-semibold">{String(data.exerciseName ?? '')}</span>
+            Nowy rekord w <span className="text-[#FFD700] font-semibold">{String(data.exerciseName ?? '')}</span>
           </p>
           <p className="text-xs text-[#888888] mt-1">
-            {String(data.weightKg ?? 0)}kg × {String(data.reps ?? 0)} reps
+            {String(data.weightKg ?? 0)}kg × {String(data.reps ?? 0)} powt.
           </p>
         </div>
       );
     case 'session_joined':
       return (
         <p className="text-sm text-white">
-          Joined a training session
+          Dołączono do sesji treningowej
         </p>
       );
     case 'plan_shared':
       return (
         <div>
           <p className="text-sm text-white">
-            Shared a training plan: <span className="text-[#00CC44] font-semibold">{String(data.planTitle ?? '')}</span>
+            Udostępniono plan: <span className="text-[#00CC44] font-semibold">{String(data.planTitle ?? '')}</span>
           </p>
         </div>
       );
@@ -84,13 +84,13 @@ function ActivityContent({ type, data }: { type: string; data: Record<string, un
       return (
         <div>
           <p className="text-sm text-white">
-            Unlocked achievement: <span className="text-[#CC44FF] font-semibold">{String(data.title ?? '')}</span>
+            Odblokowano osiągnięcie: <span className="text-[#CC44FF] font-semibold">{String(data.title ?? '')}</span>
           </p>
           <p className="text-xs text-[#888888] mt-1">{String(data.description ?? '')}</p>
         </div>
       );
     default:
-      return <p className="text-sm text-[#888888]">Activity recorded</p>;
+      return <p className="text-sm text-[#888888]">Aktywność zapisana</p>;
   }
 }
 
@@ -127,7 +127,7 @@ export function ActivityCard({
   }
 
   return (
-    <div className="bg-[#111111] border border-[#2A2A2A] p-4">
+    <div className="bg-[var(--bg-card)] border border-[var(--border)] p-4 hover:border-[#6366F1]/50 transition-all">
       <div className="flex items-start gap-3">
         {/* Activity type icon */}
         <div
@@ -143,15 +143,15 @@ export function ActivityCard({
             <div className="flex items-center gap-2">
               <div
                 className="w-6 h-6 flex items-center justify-center text-[10px] font-bold text-white"
-                style={{ background: '#FF4500' }}
+                style={{ background: '#6366F1' }}
               >
                 {(creator?.username ?? '?')[0].toUpperCase()}
               </div>
               <span className="text-xs font-semibold text-white">
-                {creator?.username ?? 'Unknown'}
+                {creator?.username ?? 'Nieznany'}
               </span>
               {isOwn && (
-                <span className="text-[9px] text-[#555555] uppercase tracking-wider">You</span>
+                <span className="text-[9px] text-[#555555] uppercase tracking-wider">Ty</span>
               )}
             </div>
 
@@ -164,13 +164,13 @@ export function ActivityCard({
                   style={
                     localFollowing
                       ? { borderColor: '#2A2A2A', color: '#888888' }
-                      : { borderColor: '#FF4500', color: '#FF4500', background: 'rgba(255,69,0,0.08)' }
+                      : { borderColor: '#6366F1', color: '#6366F1', background: 'rgba(99,102,241,0.08)' }
                   }
                 >
                   {localFollowing ? (
-                    <><UserMinus className="w-3 h-3" /> Unfollow</>
+                    <><UserMinus className="w-3 h-3" /> Obserwujesz</>
                   ) : (
-                    <><UserPlus className="w-3 h-3" /> Follow</>
+                    <><UserPlus className="w-3 h-3" /> Obserwuj</>
                   )}
                 </button>
               )}

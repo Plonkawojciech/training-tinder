@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { exercises, workoutLogs } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -8,11 +8,12 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const userId = await getAuthUserId();
+  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
 
   const { id } = await params;
   const logId = parseInt(id);
+  if (isNaN(logId)) return NextResponse.json({ error: 'Invalid workout id' }, { status: 400 });
 
   try {
     // Verify ownership
@@ -22,7 +23,7 @@ export async function POST(
       .where(and(eq(workoutLogs.id, logId), eq(workoutLogs.userId, userId)))
       .limit(1);
 
-    if (!log) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    if (!log) return NextResponse.json({ error: 'Nie znaleziono' }, { status: 404 });
 
     const body = await request.json() as Array<{
       name: string;
@@ -51,6 +52,6 @@ export async function POST(
     return NextResponse.json(inserted);
   } catch (err) {
     console.error('POST /api/workouts/[id]/exercises error:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
   }
 }

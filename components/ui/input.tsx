@@ -16,7 +16,8 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="text-xs font-semibold uppercase tracking-wider text-[#888888]"
+            className="text-xs font-semibold"
+            style={{ color: 'var(--text-muted)' }}
           >
             {label}
           </label>
@@ -25,15 +26,20 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           id={inputId}
           ref={ref}
           className={cn(
-            'w-full bg-[#0A0A0A] border border-[#2A2A2A] text-white px-3 py-2.5 text-sm',
-            'placeholder:text-[#444444]',
-            'transition-all duration-150',
+            'w-full px-4 py-3 transition-all duration-150',
             error && 'border-red-500',
             className
           )}
+          style={{
+            background: 'var(--bg-elevated)',
+            border: '1.5px solid var(--border)',
+            borderRadius: 12,
+            color: 'var(--text)',
+            fontSize: 16, // prevent iOS zoom-on-focus
+          }}
           {...props}
         />
-        {hint && !error && <p className="text-xs text-[#888888]">{hint}</p>}
+        {hint && !error && <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{hint}</p>}
         {error && <p className="text-xs text-red-400">{error}</p>}
       </div>
     );
@@ -56,7 +62,8 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="text-xs font-semibold uppercase tracking-wider text-[#888888]"
+            className="text-xs font-semibold"
+            style={{ color: 'var(--text-muted)' }}
           >
             {label}
           </label>
@@ -65,12 +72,17 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           id={inputId}
           ref={ref}
           className={cn(
-            'w-full bg-[#0A0A0A] border border-[#2A2A2A] text-white px-3 py-2.5 text-sm resize-none',
-            'placeholder:text-[#444444]',
-            'transition-all duration-150 min-h-[100px]',
+            'w-full px-4 py-3 resize-none transition-all duration-150 min-h-[100px]',
             error && 'border-red-500',
             className
           )}
+          style={{
+            background: 'var(--bg-elevated)',
+            border: '1.5px solid var(--border)',
+            borderRadius: 12,
+            color: 'var(--text)',
+            fontSize: 16, // prevent iOS zoom-on-focus
+          }}
           {...props}
         />
         {error && <p className="text-xs text-red-400">{error}</p>}

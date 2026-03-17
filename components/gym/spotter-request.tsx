@@ -6,7 +6,7 @@ import { X, CheckCircle } from 'lucide-react';
 const EXERCISES = [
   'Bench Press', 'Squat', 'Deadlift', 'Overhead Press', 'Barbell Row',
   'Incline Bench Press', 'Romanian Deadlift', 'Front Squat', 'Hip Thrust',
-  'Pull-up', 'Dips', 'Other',
+  'Pull-up', 'Dips', 'Inne',
 ];
 
 interface SpotterRequestProps {
@@ -25,7 +25,7 @@ export function SpotterRequest({ gymName, gymPlaceId }: SpotterRequestProps) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const finalExercise = exercise === 'Other' ? customExercise : exercise;
+    const finalExercise = exercise === 'Inne' ? customExercise : exercise;
     if (!finalExercise) return;
 
     setSubmitting(true);
@@ -64,14 +64,14 @@ export function SpotterRequest({ gymName, gymPlaceId }: SpotterRequestProps) {
         onClick={() => setOpen(true)}
         className="w-full py-2.5 bg-red-600 text-white text-xs font-semibold uppercase tracking-wider hover:bg-red-700 hover:shadow-[0_0_15px_rgba(220,38,38,0.4)] transition-all flex items-center justify-center gap-2"
       >
-        Need a Spotter?
+        Potrzebujesz asekuranta?
       </button>
 
       {open && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#111111] border border-[#2A2A2A] w-full max-w-md shadow-2xl">
-            <div className="flex items-center justify-between p-4 border-b border-[#2A2A2A]">
-              <h2 className="font-display text-lg text-white tracking-wider">REQUEST SPOTTER</h2>
+          <div className="bg-[var(--bg-card)] border border-[var(--border)] w-full max-w-md shadow-2xl">
+            <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
+              <h2 className="font-display text-lg text-white tracking-wider">ZNAJDŹ ASEKURANTA</h2>
               <button
                 onClick={() => setOpen(false)}
                 className="text-[#888888] hover:text-white transition-colors"
@@ -83,16 +83,16 @@ export function SpotterRequest({ gymName, gymPlaceId }: SpotterRequestProps) {
             {success ? (
               <div className="p-8 text-center">
                 <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-3" />
-                <p className="text-white font-semibold mb-1">Request Sent!</p>
+                <p className="text-white font-semibold mb-1">Prośba wysłana!</p>
                 <p className="text-[#888888] text-sm">
-                  Notifying users at {gymName}
+                  Powiadamiamy użytkowników w {gymName}
                 </p>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="p-4 flex flex-col gap-4">
                 <div>
                   <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-2">
-                    Exercise *
+                    Ćwiczenie *
                   </label>
                   <div className="grid grid-cols-2 gap-1.5">
                     {EXERCISES.map((ex) => (
@@ -102,8 +102,8 @@ export function SpotterRequest({ gymName, gymPlaceId }: SpotterRequestProps) {
                         onClick={() => setExercise(ex)}
                         className={`py-1.5 text-xs font-medium border transition-all ${
                           exercise === ex
-                            ? 'border-[#FF4500] bg-[rgba(255,69,0,0.1)] text-[#FF4500]'
-                            : 'border-[#2A2A2A] text-[#888888] hover:border-[#444444] hover:text-white'
+                            ? 'border-[#6366F1] bg-[rgba(99,102,241,0.1)] text-[#6366F1]'
+                            : 'border-[var(--border)] text-[#888888] hover:border-[#444444] hover:text-white'
                         }`}
                       >
                         {ex}
@@ -112,20 +112,20 @@ export function SpotterRequest({ gymName, gymPlaceId }: SpotterRequestProps) {
                   </div>
                 </div>
 
-                {exercise === 'Other' && (
+                {exercise === 'Inne' && (
                   <input
                     type="text"
                     value={customExercise}
                     onChange={(e) => setCustomExercise(e.target.value)}
-                    placeholder="Enter exercise name..."
-                    className="w-full bg-[#0A0A0A] border border-[#2A2A2A] text-white px-3 py-2.5 text-sm placeholder:text-[#444444]"
+                    placeholder="Wpisz nazwę ćwiczenia..."
+                    className="w-full bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] px-3 py-2.5 text-sm placeholder:text-[#444444]"
                     required
                   />
                 )}
 
                 <div>
                   <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-2">
-                    Weight (kg)
+                    Ciężar (kg)
                   </label>
                   <input
                     type="number"
@@ -133,33 +133,33 @@ export function SpotterRequest({ gymName, gymPlaceId }: SpotterRequestProps) {
                     onChange={(e) => setWeightKg(e.target.value)}
                     placeholder="e.g. 120"
                     min="0"
-                    className="w-full bg-[#0A0A0A] border border-[#2A2A2A] text-white px-3 py-2.5 text-sm placeholder:text-[#444444]"
+                    className="w-full bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] px-3 py-2.5 text-sm placeholder:text-[#444444]"
                   />
                 </div>
 
                 <div>
                   <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-2">
-                    Message (optional)
+                    Wiadomość (opcjonalnie)
                   </label>
                   <textarea
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
-                    placeholder="e.g. Attempting a new PR, need someone experienced..."
+                    placeholder="np. Próba nowego rekordu, potrzebuję kogoś doświadczonego..."
                     rows={2}
-                    className="w-full bg-[#0A0A0A] border border-[#2A2A2A] text-white px-3 py-2.5 text-sm placeholder:text-[#444444] resize-none"
+                    className="w-full bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] px-3 py-2.5 text-sm placeholder:text-[#444444] resize-none"
                   />
                 </div>
 
                 <p className="text-xs text-[#555555]">
-                  At: <span className="text-[#888888]">{gymName}</span> — Expires in 30 minutes
+                  W: <span className="text-[#888888]">{gymName}</span> — Wygasa za 30 minut
                 </p>
 
                 <button
                   type="submit"
-                  disabled={submitting || (!exercise || (exercise === 'Other' && !customExercise))}
+                  disabled={submitting || (!exercise || (exercise === 'Inne' && !customExercise))}
                   className="w-full py-2.5 bg-red-600 text-white text-sm font-semibold uppercase tracking-wider hover:bg-red-700 disabled:opacity-50 transition-all"
                 >
-                  {submitting ? 'Sending...' : 'Send Spotter Request'}
+                  {submitting ? 'Wysyłanie...' : 'Wyślij prośbę o asekuranta'}
                 </button>
               </form>
             )}

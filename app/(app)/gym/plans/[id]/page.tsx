@@ -42,7 +42,10 @@ export default function PlanDetailPage() {
 
   useEffect(() => {
     fetch(`/api/plans/${id}`)
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then((data: Plan) => setPlan(data))
       .catch(() => router.push('/gym/plans'))
       .finally(() => setLoading(false));
@@ -61,6 +64,10 @@ export default function PlanDetailPage() {
   const sportColor = getSportColor(plan.sportType);
 
   const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const dayLabels: Record<string, string> = {
+    Monday: 'Poniedziałek', Tuesday: 'Wtorek', Wednesday: 'Środa',
+    Thursday: 'Czwartek', Friday: 'Piątek', Saturday: 'Sobota', Sunday: 'Niedziela',
+  };
 
   return (
     <div className="p-4 md:p-6 max-w-4xl mx-auto">
@@ -70,11 +77,11 @@ export default function PlanDetailPage() {
         className="flex items-center gap-2 text-[#888888] hover:text-white text-sm mb-6 transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
-        Back to Plans
+        Powrót do planów
       </button>
 
       {/* Plan header */}
-      <div className="bg-[#111111] border border-[#2A2A2A] p-6 mb-4">
+      <div className="bg-[var(--bg-card)] border border-[var(--border)] p-6 mb-4">
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
@@ -96,23 +103,23 @@ export default function PlanDetailPage() {
             variant={following ? 'outline' : 'default'}
             size="sm"
           >
-            {following ? 'Following Plan' : 'Follow Plan'}
+            {following ? 'Obserwujesz' : 'Obserwuj plan'}
           </Button>
         </div>
 
-        <div className="grid grid-cols-3 gap-4 border-t border-[#1A1A1A] pt-4">
+        <div className="grid grid-cols-3 gap-4 border-t border-[var(--border)] pt-4">
           <div className="flex items-center gap-2 text-sm text-[#888888]">
-            <Calendar className="w-4 h-4 text-[#FF4500]" />
-            <span>{plan.durationWeeks} weeks</span>
+            <Calendar className="w-4 h-4 text-[#6366F1]" />
+            <span>{plan.durationWeeks} tyg.</span>
           </div>
           <div className="flex items-center gap-2 text-sm text-[#888888]">
-            <Target className="w-4 h-4 text-[#FF4500]" />
-            <span>{plan.weeks.length} weeks planned</span>
+            <Target className="w-4 h-4 text-[#6366F1]" />
+            <span>{plan.weeks.length} tygodni</span>
           </div>
           {plan.creator && (
             <div className="flex items-center gap-2 text-sm text-[#888888]">
-              <User className="w-4 h-4 text-[#FF4500]" />
-              <span>{plan.creator.username ?? 'Unknown'}</span>
+              <User className="w-4 h-4 text-[#6366F1]" />
+              <span>{plan.creator.username ?? 'Nieznany'}</span>
             </div>
           )}
         </div>
@@ -120,24 +127,24 @@ export default function PlanDetailPage() {
 
       {/* Weekly breakdown */}
       <div className="mb-6">
-        <h2 className="font-display text-sm text-[#888888] tracking-wider mb-3">WEEKLY BREAKDOWN</h2>
+        <h2 className="font-display text-sm text-[#888888] tracking-wider mb-3">PLAN TYGODNIOWY</h2>
 
         {plan.weeks.length === 0 ? (
-          <div className="bg-[#111111] border border-[#2A2A2A] p-6 text-center">
+          <div className="bg-[var(--bg-card)] border border-[var(--border)] p-6 text-center">
             <p className="text-[#888888] text-sm">
-              No detailed weekly breakdown provided for this plan.
+              Brak szczegółowego planu tygodniowego.
             </p>
           </div>
         ) : (
           <div className="flex flex-col gap-2">
             {plan.weeks.map((week) => (
-              <div key={week.id} className="bg-[#111111] border border-[#2A2A2A]">
+              <div key={week.id} className="bg-[var(--bg-card)] border border-[var(--border)]">
                 <button
                   onClick={() => setExpandedWeek(expandedWeek === week.weekNumber ? null : week.weekNumber)}
                   className="w-full flex items-center justify-between p-4 text-left"
                 >
                   <div>
-                    <span className="font-semibold text-white text-sm">Week {week.weekNumber}</span>
+                    <span className="font-semibold text-white text-sm">Tydzień {week.weekNumber}</span>
                     {week.notes && (
                       <span className="text-xs text-[#888888] ml-3">{week.notes}</span>
                     )}
@@ -150,17 +157,17 @@ export default function PlanDetailPage() {
                 </button>
 
                 {expandedWeek === week.weekNumber && (
-                  <div className="border-t border-[#1A1A1A] p-4">
-                    {Object.keys(week.daysJson).length === 0 ? (
-                      <p className="text-xs text-[#555555]">No day-by-day breakdown provided</p>
+                  <div className="border-t border-[var(--border)] p-4">
+                    {!week.daysJson || Object.keys(week.daysJson).length === 0 ? (
+                      <p className="text-xs text-[#555555]">Brak szczegółowego planu dziennego</p>
                     ) : (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {dayNames.map((day) => {
                           const dayData = week.daysJson[day.toLowerCase()];
                           if (!dayData) return null;
                           return (
-                            <div key={day} className="p-3 bg-[#0D0D0D] border border-[#1A1A1A]">
-                              <p className="text-xs font-bold text-[#FF4500] uppercase tracking-wider mb-1">{day}</p>
+                            <div key={day} className="p-3 bg-[var(--bg-card)] border border-[var(--border)]">
+                              <p className="text-xs font-bold text-[#6366F1] uppercase tracking-wider mb-1">{dayLabels[day] ?? day}</p>
                               <p className="text-xs text-[#888888] whitespace-pre-wrap">
                                 {typeof dayData === 'string' ? dayData : JSON.stringify(dayData, null, 2)}
                               </p>
@@ -178,8 +185,8 @@ export default function PlanDetailPage() {
       </div>
 
       {/* Review section */}
-      <div className="bg-[#111111] border border-[#2A2A2A] p-6">
-        <h2 className="font-display text-sm text-[#888888] tracking-wider mb-4">LEAVE A REVIEW</h2>
+      <div className="bg-[var(--bg-card)] border border-[var(--border)] p-6">
+        <h2 className="font-display text-sm text-[#888888] tracking-wider mb-4">NAPISZ OPINIĘ</h2>
 
         <div className="mb-4">
           <div className="flex items-center gap-1 mb-2">
@@ -200,8 +207,8 @@ export default function PlanDetailPage() {
           <textarea
             value={reviewComment}
             onChange={(e) => setReviewComment(e.target.value)}
-            placeholder="Share your experience with this plan..."
-            className="w-full bg-[#0A0A0A] border border-[#2A2A2A] text-white px-3 py-2.5 text-sm focus:border-[#FF4500] focus:outline-none resize-none h-20 placeholder:text-[#444444]"
+            placeholder="Podziel się swoją opinią o tym planie..."
+            className="w-full bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] px-3 py-2.5 text-sm focus:border-[#6366F1] focus:outline-none resize-none h-20 placeholder:text-[#444444]"
           />
         </div>
 
@@ -212,7 +219,7 @@ export default function PlanDetailPage() {
             if (reviewRating === 0) return;
             setSubmittingReview(true);
             try {
-              await fetch(`/api/sessions/${plan.id}/review`, {
+              await fetch(`/api/plans/${plan.id}/review`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ rating: reviewRating, comment: reviewComment }),
@@ -225,7 +232,7 @@ export default function PlanDetailPage() {
           }}
         >
           <Star className="w-4 h-4" />
-          Submit Review
+          Wyślij opinię
         </Button>
       </div>
     </div>

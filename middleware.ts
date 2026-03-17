@@ -1,56 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { jwtVerify } from 'jose';
 
-const CLERK_KEY = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || '';
-const CLERK_CONFIGURED = CLERK_KEY && CLERK_KEY.startsWith('pk_') && CLERK_KEY !== 'pk_test_placeholder';
+const PROTECTED = [
+  '/dashboard', '/profile', '/messages', '/sessions', '/calendar',
+  '/discover', '/leaderboard', '/onboarding', '/gym', '/feed', '/stats', '/forum',
+  '/friends', '/events', '/hubs', '/training', '/settings',
+];
 
-const isProtectedPath = (pathname: string) => {
-  const protected_paths = ['/dashboard', '/profile', '/messages', '/sessions', '/calendar', '/discover', '/leaderboard', '/onboarding'];
-  return protected_paths.some(p => pathname.startsWith(p));
-};
+const COOKIE_NAME = 'tt_auth';
 
-// Only use Clerk middleware if Clerk is properly configured
-let _clerkMiddleware: ((auth: any, req: any) => Promise<void>) | null = null;
-
-async function getClerkMiddleware() {
-  if (!CLERK_CONFIGURED) return null;
-  if (_clerkMiddleware) return _clerkMiddleware;
-  try {
-    const { clerkMiddleware, createRouteMatcher } = await import('@clerk/nextjs/server');
-    const isProtected = createRouteMatcher([
-      '/dashboard(.*)', '/profile(.*)', '/messages(.*)', '/sessions(.*)',
-      '/calendar(.*)', '/discover(.*)', '/leaderboard(.*)', '/onboarding(.*)',
-    ]);
-    _clerkMiddleware = async (auth: any, req: any) => {
-      if (isProtected(req)) await auth.protect();
-    };
-    return _clerkMiddleware;
-  } catch {
-    return null;
-  }
+function getSecret() {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) return null;
+  return new TextEncoder().encode(secret);
 }
 
 export async function middleware(req: NextRequest) {
-  if (CLERK_CONFIGURED) {
-    const { clerkMiddleware, createRouteMatcher } = await import('@clerk/nextjs/server');
-    const isProtected = createRouteMatcher([
-      '/dashboard(.*)', '/profile(.*)', '/messages(.*)', '/sessions(.*)',
-      '/calendar(.*)', '/discover(.*)', '/leaderboard(.*)', '/onboarding(.*)',
-    ]);
-    return clerkMiddleware(async (auth, req) => {
-      if (isProtected(req)) await auth.protect();
-    })(req as any, {} as any);
+  const { pathname } = req.nextUrl;
+
+  if (pathname.startsWith('/api') || pathname.startsWith('/_next')) {
+    return NextResponse.next();
   }
 
-  // Clerk not configured: allow all requests through (demo mode)
-  if (isProtectedPath(req.nextUrl.pathname)) {
-    // Redirect to home with setup notice if not configured
-    const url = req.nextUrl.clone();
-    url.pathname = '/';
-    url.searchParams.set('setup', 'clerk');
-    return NextResponse.redirect(url);
+  const isProtected = PROTECTED.some((p) => pathname.startsWith(p));
+  if (!isProtected) return NextResponse.next();
+
+  const token = req.cookies.get(COOKIE_NAME)?.value;
+  const secret = getSecret();
+
+  if (token && secret) {
+    try {
+      await jwtVerify(token, secret);
+      return NextResponse.next();
+    } catch {
+      // invalid token — fall through to redirect
+    }
   }
 
-  return NextResponse.next();
+  const url = req.nextUrl.clone();
+  url.pathname = '/login';
+  return NextResponse.redirect(url);
 }
 
 export const config = {

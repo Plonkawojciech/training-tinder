@@ -16,8 +16,8 @@ export function SportFilter({ selected, onChange }: SportFilterProps) {
         className={cn(
           'flex-shrink-0 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider border transition-all',
           selected === 'all'
-            ? 'bg-[#FF4500] text-white border-[#FF4500]'
-            : 'bg-transparent border-[#2A2A2A] text-[#888888] hover:border-[#888888] hover:text-white'
+            ? 'bg-[#6366F1] text-white border-[#6366F1]'
+            : 'bg-transparent border-[var(--border)] text-[#888888] hover:border-[#888888] hover:text-white'
         )}
       >
         All Sports

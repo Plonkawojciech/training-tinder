@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
 export async function GET() {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const userId = await getAuthUserId();
+  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
 
   try {
     const result = await db.select().from(users).where(eq(users.clerkId, userId)).limit(1);
@@ -16,13 +16,13 @@ export async function GET() {
     return NextResponse.json(result[0]);
   } catch (err) {
     console.error('GET /api/users/profile error:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
   }
 }
 
 export async function PUT(request: Request) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const userId = await getAuthUserId();
+  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
 
   try {
     const body = await request.json() as {
@@ -41,7 +41,41 @@ export async function PUT(request: Request) {
       trainingSplits?: string[];
       goals?: string[];
       heightCm?: number | null;
+      // Advanced athlete fields
+      athleteLevel?: string | null;
+      ftpWatts?: number | null;
+      vo2max?: number | null;
+      restingHr?: number | null;
+      maxHr?: number | null;
+      // Demographics
+      age?: number | null;
+      gender?: string | null;
+      weightKg?: number | null;
+      profileSongUrl?: string | null;
     };
+
+    // Basic input validation
+    if (body.username !== undefined) {
+      const u = body.username.trim();
+      if (u.length < 3 || u.length > 30) {
+        return NextResponse.json({ error: 'Username musi mieć 3–30 znaków' }, { status: 400 });
+      }
+      if (!/^[a-zA-Z0-9_.-]+$/.test(u)) {
+        return NextResponse.json({ error: 'Username może zawierać tylko litery, cyfry, _, . i -' }, { status: 400 });
+      }
+    }
+    if (body.age !== undefined && body.age !== null && (body.age < 10 || body.age > 100)) {
+      return NextResponse.json({ error: 'Nieprawidłowy wiek (10–100)' }, { status: 400 });
+    }
+    if (body.weightKg !== undefined && body.weightKg !== null && (body.weightKg < 30 || body.weightKg > 300)) {
+      return NextResponse.json({ error: 'Nieprawidłowa waga (30–300 kg)' }, { status: 400 });
+    }
+    if (body.ftpWatts !== undefined && body.ftpWatts !== null && (body.ftpWatts < 50 || body.ftpWatts > 600)) {
+      return NextResponse.json({ error: 'Nieprawidłowe FTP (50–600 W)' }, { status: 400 });
+    }
+    if (body.heightCm !== undefined && body.heightCm !== null && (body.heightCm < 100 || body.heightCm > 250)) {
+      return NextResponse.json({ error: 'Nieprawidłowy wzrost (100–250 cm)' }, { status: 400 });
+    }
 
     const existing = await db.select().from(users).where(eq(users.clerkId, userId)).limit(1);
 
@@ -65,36 +99,32 @@ export async function PUT(request: Request) {
           trainingSplits: body.trainingSplits ?? [],
           goals: body.goals ?? [],
           heightCm: body.heightCm ?? null,
+          athleteLevel: body.athleteLevel ?? null,
+          ftpWatts: body.ftpWatts ?? null,
+          vo2max: body.vo2max ?? null,
+          restingHr: body.restingHr ?? null,
+          maxHr: body.maxHr ?? null,
+          age: body.age ?? null,
+          gender: body.gender ?? null,
+          weightKg: body.weightKg ?? null,
+          profileSongUrl: body.profileSongUrl ?? null,
         })
         .returning();
       return NextResponse.json(created);
     } else {
+      // Merge: only override fields that were explicitly sent (not undefined)
+      const updates = Object.fromEntries(
+        Object.entries(body).filter(([, v]) => v !== undefined),
+      );
       const [updated] = await db
         .update(users)
-        .set({
-          username: body.username !== undefined ? body.username : existing[0].username,
-          bio: body.bio !== undefined ? body.bio : existing[0].bio,
-          avatarUrl: body.avatarUrl !== undefined ? body.avatarUrl : existing[0].avatarUrl,
-          sportTypes: body.sportTypes ?? existing[0].sportTypes,
-          pacePerKm: body.pacePerKm !== undefined ? body.pacePerKm : existing[0].pacePerKm,
-          weeklyKm: body.weeklyKm !== undefined ? body.weeklyKm : existing[0].weeklyKm,
-          city: body.city !== undefined ? body.city : existing[0].city,
-          lat: body.lat !== undefined ? body.lat : existing[0].lat,
-          lon: body.lon !== undefined ? body.lon : existing[0].lon,
-          availability: body.availability ?? existing[0].availability,
-          gymName: body.gymName !== undefined ? body.gymName : existing[0].gymName,
-          strengthLevel: body.strengthLevel !== undefined ? body.strengthLevel : existing[0].strengthLevel,
-          trainingSplits: body.trainingSplits !== undefined ? body.trainingSplits : existing[0].trainingSplits,
-          goals: body.goals !== undefined ? body.goals : existing[0].goals,
-          heightCm: body.heightCm !== undefined ? body.heightCm : existing[0].heightCm,
-          updatedAt: new Date(),
-        })
+        .set({ ...updates, updatedAt: new Date() })
         .where(eq(users.clerkId, userId))
         .returning();
       return NextResponse.json(updated);
     }
   } catch (err) {
     console.error('PUT /api/users/profile error:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
   }
 }

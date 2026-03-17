@@ -3,12 +3,17 @@
 export const dynamic = 'force-dynamic';
 
 import nextDynamic from 'next/dynamic';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useSafeUser } from '@/lib/auth';
-import { MessageSquare, Search } from 'lucide-react';
+import { MessageSquare, Search, ChevronRight } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
-import { ChatWindow } from '@/components/messages/chat-window';
-import { formatRelativeTime } from '@/lib/utils';
+import { useLang } from '@/lib/lang';
+
+const ChatWindow = nextDynamic(
+  () => import('@/components/messages/chat-window').then((m) => m.ChatWindow),
+  { ssr: false, loading: () => <div className="flex-1 skeleton" /> }
+);
 
 interface MatchResult {
   user: {
@@ -30,6 +35,10 @@ interface ConversationPartner {
 
 function MessagesPageInner() {
   const user = useSafeUser();
+  const { lang } = useLang();
+  const searchParams = useSearchParams();
+  const partnerParam = searchParams.get('partner');
+  const partnerName = searchParams.get('name');
   const [partners, setPartners] = useState<ConversationPartner[]>([]);
   const [selected, setSelected] = useState<ConversationPartner | null>(null);
   const [loading, setLoading] = useState(true);
@@ -47,13 +56,26 @@ function MessagesPageInner() {
             avatarUrl: m.user.avatarUrl,
           }));
           setPartners(ps);
+
+          // Auto-open a conversation if ?partner=clerkId is in URL
+          if (partnerParam) {
+            const found = ps.find((p) => p.clerkId === partnerParam);
+            if (found) {
+              setSelected(found);
+            } else {
+              // Partner not in matches yet — add stub to list and open chat
+              const stub: ConversationPartner = { clerkId: partnerParam, username: partnerName, avatarUrl: null };
+              setPartners([stub, ...ps]);
+              setSelected(stub);
+            }
+          }
         }
       } finally {
         setLoading(false);
       }
     }
     fetchMatches();
-  }, []);
+  }, [partnerParam, partnerName]);
 
   const filtered = partners.filter((p) =>
     !searchQ || p.username?.toLowerCase().includes(searchQ.toLowerCase())
@@ -61,87 +83,250 @@ function MessagesPageInner() {
 
   if (!user.isLoaded) return null;
 
-  return (
-    <div className="flex h-full">
-      {/* Partner list */}
-      <div
-        className="w-64 shrink-0 border-r border-[#2A2A2A] flex flex-col"
-        style={{ height: 'calc(100vh - 56px)' }}
-      >
-        <div className="p-4 border-b border-[#2A2A2A]">
-          <h2 className="font-display text-lg text-white tracking-wider mb-3">MESSAGES</h2>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#444444]" />
-            <input
-              type="text"
-              value={searchQ}
-              onChange={(e) => setSearchQ(e.target.value)}
-              placeholder="Search..."
-              className="w-full bg-[#0A0A0A] border border-[#2A2A2A] text-white pl-9 pr-3 py-2 text-xs focus:border-[#FF4500] focus:outline-none placeholder:text-[#444444]"
-            />
-          </div>
-        </div>
+  const emptyLabel = lang === 'pl'
+    ? 'Brak rozmów. Swipuj i znajdź kogoś!'
+    : 'No conversations yet. Go swipe!';
+  const searchPlaceholder = lang === 'pl' ? 'Szukaj...' : 'Search...';
+  const title = lang === 'pl' ? 'Wiadomości' : 'Messages';
+  const selectLabel = lang === 'pl' ? 'Wybierz rozmowę' : 'Select a conversation';
+  const selectSub = lang === 'pl'
+    ? 'Kliknij kontakt po lewej, żeby napisać'
+    : 'Choose an athlete from the list to start chatting';
 
-        <div className="flex-1 overflow-y-auto">
-          {loading ? (
-            <div className="p-4 flex flex-col gap-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="h-14 skeleton" />
-              ))}
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="p-4 text-center">
-              <MessageSquare className="w-8 h-8 text-[#2A2A2A] mx-auto mb-2" />
-              <p className="text-xs text-[#888888]">No athletes to message yet</p>
-            </div>
-          ) : (
-            filtered.map((partner) => (
-              <button
-                key={partner.clerkId}
-                onClick={() => setSelected(partner)}
-                className="w-full flex items-center gap-3 p-4 border-b border-[#1A1A1A] hover:bg-[#111111] transition-colors text-left"
-                style={
-                  selected?.clerkId === partner.clerkId
-                    ? { background: '#161616', borderLeft: '2px solid #FF4500' }
-                    : {}
-                }
-              >
-                <Avatar src={partner.avatarUrl} fallback={partner.username ?? '?'} size="sm" />
-                <div className="min-w-0">
-                  <p className="text-sm text-white font-medium truncate">
-                    {partner.username ?? 'Athlete'}
-                  </p>
-                  {partner.lastMessage && (
-                    <p className="text-xs text-[#888888] truncate">{partner.lastMessage}</p>
-                  )}
-                </div>
-              </button>
-            ))
-          )}
+  // ─── Conversation list panel ─────────────────────────────────────────
+  const ConversationList = (
+    <div style={{
+      display: 'flex', flexDirection: 'column',
+      height: '100%',
+      background: '#080808',
+    }}>
+      {/* Header */}
+      <div style={{
+        padding: '16px 16px 12px',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        background: 'rgba(10,10,10,0.97)',
+        backdropFilter: 'blur(20px)',
+        flexShrink: 0,
+      }}>
+        <div style={{ fontWeight: 800, fontSize: 22, color: 'white', marginBottom: 12 }}>
+          {title}
+        </div>
+        {/* Search */}
+        <div style={{ position: 'relative' }}>
+          <Search style={{
+            position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
+            width: 15, height: 15, color: '#444',
+          }} />
+          <input
+            type="text"
+            value={searchQ}
+            onChange={(e) => setSearchQ(e.target.value)}
+            placeholder={searchPlaceholder}
+            style={{
+              width: '100%', boxSizing: 'border-box',
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 20, padding: '9px 12px 9px 36px',
+              color: 'white', fontSize: 14, outline: 'none',
+            }}
+          />
         </div>
       </div>
 
-      {/* Chat area */}
-      <div className="flex-1 min-w-0">
-        {selected ? (
-          <ChatWindow
-            currentUserId={user.id || ''}
-            partnerId={selected.clerkId}
-            partnerName={selected.username}
-            partnerAvatar={selected.avatarUrl}
-          />
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full gap-4">
-            <MessageSquare className="w-16 h-16 text-[#2A2A2A]" />
-            <h3 className="font-display text-xl text-[#888888]">SELECT A CONVERSATION</h3>
-            <p className="text-[#888888] text-sm">
-              Choose an athlete from the list to start chatting
+      {/* List */}
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 1, padding: '8px 0' }}>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                padding: '12px 16px',
+              }}>
+                <div style={{
+                  width: 48, height: 48, borderRadius: '50%',
+                  background: 'rgba(255,255,255,0.05)',
+                  animation: 'pulse 1.5s ease-in-out infinite',
+                }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{
+                    height: 14, width: '60%', borderRadius: 14,
+                    background: 'rgba(255,255,255,0.05)',
+                    marginBottom: 6,
+                    animation: 'pulse 1.5s ease-in-out infinite',
+                  }} />
+                  <div style={{
+                    height: 11, width: '40%', borderRadius: 14,
+                    background: 'rgba(255,255,255,0.03)',
+                    animation: 'pulse 1.5s ease-in-out infinite',
+                  }} />
+                </div>
+              </div>
+            ))}
+            <style>{`@keyframes pulse{0%,100%{opacity:.4}50%{opacity:.8}}`}</style>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            justifyContent: 'center', padding: '60px 20px', gap: 12,
+          }}>
+            <div style={{
+              width: 64, height: 64, borderRadius: '50%',
+              background: 'rgba(255,255,255,0.04)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <MessageSquare style={{ width: 28, height: 28, color: '#333' }} />
+            </div>
+            <p style={{ color: '#444', fontSize: 13, textAlign: 'center', lineHeight: 1.5 }}>
+              {emptyLabel}
             </p>
           </div>
+        ) : (
+          filtered.map((partner) => {
+            const isActive = selected?.clerkId === partner.clerkId;
+            return (
+              <button
+                key={partner.clerkId}
+                onClick={() => setSelected(partner)}
+                style={{
+                  width: '100%', textAlign: 'left',
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '12px 16px',
+                  background: isActive ? 'rgba(99,102,241,0.08)' : 'transparent',
+                  border: 'none',
+                  borderLeft: `3px solid ${isActive ? '#6366F1' : 'transparent'}`,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.04)';
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+                }}
+              >
+                <div style={{ position: 'relative', flexShrink: 0 }}>
+                  <Avatar src={partner.avatarUrl} fallback={partner.username ?? '?'} size="md" />
+                  <span style={{
+                    position: 'absolute', bottom: 0, right: 0,
+                    width: 10, height: 10, borderRadius: '50%',
+                    background: '#333', border: '2px solid #080808',
+                  }} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    color: 'white', fontWeight: 600, fontSize: 14,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {partner.username ?? 'Sportowiec'}
+                  </div>
+                  <div style={{
+                    color: '#555', fontSize: 12,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    marginTop: 2,
+                  }}>
+                    {partner.lastMessage ?? (lang === 'pl' ? 'Dotknij, żeby napisać' : 'Tap to message')}
+                  </div>
+                </div>
+                <ChevronRight style={{ width: 15, height: 15, color: '#333', flexShrink: 0 }} />
+              </button>
+            );
+          })
         )}
       </div>
     </div>
   );
+
+  // ─── Chat area placeholder (desktop) ────────────────────────────────
+  const EmptyChat = (
+    <div style={{
+      flex: 1, display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      background: '#080808', gap: 16,
+    }}>
+      <div style={{
+        width: 80, height: 80, borderRadius: '50%',
+        background: 'rgba(99,102,241,0.07)',
+        border: '2px solid rgba(99,102,241,0.15)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <MessageSquare style={{ width: 34, height: 34, color: '#6366F1' }} />
+      </div>
+      <div>
+        <div style={{ color: 'white', fontWeight: 700, fontSize: 16, textAlign: 'center', marginBottom: 6 }}>
+          {selectLabel}
+        </div>
+        <div style={{ color: '#444', fontSize: 13, textAlign: 'center' }}>{selectSub}</div>
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      {/* ─── MOBILE ─── */}
+      <div className="md:hidden" style={{ height: 'calc(100dvh - 64px)', position: 'relative', overflow: 'hidden' }}>
+        {/* Contact list — always rendered, hidden when chat open */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          transform: selected ? 'translateX(-100%)' : 'translateX(0)',
+          transition: 'transform 0.3s cubic-bezier(0.4,0,0.2,1)',
+        }}>
+          {ConversationList}
+        </div>
+
+        {/* Chat view — slides in from right */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          transform: selected ? 'translateX(0)' : 'translateX(100%)',
+          transition: 'transform 0.3s cubic-bezier(0.4,0,0.2,1)',
+          pointerEvents: selected ? 'auto' : 'none',
+        }}>
+          {selected && (
+            <ChatWindow
+              currentUserId={user.id || ''}
+              partnerId={selected.clerkId}
+              partnerName={selected.username}
+              partnerAvatar={selected.avatarUrl}
+              onBack={() => setSelected(null)}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* ─── DESKTOP ─── */}
+      <div className="hidden md:flex" style={{ height: '100%' }}>
+        {/* Sidebar list */}
+        <div style={{
+          width: 280, flexShrink: 0,
+          borderRight: '1px solid rgba(255,255,255,0.07)',
+          height: '100%',
+        }}>
+          {ConversationList}
+        </div>
+
+        {/* Chat or empty */}
+        <div style={{ flex: 1, minWidth: 0, height: '100%' }}>
+          {selected ? (
+            <ChatWindow
+              currentUserId={user.id || ''}
+              partnerId={selected.clerkId}
+              partnerName={selected.username}
+              partnerAvatar={selected.avatarUrl}
+            />
+          ) : (
+            EmptyChat
+          )}
+        </div>
+      </div>
+    </>
+  );
 }
 
-export default nextDynamic(() => Promise.resolve({ default: MessagesPageInner }), { ssr: false });
+function MessagesPageWithSuspense() {
+  return (
+    <Suspense fallback={null}>
+      <MessagesPageInner />
+    </Suspense>
+  );
+}
+
+export default nextDynamic(() => Promise.resolve({ default: MessagesPageWithSuspense }), { ssr: false });

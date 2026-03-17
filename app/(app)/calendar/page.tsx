@@ -42,23 +42,23 @@ export default function CalendarPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <Calendar className="w-6 h-6 text-[#FF4500]" />
+          <Calendar className="w-6 h-6 text-[#6366F1]" />
           <div>
-            <h1 className="font-display text-3xl text-white tracking-wider">CALENDAR</h1>
-            <p className="text-[#888888] text-sm">Your weekly training schedule</p>
+            <h1 className="font-display text-3xl text-white tracking-wider">KALENDARZ</h1>
+            <p className="text-[#888888] text-sm">Twój tygodniowy plan treningowy</p>
           </div>
         </div>
         <Link href="/sessions/new">
           <Button size="sm">
             <Plus className="w-4 h-4" />
-            New Session
+            Nowa sesja
           </Button>
         </Link>
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-2 border-[#FF4500] border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-[#6366F1] border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
         <WeekView
@@ -69,31 +69,31 @@ export default function CalendarPage() {
 
       {/* Upcoming sessions */}
       <div className="mt-8">
-        <h2 className="font-display text-xl text-white tracking-wider mb-4">UPCOMING SESSIONS</h2>
+        <h2 className="font-display text-xl text-white tracking-wider mb-4">NADCHODZĄCE SESJE</h2>
         {sessions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 gap-3">
-            <p className="text-[#888888] text-sm">No sessions scheduled</p>
+            <p className="text-[#888888] text-sm">Brak zaplanowanych sesji</p>
             <Link href="/sessions/new">
               <Button size="sm" variant="outline">
                 <Plus className="w-4 h-4" />
-                Schedule a Session
+                Zaplanuj sesję
               </Button>
             </Link>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {sessions
-              .filter((s) => new Date(s.date) >= new Date())
+              .filter((s) => s.date >= new Date().toISOString().slice(0, 10))
               .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
               .slice(0, 6)
               .map((session) => (
                 <button
                   key={session.id}
                   onClick={() => router.push(`/sessions/${session.id}`)}
-                  className="text-left bg-[#111111] border border-[#2A2A2A] p-4 card-hover"
+                  className="text-left bg-[var(--bg-card)] border border-[var(--border)] p-4 card-hover"
                 >
                   <p className="text-sm font-semibold text-white mb-1">{session.title}</p>
-                  <p className="text-xs text-[#888888]">{session.date} at {session.time}</p>
+                  <p className="text-xs text-[#888888]">{session.date} o {session.time}</p>
                   <p className="text-xs text-[#888888]">{session.location}</p>
                 </button>
               ))}

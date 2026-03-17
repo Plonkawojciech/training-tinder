@@ -1,10 +1,15 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { MapPin, Search, Star, Navigation, CheckCircle } from 'lucide-react';
-import { GymMap } from '@/components/maps/gym-map';
 import type { GymPlace } from '@/components/maps/gym-map';
 import { Button } from '@/components/ui/button';
+
+const GymMap = dynamic(
+  () => import('@/components/maps/gym-map').then((m) => m.GymMap),
+  { ssr: false, loading: () => <div className="w-full h-full skeleton" /> }
+);
 
 function distanceKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371;
@@ -35,9 +40,9 @@ export default function GymFinderPage() {
       if (!res.ok) throw new Error('Failed to fetch gyms');
       const data: GymPlace[] = await res.json();
       setGyms(data);
-      if (data.length === 0) setError('No gyms found in this area. Try a wider search.');
+      if (data.length === 0) setError('Brak siłowni w tym obszarze. Spróbuj poszerzyć wyszukiwanie.');
     } catch {
-      setError('Failed to search for gyms. Please try again.');
+      setError('Błąd podczas wyszukiwania siłowni. Spróbuj ponownie.');
     } finally {
       setLoading(false);
     }
@@ -45,7 +50,7 @@ export default function GymFinderPage() {
 
   function handleUseMyLocation() {
     if (!navigator.geolocation) {
-      setError('Geolocation is not supported by your browser.');
+      setError('Twoja przeglądarka nie obsługuje geolokalizacji.');
       return;
     }
     setLocating(true);
@@ -58,7 +63,7 @@ export default function GymFinderPage() {
         setLocating(false);
       },
       () => {
-        setError('Could not get your location. Please enter an address instead.');
+        setError('Nie udało się pobrać lokalizacji. Wpisz adres ręcznie.');
         setLocating(false);
       }
     );
@@ -85,7 +90,7 @@ export default function GymFinderPage() {
       setUserLng(lng);
       await fetchGyms(lat, lng);
     } catch {
-      setError('Could not find that address. Please try again.');
+      setError('Nie znaleziono podanego adresu. Spróbuj ponownie.');
       setLoading(false);
     }
   }
@@ -121,10 +126,10 @@ export default function GymFinderPage() {
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-1">
-          <MapPin className="w-6 h-6 text-[#FF4500]" />
-          <h1 className="font-display text-3xl text-white tracking-wider">FIND GYMS NEAR YOU</h1>
+          <MapPin className="w-6 h-6 text-[#6366F1]" />
+          <h1 className="font-display text-3xl text-white tracking-wider">ZNAJDŹ SIŁOWNIĘ</h1>
         </div>
-        <p className="text-[#888888] text-sm">Discover gyms, set your home gym, and find training partners</p>
+        <p className="text-[#888888] text-sm">Odkryj siłownie w pobliżu, ustaw swoją domową siłownię</p>
       </div>
 
       {/* Search Controls */}
@@ -137,7 +142,7 @@ export default function GymFinderPage() {
           className="shrink-0"
         >
           <Navigation className="w-4 h-4" />
-          Use My Location
+          Użyj mojej lokalizacji
         </Button>
 
         <form onSubmit={handleSearchSubmit} className="flex gap-2 flex-1">
@@ -147,12 +152,12 @@ export default function GymFinderPage() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Enter city or address..."
-              className="w-full bg-[#0A0A0A] border border-[#2A2A2A] text-white pl-9 pr-3 py-2.5 text-sm placeholder:text-[#444444]"
+              placeholder="Wpisz miasto lub adres..."
+              className="w-full bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] pl-9 pr-3 py-2.5 text-sm placeholder:text-[#444444]"
             />
           </div>
           <Button type="submit" loading={loading && !locating}>
-            Search
+            Szukaj
           </Button>
         </form>
       </div>
@@ -165,7 +170,7 @@ export default function GymFinderPage() {
 
       {/* Map */}
       {(userLat !== undefined || gyms.length > 0) && (
-        <div className="mb-6 border border-[#2A2A2A]" style={{ height: 500 }}>
+        <div className="mb-6 border border-[var(--border)]" style={{ height: 500 }}>
           <GymMap
             gyms={gyms}
             userLat={userLat}
@@ -188,7 +193,7 @@ export default function GymFinderPage() {
       {!loading && gyms.length > 0 && (
         <div>
           <h2 className="font-display text-sm text-[#888888] tracking-wider mb-3">
-            {gyms.length} GYMS FOUND
+            {gyms.length} SIŁOWNI ZNALEZIONYCH
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {gyms.map((gym) => {
@@ -198,7 +203,7 @@ export default function GymFinderPage() {
                   : null;
 
               return (
-                <div key={gym.place_id} className="bg-[#111111] border border-[#2A2A2A] p-4 flex flex-col gap-3">
+                <div key={gym.place_id} className="bg-[var(--bg-card)] border border-[var(--border)] p-4 flex flex-col gap-3">
                   <div>
                     <h3 className="font-display text-white text-sm tracking-wider leading-tight mb-1">{gym.name}</h3>
                     <p className="text-xs text-[#888888]">{gym.address}</p>
@@ -217,10 +222,10 @@ export default function GymFinderPage() {
                           ? 'text-green-400 border border-green-800 bg-green-900/20'
                           : gym.open_now === false
                           ? 'text-red-400 border border-red-800 bg-red-900/20'
-                          : 'text-[#888888] border border-[#2A2A2A]'
+                          : 'text-[#888888] border border-[var(--border)]'
                       }`}
                     >
-                      {gym.open_now === undefined ? 'Hours N/A' : gym.open_now ? 'Open' : 'Closed'}
+                      {gym.open_now === undefined ? 'Godziny N/D' : gym.open_now ? 'Otwarte' : 'Zamknięte'}
                     </span>
                     {dist !== null && (
                       <span className="text-xs text-[#555555] ml-auto">{dist.toFixed(1)} km</span>
@@ -230,15 +235,15 @@ export default function GymFinderPage() {
                   {successGym === gym.place_id ? (
                     <div className="flex items-center gap-2 text-green-400 text-xs py-2">
                       <CheckCircle className="w-4 h-4" />
-                      Set as your gym!
+                      Ustawiono jako Twoja siłownia!
                     </div>
                   ) : (
                     <button
                       onClick={() => handleSetGym(gym)}
                       disabled={settingGym === gym.place_id}
-                      className="mt-auto py-2 bg-[#FF4500] text-white text-xs font-semibold uppercase tracking-wider hover:shadow-[0_0_15px_rgba(255,69,0,0.4)] disabled:opacity-50 transition-all"
+                      className="mt-auto py-2 bg-[#6366F1] text-white text-xs font-semibold uppercase tracking-wider hover:shadow-[0_0_15px_rgba(99,102,241,0.4)] disabled:opacity-50 transition-all"
                     >
-                      {settingGym === gym.place_id ? 'Setting...' : 'Set as My Gym'}
+                      {settingGym === gym.place_id ? 'Ustawianie...' : 'Ustaw jako moją siłownię'}
                     </button>
                   )}
                 </div>
@@ -252,9 +257,9 @@ export default function GymFinderPage() {
       {!loading && gyms.length === 0 && userLat === undefined && (
         <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
           <MapPin className="w-14 h-14 text-[#2A2A2A]" />
-          <h3 className="font-display text-xl text-[#888888]">FIND YOUR GYM</h3>
+          <h3 className="font-display text-xl text-[#888888]">ZNAJDŹ SIŁOWNIĘ</h3>
           <p className="text-[#888888] text-sm max-w-xs">
-            Use your location or search for a city to discover nearby gyms and set your home gym.
+            Użyj lokalizacji lub wyszukaj miasto, aby znaleźć pobliskie siłownie.
           </p>
         </div>
       )}

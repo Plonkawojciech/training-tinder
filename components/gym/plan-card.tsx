@@ -18,8 +18,15 @@ interface PlanCardProps {
 const DIFFICULTY_COLORS: Record<string, string> = {
   beginner: '#00CC44',
   intermediate: '#FFD700',
-  advanced: '#FF8800',
-  elite: '#FF4500',
+  advanced: '#A78BFA',
+  elite: '#6366F1',
+};
+
+const DIFFICULTY_LABELS: Record<string, string> = {
+  beginner: 'Początkujący',
+  intermediate: 'Średniozaaw.',
+  advanced: 'Zaawansowany',
+  elite: 'Elita',
 };
 
 export function PlanCard({
@@ -37,17 +44,17 @@ export function PlanCard({
 
   return (
     <Link href={`/gym/plans/${id}`}>
-      <div className="bg-[#111111] border border-[#2A2A2A] p-4 hover:border-[#FF4500] transition-all group">
+      <div className="bg-[var(--bg-card)] border border-[var(--border)] p-4 hover:border-[#6366F1] transition-all group">
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1">
-            <p className="font-semibold text-white text-sm group-hover:text-[#FF4500] transition-colors">
+            <p className="font-semibold text-white text-sm group-hover:text-[#6366F1] transition-colors">
               {title}
             </p>
             {description && (
               <p className="text-xs text-[#888888] mt-1 line-clamp-2">{description}</p>
             )}
           </div>
-          <ChevronRight className="w-4 h-4 text-[#555555] group-hover:text-[#FF4500] transition-colors shrink-0 ml-2" />
+          <ChevronRight className="w-4 h-4 text-[#555555] group-hover:text-[#6366F1] transition-colors shrink-0 ml-2" />
         </div>
 
         <div className="flex items-center gap-2 flex-wrap mb-3">
@@ -61,21 +68,21 @@ export function PlanCard({
             className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 font-bold"
             style={{ color: diffColor, background: `${diffColor}20`, border: `1px solid ${diffColor}40` }}
           >
-            {difficulty}
+            {DIFFICULTY_LABELS[difficulty] ?? difficulty}
           </span>
         </div>
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1 text-xs text-[#888888]">
             <Calendar className="w-3 h-3" />
-            <span>{durationWeeks} week{durationWeeks !== 1 ? 's' : ''}</span>
+            <span>{durationWeeks} {durationWeeks === 1 ? 'tydzień' : 'tygodni'}</span>
           </div>
           {creator && (
             <div className="flex items-center gap-1.5">
-              <div className="w-4 h-4 bg-[#FF4500] flex items-center justify-center text-[8px] font-bold text-white">
+              <div className="w-4 h-4 bg-[#6366F1] flex items-center justify-center text-[8px] font-bold text-white">
                 {(creator.username ?? '?')[0].toUpperCase()}
               </div>
-              <span className="text-xs text-[#555555]">{creator.username ?? 'Unknown'}</span>
+              <span className="text-xs text-[#555555]">{creator.username ?? 'Nieznany'}</span>
             </div>
           )}
         </div>

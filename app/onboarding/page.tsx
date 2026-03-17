@@ -5,23 +5,17 @@ import { useRouter } from 'next/navigation';
 import { ChevronRight, ChevronLeft, Check } from 'lucide-react';
 import {
   Step1SportsBio,
-  Step2Performance,
-  Step3Location,
-  Step3HalfGym,
-  Step4Photo,
+  Step2LocationAvailability,
+  Step3PhotoOnly,
   type OnboardingData,
 } from '@/components/onboarding/steps';
 import { Button } from '@/components/ui/button';
-import { GYM_SPORTS } from '@/lib/utils';
 
-const BASE_STEPS = [
-  { title: 'Sports & Bio', subtitle: 'Tell us about your athletic identity' },
-  { title: 'Performance', subtitle: 'Your pace and training volume' },
-  { title: 'Location & Time', subtitle: 'Where and when you train' },
-  { title: 'Photo & Goals', subtitle: 'Put a face to your profile and set your goals' },
+const STEPS = [
+  { title: 'Podstawowe info', subtitle: 'Wybierz sporty i opowiedz o sobie' },
+  { title: 'Twoja lokalizacja', subtitle: 'Gdzie i kiedy trenujesz' },
+  { title: 'Zdjęcie', subtitle: 'Dodaj zdjęcie profilowe' },
 ];
-
-const GYM_STEP = { title: 'Gym Profile', subtitle: 'Strength level and training preferences' };
 
 const initialData: OnboardingData = {
   username: '',
@@ -38,6 +32,15 @@ const initialData: OnboardingData = {
   strengthLevel: '',
   trainingSplits: [],
   goals: [],
+  athleteLevel: '',
+  ftpWatts: '',
+  vo2max: '',
+  restingHr: '',
+  maxHr: '',
+  sportProfiles: {},
+  age: '',
+  gender: '',
+  weightKg: '',
 };
 
 export default function OnboardingPage() {
@@ -46,13 +49,6 @@ export default function OnboardingPage() {
   const [data, setData] = useState<OnboardingData>(initialData);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-
-  const hasGymSport = data.sportTypes.some((s) => GYM_SPORTS.includes(s));
-
-  // Build dynamic step list
-  const STEPS = hasGymSport
-    ? [...BASE_STEPS.slice(0, 3), GYM_STEP, BASE_STEPS[3]]
-    : BASE_STEPS;
 
   function handleChange(updates: Partial<OnboardingData>) {
     setData((prev) => ({ ...prev, ...updates }));
@@ -82,17 +78,13 @@ export default function OnboardingPage() {
         username: data.username,
         bio: data.bio,
         sportTypes: data.sportTypes,
-        pacePerKm: data.pacePerKm ? parseInt(data.pacePerKm) : null,
-        weeklyKm: data.weeklyKm ? parseInt(data.weeklyKm) : null,
         city: data.city,
-        lat: data.lat ? parseFloat(data.lat) : null,
-        lon: data.lon ? parseFloat(data.lon) : null,
         availability: data.availability,
         avatarUrl: data.avatarUrl || null,
-        gymName: data.gymName || null,
-        strengthLevel: data.strengthLevel || null,
-        trainingSplits: data.trainingSplits,
         goals: data.goals,
+        age: data.age ? parseInt(data.age) : null,
+        gender: data.gender || null,
+        weightKg: data.weightKg ? parseFloat(data.weightKg) : null,
       };
 
       const res = await fetch('/api/users/profile', {
@@ -105,105 +97,86 @@ export default function OnboardingPage() {
 
       router.push('/dashboard');
     } catch {
-      setError('Failed to save profile. Please try again.');
+      setError('Nie udało się zapisać profilu. Spróbuj ponownie.');
     } finally {
       setSubmitting(false);
     }
   }
 
   function getStepComponent() {
-    if (hasGymSport) {
-      // Steps with gym step inserted
-      const stepOrder = [Step1SportsBio, Step2Performance, Step3Location, Step3HalfGym, Step4Photo];
-      const Component = stepOrder[step];
-      return <Component key={step} data={data} onChange={handleChange} />;
-    }
-    const stepOrder = [Step1SportsBio, Step2Performance, Step3Location, Step4Photo];
-    const Component = stepOrder[step];
-    return <Component key={step} data={data} onChange={handleChange} />;
+    if (step === 0) return <Step1SportsBio key={0} data={data} onChange={handleChange} />;
+    if (step === 1) return <Step2LocationAvailability key={1} data={data} onChange={handleChange} />;
+    return <Step3PhotoOnly key={2} data={data} onChange={handleChange} />;
   }
+
+  const isLastStep = step === STEPS.length - 1;
 
   return (
     <div
       style={{
         minHeight: '100vh',
-        background: 'var(--bg)',
+        background: '#080808',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '2rem',
+        padding: '1.5rem 1rem',
       }}
     >
-      <div style={{ width: '100%', maxWidth: '560px' }}>
+      <div style={{ width: '100%', maxWidth: '480px' }}>
         {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <h1 className="font-display" style={{ fontSize: '2rem', color: 'var(--text)' }}>
-            TRAINING<span style={{ color: 'var(--accent)' }}>TINDER</span>
+        <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
+          <h1 className="font-display" style={{ fontSize: '1.75rem', color: '#FFFFFF' }}>
+            TRAIN<span style={{ color: '#6366F1' }}>MATE</span>
           </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
-            Set up your athlete profile
+          <p style={{ color: '#666666', fontSize: '0.8rem', marginTop: '0.25rem' }}>
+            Krok {step + 1} z {STEPS.length}
           </p>
         </div>
 
-        {/* Step indicator */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0', marginBottom: '2rem' }}>
-          {STEPS.map((s, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-              <div
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  background: i < step ? 'rgba(255,69,0,0.3)' : i === step ? '#FF4500' : '#1A1A1A',
-                  border: i <= step ? '1px solid #FF4500' : '1px solid #2A2A2A',
-                  transition: 'all 0.2s',
-                }}
-              >
-                {i < step ? (
-                  <Check style={{ width: '14px', height: '14px', color: '#FF4500' }} />
-                ) : (
-                  <span
-                    style={{
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      color: i === step ? 'white' : '#888888',
-                    }}
-                  >
-                    {i + 1}
-                  </span>
-                )}
-              </div>
-              {i < STEPS.length - 1 && (
-                <div
-                  style={{
-                    flex: 1,
-                    height: '1px',
-                    background: i < step ? '#FF4500' : '#2A2A2A',
-                    transition: 'background 0.2s',
-                  }}
-                />
-              )}
-            </div>
+        {/* Dot step indicator */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '10px',
+            marginBottom: '1.75rem',
+          }}
+        >
+          {STEPS.map((_, i) => (
+            <div
+              key={i}
+              style={{
+                width: i === step ? '24px' : '10px',
+                height: '10px',
+                borderRadius: '999px',
+                background:
+                  i === step
+                    ? '#6366F1'
+                    : i < step
+                    ? '#FFFFFF'
+                    : '#333333',
+                transition: 'all 0.25s ease',
+              }}
+            />
           ))}
         </div>
 
         {/* Step card */}
         <div
           style={{
-            background: 'var(--bg-card)',
-            border: '1px solid var(--border)',
-            padding: '2rem',
+            background: 'rgba(18,18,18,0.95)',
+            borderRadius: '20px',
+            padding: '28px',
+            border: '1px solid #1E1E1E',
           }}
         >
           <div style={{ marginBottom: '1.5rem' }}>
-            <h2 className="font-display" style={{ fontSize: '1.5rem', color: 'var(--text)' }}>
+            <h2 className="font-display" style={{ fontSize: '1.25rem', color: '#FFFFFF' }}>
               {STEPS[step].title.toUpperCase()}
             </h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+            <p style={{ color: '#666666', fontSize: '0.8rem', marginTop: '0.2rem' }}>
               {STEPS[step].subtitle}
             </p>
           </div>
@@ -211,7 +184,7 @@ export default function OnboardingPage() {
           {getStepComponent()}
 
           {error && (
-            <p style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '1rem' }}>{error}</p>
+            <p style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '1rem' }}>{error}</p>
           )}
 
           <div
@@ -219,24 +192,24 @@ export default function OnboardingPage() {
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              marginTop: '2rem',
-              paddingTop: '1.5rem',
-              borderTop: '1px solid var(--border)',
+              marginTop: '1.75rem',
+              paddingTop: '1.25rem',
+              borderTop: '1px solid #1E1E1E',
             }}
           >
             <Button variant="ghost" onClick={back} disabled={step === 0}>
               <ChevronLeft className="w-4 h-4" />
-              Back
+              Wstecz
             </Button>
 
-            {step < STEPS.length - 1 ? (
+            {!isLastStep ? (
               <Button onClick={next} disabled={!canProceed()}>
-                Next
+                Dalej
                 <ChevronRight className="w-4 h-4" />
               </Button>
             ) : (
               <Button onClick={handleSubmit} loading={submitting}>
-                Complete Setup
+                Gotowe
                 <Check className="w-4 h-4" />
               </Button>
             )}
@@ -246,12 +219,12 @@ export default function OnboardingPage() {
         <p
           style={{
             textAlign: 'center',
-            color: 'var(--text-muted)',
-            fontSize: '0.75rem',
-            marginTop: '1.5rem',
+            color: '#444444',
+            fontSize: '0.7rem',
+            marginTop: '1.25rem',
           }}
         >
-          Step {step + 1} of {STEPS.length} — You can always update this in your profile
+          Możesz to zawsze zaktualizować w ustawieniach profilu
         </p>
       </div>
     </div>

@@ -42,30 +42,50 @@ function toRad(value: number): number {
 
 export function getSportColor(sport: string): string {
   const colors: Record<string, string> = {
-    cycling: '#FF4500',
+    cycling: '#7C3AED',
     running: '#00D4FF',
     triathlon: '#FFD700',
     swimming: '#4488FF',
     trail_running: '#00CC44',
-    gravel: '#FF8800',
+    gravel: '#8B5CF6',
     duathlon: '#CC44FF',
     mtb: '#44FF88',
-    gym: '#FF4500',
-    powerlifting: '#FF6600',
-    crossfit: '#FF2200',
-    calisthenics: '#FFAA00',
+    gym: '#A78BFA',
+    powerlifting: '#8B5CF6',
+    crossfit: '#6D28D9',
+    calisthenics: '#DDD6FE',
     olympic_weightlifting: '#FFD700',
-    bodybuilding: '#FF4500',
+    bodybuilding: '#7C3AED',
     hiit: '#FF0066',
     yoga: '#AA44FF',
-    boxing: '#FF3300',
-    martial_arts: '#CC0000',
+    boxing: '#F59E0B',
+    martial_arts: '#EF4444',
   };
   return colors[sport] ?? '#888888';
 }
 
-export function getSportLabel(sport: string): string {
-  const labels: Record<string, string> = {
+const sportLabels: Record<string, Record<string, string>> = {
+  pl: {
+    cycling: 'Kolarstwo',
+    running: 'Bieganie',
+    triathlon: 'Triathlon',
+    swimming: 'Pływanie',
+    trail_running: 'Trail Running',
+    gravel: 'Gravel',
+    duathlon: 'Duathlon',
+    mtb: 'MTB',
+    gym: 'Siłownia',
+    powerlifting: 'Powerlifting',
+    crossfit: 'CrossFit',
+    calisthenics: 'Kalistenika',
+    olympic_weightlifting: 'Olimp. Lifting',
+    bodybuilding: 'Kulturystyka',
+    hiit: 'HIIT',
+    yoga: 'Yoga',
+    boxing: 'Boks',
+    martial_arts: 'Sztuki walki',
+  },
+  en: {
     cycling: 'Cycling',
     running: 'Running',
     triathlon: 'Triathlon',
@@ -84,14 +104,18 @@ export function getSportLabel(sport: string): string {
     yoga: 'Yoga',
     boxing: 'Boxing',
     martial_arts: 'Martial Arts',
-  };
+  },
+};
+
+export function getSportLabel(sport: string, lang: string = 'pl'): string {
+  const labels = sportLabels[lang] ?? sportLabels.pl;
   return labels[sport] ?? sport;
 }
 
 export function getMatchScoreColor(score: number): string {
   if (score >= 70) return '#00CC44';
   if (score >= 40) return '#FFD700';
-  return '#FF4500';
+  return '#7C3AED';
 }
 
 export function getMatchScoreClass(score: number): string {
@@ -100,7 +124,7 @@ export function getMatchScoreClass(score: number): string {
   return 'match-score-low';
 }
 
-export function formatRelativeTime(date: Date | string): string {
+export function formatRelativeTime(date: Date | string, lang: string = 'pl'): string {
   const d = typeof date === 'string' ? new Date(date) : date;
   const now = new Date();
   const diff = now.getTime() - d.getTime();
@@ -109,32 +133,43 @@ export function formatRelativeTime(date: Date | string): string {
   const hours = Math.floor(minutes / 60);
   const days = Math.floor(hours / 24);
 
+  if (lang === 'pl') {
+    if (seconds < 60) return 'przed chwilą';
+    if (minutes < 60) return `${minutes} min temu`;
+    if (hours < 24) return `${hours} godz. temu`;
+    if (days < 7) return `${days} dn. temu`;
+    return d.toLocaleDateString('pl-PL');
+  }
+
   if (seconds < 60) return 'just now';
   if (minutes < 60) return `${minutes}m ago`;
   if (hours < 24) return `${hours}h ago`;
   if (days < 7) return `${days}d ago`;
-  return d.toLocaleDateString();
+  return d.toLocaleDateString('en-US');
 }
 
 export const SPORTS = [
-  { value: 'cycling', label: 'Cycling' },
-  { value: 'running', label: 'Running' },
-  { value: 'triathlon', label: 'Triathlon' },
-  { value: 'swimming', label: 'Swimming' },
+  // Core 3 — always first
+  { value: 'cycling',      label: 'Kolarstwo' },
+  { value: 'running',      label: 'Bieganie' },
+  { value: 'gym',          label: 'Siłownia' },
+  // Endurance
   { value: 'trail_running', label: 'Trail Running' },
-  { value: 'gravel', label: 'Gravel' },
-  { value: 'duathlon', label: 'Duathlon' },
-  { value: 'mtb', label: 'MTB' },
-  { value: 'gym', label: 'Gym' },
+  { value: 'gravel',       label: 'Gravel' },
+  { value: 'mtb',          label: 'MTB' },
+  { value: 'triathlon',    label: 'Triathlon' },
+  { value: 'swimming',     label: 'Pływanie' },
+  { value: 'duathlon',     label: 'Duathlon' },
+  // Strength
   { value: 'powerlifting', label: 'Powerlifting' },
-  { value: 'crossfit', label: 'CrossFit' },
-  { value: 'calisthenics', label: 'Calisthenics' },
-  { value: 'olympic_weightlifting', label: 'Olympic Lifting' },
-  { value: 'bodybuilding', label: 'Bodybuilding' },
-  { value: 'hiit', label: 'HIIT' },
-  { value: 'yoga', label: 'Yoga' },
-  { value: 'boxing', label: 'Boxing' },
-  { value: 'martial_arts', label: 'Martial Arts' },
+  { value: 'crossfit',     label: 'CrossFit' },
+  { value: 'calisthenics', label: 'Kalistenika' },
+  { value: 'olympic_weightlifting', label: 'Olimp. Lifting' },
+  { value: 'bodybuilding', label: 'Kulturystyka' },
+  { value: 'hiit',         label: 'HIIT' },
+  { value: 'yoga',         label: 'Yoga' },
+  { value: 'boxing',       label: 'Boks' },
+  { value: 'martial_arts', label: 'Sztuki walki' },
 ] as const;
 
 export type SportType = typeof SPORTS[number]['value'];
@@ -147,4 +182,24 @@ export const GYM_SPORTS = [
 export function epley1RM(weight: number, reps: number): number {
   if (reps === 1) return weight;
   return Math.round(weight * (1 + reps / 30));
+}
+
+// Pace conversions
+export function paceSecToMinKm(sec: number): string {
+  const min = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${min}:${s.toString().padStart(2, '0')}`;
+}
+
+export function paceSecToKmh(sec: number): number {
+  return Math.round((3600 / sec) * 10) / 10;
+}
+
+export function kmhToPaceSec(kmh: number): number {
+  return Math.round(3600 / kmh);
+}
+
+export function minKmToPaceSec(minStr: string): number {
+  const parts = minStr.split(':');
+  return parseInt(parts[0]) * 60 + parseInt(parts[1] ?? '0');
 }

@@ -13,7 +13,7 @@ interface ExerciseAutocompleteProps {
 export function ExerciseAutocomplete({
   value,
   onChange,
-  placeholder = 'Search exercises...',
+  placeholder = 'Szukaj ćwiczeń...',
 }: ExerciseAutocompleteProps) {
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
@@ -70,18 +70,18 @@ export function ExerciseAutocomplete({
           onChange={handleInputChange}
           onFocus={() => setOpen(true)}
           placeholder={placeholder}
-          className="w-full bg-[#0A0A0A] border border-[#2A2A2A] text-white pl-9 pr-3 py-2.5 text-sm focus:border-[#FF4500] focus:outline-none placeholder:text-[#444444]"
+          className="w-full bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] pl-9 pr-3 py-2.5 text-sm focus:border-[#6366F1] focus:outline-none placeholder:text-[#444444]"
         />
       </div>
 
       {open && results.length > 0 && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-[#111111] border border-[#2A2A2A] max-h-64 overflow-y-auto">
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-[var(--bg-card)] border border-[var(--border)] max-h-64 overflow-y-auto">
           {results.map((exercise) => (
             <button
               key={exercise}
               type="button"
               onClick={() => handleSelect(exercise)}
-              className="w-full text-left px-3 py-2 text-sm text-[#888888] hover:bg-[#1A1A1A] hover:text-white transition-colors"
+              className="w-full text-left px-3 py-2 text-sm text-[#888888] hover:bg-[var(--bg-elevated)] hover:text-white transition-colors"
             >
               {exercise}
             </button>

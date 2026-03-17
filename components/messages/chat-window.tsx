@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Send } from 'lucide-react';
+import Link from 'next/link';
+import { Send, ArrowLeft, MoreVertical } from 'lucide-react';
 import Pusher from 'pusher-js';
 import { Avatar } from '@/components/ui/avatar';
 import { formatRelativeTime } from '@/lib/utils';
+import { useLang } from '@/lib/lang';
 
 interface Message {
   id: number;
@@ -20,6 +22,7 @@ interface ChatWindowProps {
   partnerId: string;
   partnerName: string | null;
   partnerAvatar: string | null;
+  onBack?: () => void;
 }
 
 export function ChatWindow({
@@ -27,12 +30,15 @@ export function ChatWindow({
   partnerId,
   partnerName,
   partnerAvatar,
+  onBack,
 }: ChatWindowProps) {
+  const { t, lang } = useLang();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchMessages();
@@ -44,10 +50,9 @@ export function ChatWindow({
 
     const channel = pusher.subscribe(`private-chat-${currentUserId}`);
     channel.bind('new-message', (data: Message) => {
-      if (
-        (data.senderId === partnerId && data.receiverId === currentUserId) ||
-        (data.senderId === currentUserId && data.receiverId === partnerId)
-      ) {
+      // Skip messages sent by currentUser — they were added optimistically
+      if (data.senderId === currentUserId) return;
+      if (data.senderId === partnerId && data.receiverId === currentUserId) {
         setMessages((prev) => [...prev, data]);
       }
     });
@@ -82,6 +87,18 @@ export function ChatWindow({
     setSending(true);
     const content = input.trim();
     setInput('');
+    inputRef.current?.focus();
+
+    // Optimistic update — show message immediately before server confirms
+    const optimisticMsg: Message = {
+      id: Date.now(),
+      senderId: currentUserId,
+      receiverId: partnerId,
+      content,
+      read: false,
+      createdAt: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, optimisticMsg]);
 
     try {
       await fetch('/api/messages/send', {
@@ -90,82 +107,260 @@ export function ChatWindow({
         body: JSON.stringify({ receiverId: partnerId, content }),
       });
     } catch {
+      // On failure, remove optimistic message and restore input
+      setMessages((prev) => prev.filter((m) => m.id !== optimisticMsg.id));
       setInput(content);
     } finally {
       setSending(false);
     }
   }
 
+  // Group messages by date
+  function getDayLabel(dateStr: string) {
+    const d = new Date(dateStr);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    if (d.toDateString() === today.toDateString()) return lang === 'en' ? 'Today' : 'Dzisiaj';
+    if (d.toDateString() === yesterday.toDateString()) return lang === 'en' ? 'Yesterday' : 'Wczoraj';
+    return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+  }
+
+  // Group consecutive messages by sender
+  const grouped: { msg: Message; showAvatar: boolean; dayLabel?: string }[] = [];
+  let lastDate = '';
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i];
+    const dayLabel = getDayLabel(msg.createdAt);
+    const nextMsg = messages[i + 1];
+    const showAvatar =
+      msg.senderId !== currentUserId &&
+      (!nextMsg || nextMsg.senderId !== msg.senderId);
+    grouped.push({
+      msg,
+      showAvatar,
+      dayLabel: dayLabel !== lastDate ? dayLabel : undefined,
+    });
+    lastDate = dayLabel;
+  }
+
   return (
-    <div className="flex flex-col h-full bg-[#0A0A0A]">
-      {/* Chat header */}
-      <div className="flex items-center gap-3 p-4 border-b border-[#2A2A2A] bg-[#111111]">
-        <Avatar src={partnerAvatar} fallback={partnerName ?? '?'} size="md" />
-        <div>
-          <h3 className="font-semibold text-white text-sm">{partnerName ?? 'Athlete'}</h3>
-          <p className="text-xs text-[#888888]">Training partner</p>
-        </div>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        background: '#080808',
+        position: 'relative',
+      }}
+    >
+      {/* Subtle grid background */}
+      <div style={{
+        position: 'absolute', inset: 0, pointerEvents: 'none',
+        backgroundImage: 'radial-gradient(rgba(255,255,255,0.015) 1px, transparent 1px)',
+        backgroundSize: '24px 24px',
+      }} />
+
+      {/* Header */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 12,
+        padding: '12px 16px',
+        background: 'rgba(12,12,12,0.97)',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        backdropFilter: 'blur(20px)',
+        flexShrink: 0,
+        zIndex: 2,
+      }}>
+        {onBack && (
+          <button
+            onClick={onBack}
+            style={{
+              width: 36, height: 36, borderRadius: 99,
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', flexShrink: 0, color: 'white',
+            }}
+          >
+            <ArrowLeft style={{ width: 16, height: 16 }} />
+          </button>
+        )}
+
+        <Link href={`/profile/${partnerId}`} style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', flex: 1, minWidth: 0 }}>
+          <div style={{ flexShrink: 0 }}>
+            <Avatar src={partnerAvatar} fallback={partnerName ?? '?'} size="sm" />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ color: 'white', fontWeight: 700, fontSize: 15, lineHeight: 1.2 }}>
+              {partnerName ?? 'Sportowiec'}
+            </div>
+          </div>
+        </Link>
+
+        <button style={{
+          width: 36, height: 36, borderRadius: 99,
+          background: 'transparent', border: 'none',
+          color: '#555', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <MoreVertical style={{ width: 18, height: 18 }} />
+        </button>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+      {/* Messages area */}
+      <div style={{
+        flex: 1, overflowY: 'auto', padding: '16px 12px',
+        display: 'flex', flexDirection: 'column', gap: 2,
+        position: 'relative', zIndex: 1,
+      }}>
         {loading && (
-          <div className="flex items-center justify-center h-20">
-            <div className="w-5 h-5 border-2 border-[#FF4500] border-t-transparent rounded-full animate-spin" />
+          <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
+            <div style={{
+              width: 24, height: 24, borderRadius: '50%',
+              border: '2px solid #6366F1', borderTopColor: 'transparent',
+              animation: 'spin 0.8s linear infinite',
+            }} />
+            <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
           </div>
         )}
 
         {!loading && messages.length === 0 && (
-          <div className="flex-1 flex items-center justify-center">
-            <p className="text-[#888888] text-sm text-center">
-              No messages yet. Say hello!
+          <div style={{
+            flex: 1, display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center', gap: 12, padding: '40px 20px',
+          }}>
+            <div style={{
+              width: 64, height: 64, borderRadius: '50%',
+              background: 'rgba(99,102,241,0.1)',
+              border: '2px solid rgba(99,102,241,0.2)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 24,
+            }}>👋</div>
+            <p style={{ color: '#555', fontSize: 14, textAlign: 'center', lineHeight: 1.5 }}>
+              {t('chat_empty')}<br />
+              <span style={{ color: '#818CF8', fontWeight: 700 }}>{partnerName ?? 'Sportowiec'}</span>
             </p>
           </div>
         )}
 
-        {messages.map((msg) => {
+        {grouped.map(({ msg, showAvatar, dayLabel }, i) => {
           const isSent = msg.senderId === currentUserId;
           return (
-            <div
-              key={msg.id}
-              className={`flex flex-col gap-1 max-w-xs ${isSent ? 'self-end items-end' : 'self-start items-start'}`}
-            >
-              <div
-                className={`px-3 py-2 text-sm ${
-                  isSent
-                    ? 'bg-[#FF4500] text-white'
-                    : 'bg-[#1A1A1A] text-white border border-[#2A2A2A]'
-                }`}
-              >
-                {msg.content}
+            <React.Fragment key={msg.id}>
+              {dayLabel && (
+                <div style={{
+                  textAlign: 'center', color: '#444', fontSize: 11,
+                  fontWeight: 600, letterSpacing: '0.04em',
+                  margin: '12px 0 4px',
+                }}>
+                  {dayLabel}
+                </div>
+              )}
+              <div style={{
+                display: 'flex',
+                flexDirection: isSent ? 'row-reverse' : 'row',
+                alignItems: 'flex-end',
+                gap: 6,
+                marginBottom: showAvatar || i === grouped.length - 1 ? 4 : 1,
+              }}>
+                {/* Avatar placeholder for received messages */}
+                {!isSent && (
+                  <div style={{ width: 28, flexShrink: 0, alignSelf: 'flex-end' }}>
+                    {showAvatar && (
+                      <Avatar src={partnerAvatar} fallback={partnerName ?? '?'} size="xs" />
+                    )}
+                  </div>
+                )}
+
+                <div style={{
+                  display: 'flex', flexDirection: 'column',
+                  alignItems: isSent ? 'flex-end' : 'flex-start',
+                  maxWidth: '72%',
+                  gap: 2,
+                }}>
+                  <div style={{
+                    padding: '10px 14px',
+                    borderRadius: isSent ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                    background: isSent
+                      ? 'linear-gradient(135deg, #6366F1, #818CF8)'
+                      : 'rgba(30,30,30,1)',
+                    border: isSent ? 'none' : '1px solid rgba(255,255,255,0.07)',
+                    color: 'white',
+                    fontSize: 14,
+                    lineHeight: 1.45,
+                    boxShadow: isSent
+                      ? '0 2px 12px rgba(99,102,241,0.25)'
+                      : '0 1px 4px rgba(0,0,0,0.4)',
+                    wordBreak: 'break-word',
+                  }}>
+                    {msg.content}
+                  </div>
+                  {showAvatar && (
+                    <span style={{ color: '#3A3A3A', fontSize: 10 }}>
+                      {formatRelativeTime(msg.createdAt)}
+                    </span>
+                  )}
+                </div>
               </div>
-              <span className="text-[10px] text-[#444444]">
-                {formatRelativeTime(msg.createdAt)}
-              </span>
-            </div>
+            </React.Fragment>
           );
         })}
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
+      {/* Input bar */}
       <form
         onSubmit={sendMessage}
-        className="flex items-center gap-2 p-4 border-t border-[#2A2A2A] bg-[#111111]"
+        style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '10px 12px',
+          background: 'rgba(10,10,10,0.97)',
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+          backdropFilter: 'blur(20px)',
+          flexShrink: 0, zIndex: 2,
+        }}
       >
         <input
+          ref={inputRef}
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Type a message..."
-          className="flex-1 bg-[#0A0A0A] border border-[#2A2A2A] text-white px-3 py-2 text-sm focus:border-[#FF4500] focus:outline-none placeholder:text-[#444444]"
+          placeholder={t('chat_placeholder')}
+          style={{
+            flex: 1,
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: 32,
+            padding: '11px 18px',
+            color: 'white',
+            fontSize: 14,
+            outline: 'none',
+            transition: 'border-color 0.2s',
+          }}
+          onFocus={(e) => { e.target.style.borderColor = 'rgba(99,102,241,0.5)'; }}
+          onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.1)'; }}
         />
         <button
           type="submit"
           disabled={!input.trim() || sending}
-          className="w-10 h-10 bg-[#FF4500] text-white flex items-center justify-center disabled:opacity-50 hover:shadow-[0_0_15px_rgba(255,69,0,0.4)] transition-all"
+          style={{
+            width: 44, height: 44, borderRadius: '50%',
+            background: input.trim() && !sending
+              ? 'linear-gradient(135deg, #6366F1, #818CF8)'
+              : 'rgba(255,255,255,0.06)',
+            border: 'none',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: input.trim() && !sending ? 'pointer' : 'not-allowed',
+            transition: 'all 0.2s',
+            flexShrink: 0,
+            boxShadow: input.trim() && !sending ? '0 4px 14px rgba(99,102,241,0.3)' : 'none',
+          }}
         >
-          <Send className="w-4 h-4" />
+          <Send style={{
+            width: 16, height: 16,
+            color: input.trim() && !sending ? 'white' : '#444',
+            transform: 'translateX(1px)',
+          }} />
         </button>
       </form>
     </div>

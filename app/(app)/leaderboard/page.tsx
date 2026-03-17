@@ -2,9 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Trophy, Route, Dumbbell, Crown } from 'lucide-react';
-import { Avatar } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
+import { Trophy, Route, Dumbbell, Crown, TrendingUp, Zap } from 'lucide-react';
 import { getSportLabel } from '@/lib/utils';
 
 interface LeaderboardEntry {
@@ -21,222 +19,208 @@ interface LeaderboardEntry {
 
 type SortBy = 'weeklyKm' | 'sessions';
 
+const RANK_COLORS = ['#F59E0B', '#94A3B8', '#D97706'] as const;
+
+function getRankColor(rank: number): string {
+  if (rank <= 3) return RANK_COLORS[rank - 1];
+  return 'var(--text-muted)';
+}
+
 export default function LeaderboardPage() {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<SortBy>('weeklyKm');
 
   useEffect(() => {
-    async function fetchLeaderboard() {
-      try {
-        const res = await fetch('/api/leaderboard');
-        if (res.ok) {
-          const data: LeaderboardEntry[] = await res.json();
-          setEntries(data);
-        }
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchLeaderboard();
+    fetch('/api/leaderboard')
+      .then(r => r.ok ? r.json() : [])
+      .then((data: LeaderboardEntry[]) => setEntries(data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
   const sorted = [...entries].sort((a, b) =>
     sortBy === 'weeklyKm' ? b.weeklyKm - a.weeklyKm : b.sessionCount - a.sessionCount
   );
 
-  function getRankColor(rank: number): string {
-    if (rank === 1) return '#FFD700';
-    if (rank === 2) return '#C0C0C0';
-    if (rank === 3) return '#CD7F32';
-    return '#888888';
-  }
+  const tabs: { key: SortBy; label: string; icon: React.ElementType; unit: string }[] = [
+    { key: 'weeklyKm',  label: 'Dystans / tydzień', icon: Route,    unit: 'km/tydz.' },
+    { key: 'sessions',  label: 'Treningi',           icon: Dumbbell, unit: 'sesji'    },
+  ]
+
+  const activeTab = tabs.find(t => t.key === sortBy)!;
 
   return (
-    <div className="p-4 md:p-6 max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <Trophy className="w-6 h-6 text-[#FF4500]" />
-        <div>
-          <h1 className="font-display text-3xl text-white tracking-wider">LEADERBOARD</h1>
-          <p className="text-[#888888] text-sm">Top athletes in your community</p>
+    <div style={{ padding: '0 0 80px', maxWidth: 680, margin: '0 auto' }}>
+      {/* Page header */}
+      <div style={{ padding: '28px 20px 24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+          <Trophy size={18} style={{ color: 'var(--accent)' }} />
+          <h1 style={{ fontFamily: 'Syne, Inter, sans-serif', fontSize: 26, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.03em', lineHeight: 1 }}>
+            Ranking
+          </h1>
         </div>
+        <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Najaktywniejsze osoby w społeczności</p>
       </div>
 
       {/* Sort tabs */}
-      <div className="flex gap-0 mb-6 border-b border-[#2A2A2A]">
-        <button
-          onClick={() => setSortBy('weeklyKm')}
-          className="px-6 py-3 text-xs font-semibold uppercase tracking-wider transition-all border-b-2 flex items-center gap-2"
-          style={
-            sortBy === 'weeklyKm'
-              ? { color: '#FF4500', borderColor: '#FF4500' }
-              : { color: '#888888', borderColor: 'transparent' }
-          }
-        >
-          <Route className="w-3.5 h-3.5" />
-          Weekly Distance
-        </button>
-        <button
-          onClick={() => setSortBy('sessions')}
-          className="px-6 py-3 text-xs font-semibold uppercase tracking-wider transition-all border-b-2 flex items-center gap-2"
-          style={
-            sortBy === 'sessions'
-              ? { color: '#FF4500', borderColor: '#FF4500' }
-              : { color: '#888888', borderColor: 'transparent' }
-          }
-        >
-          <Dumbbell className="w-3.5 h-3.5" />
-          Sessions
-        </button>
+      <div style={{ display: 'flex', gap: 4, margin: '0 20px 24px', background: 'var(--bg-elevated)', borderRadius: 12, padding: 3 }}>
+        {tabs.map(tab => {
+          const Icon = tab.icon;
+          const active = sortBy === tab.key;
+          return (
+            <button key={tab.key} onClick={() => setSortBy(tab.key)}
+              style={{
+                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                padding: '8px 0', borderRadius: 10, border: 'none', cursor: 'pointer',
+                fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 600, letterSpacing: '0.02em',
+                background: active ? 'var(--bg-card)' : 'transparent',
+                color: active ? 'var(--text)' : 'var(--text-muted)',
+                boxShadow: active ? '0 1px 4px rgba(0,0,0,0.15)' : 'none',
+                transition: 'all 0.15s',
+              }}>
+              <Icon size={13} />
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Top 3 podium */}
+      {/* Podium (top 3) */}
       {!loading && sorted.length >= 3 && (
-        <div className="grid grid-cols-3 gap-4 mb-8">
-          {/* 2nd place */}
-          <Link href={`/profile/${sorted[1].clerkId}`}>
-            <div className="bg-[#111111] border border-[#2A2A2A] p-4 text-center card-hover mt-8">
-              <div className="flex items-center justify-center mb-2">
-                <Crown className="w-5 h-5" style={{ color: '#C0C0C0' }} />
+        <div style={{ margin: '0 20px 24px' }}>
+          <div style={{ display: 'flex', fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 14, alignItems: 'center', gap: 6 }}>
+            <TrendingUp size={11} /> TOP 3
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.15fr 1fr', gap: 8, alignItems: 'end' }}>
+            {/* 2nd */}
+            <Link href={`/profile/${sorted[1].clerkId}`} style={{ textDecoration: 'none' }}>
+              <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', padding: '16px 12px', textAlign: 'center', marginBottom: 0, marginTop: 20 }}>
+                <Crown size={16} style={{ color: RANK_COLORS[1], margin: '0 auto 8px' }} />
+                <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--bg-elevated)', border: `2px solid ${RANK_COLORS[1]}`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px', overflow: 'hidden' }}>
+                  {sorted[1].avatarUrl ? <img src={sorted[1].avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontWeight: 700, fontSize: 18, color: RANK_COLORS[1] }}>{(sorted[1].username ?? '?')[0]?.toUpperCase()}</span>}
+                </div>
+                <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sorted[1].username}</p>
+                <p style={{ fontFamily: 'Syne, sans-serif', fontSize: 20, fontWeight: 800, color: RANK_COLORS[1], letterSpacing: '-0.02em' }}>
+                  {sortBy === 'weeklyKm' ? sorted[1].weeklyKm : sorted[1].sessionCount}
+                </p>
+                <p style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{activeTab.unit}</p>
               </div>
-              <Avatar
-                src={sorted[1].avatarUrl}
-                fallback={sorted[1].username ?? '?'}
-                size="lg"
-                className="mx-auto mb-2"
-              />
-              <p className="text-white text-sm font-semibold truncate">{sorted[1].username}</p>
-              <p className="font-display text-2xl" style={{ color: '#C0C0C0' }}>2nd</p>
-              <p className="text-xs text-[#888888]">
-                {sortBy === 'weeklyKm' ? `${sorted[1].weeklyKm} km/wk` : `${sorted[1].sessionCount} sessions`}
-              </p>
-            </div>
-          </Link>
+            </Link>
 
-          {/* 1st place */}
-          <Link href={`/profile/${sorted[0].clerkId}`}>
-            <div
-              className="bg-[#111111] border p-4 text-center card-hover"
-              style={{ borderColor: '#FFD700' }}
-            >
-              <div className="flex items-center justify-center mb-2">
-                <Crown className="w-6 h-6" style={{ color: '#FFD700' }} />
+            {/* 1st */}
+            <Link href={`/profile/${sorted[0].clerkId}`} style={{ textDecoration: 'none' }}>
+              <div style={{ background: 'var(--bg-card)', border: `1.5px solid ${RANK_COLORS[0]}`, padding: '20px 12px 16px', textAlign: 'center', boxShadow: `0 4px 20px ${RANK_COLORS[0]}28` }}>
+                <Crown size={20} style={{ color: RANK_COLORS[0], margin: '0 auto 10px' }} />
+                <div style={{ width: 60, height: 60, borderRadius: '50%', background: 'var(--bg-elevated)', border: `2px solid ${RANK_COLORS[0]}`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px', overflow: 'hidden' }}>
+                  {sorted[0].avatarUrl ? <img src={sorted[0].avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontWeight: 700, fontSize: 22, color: RANK_COLORS[0] }}>{(sorted[0].username ?? '?')[0]?.toUpperCase()}</span>}
+                </div>
+                <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sorted[0].username}</p>
+                <p style={{ fontFamily: 'Syne, sans-serif', fontSize: 26, fontWeight: 800, color: RANK_COLORS[0], letterSpacing: '-0.02em' }}>
+                  {sortBy === 'weeklyKm' ? sorted[0].weeklyKm : sorted[0].sessionCount}
+                </p>
+                <p style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{activeTab.unit}</p>
               </div>
-              <Avatar
-                src={sorted[0].avatarUrl}
-                fallback={sorted[0].username ?? '?'}
-                size="xl"
-                className="mx-auto mb-2"
-                style={{ borderColor: '#FFD700' }}
-              />
-              <p className="text-white text-sm font-semibold truncate">{sorted[0].username}</p>
-              <p className="font-display text-3xl" style={{ color: '#FFD700' }}>1st</p>
-              <p className="text-xs text-[#888888]">
-                {sortBy === 'weeklyKm' ? `${sorted[0].weeklyKm} km/wk` : `${sorted[0].sessionCount} sessions`}
-              </p>
-            </div>
-          </Link>
+            </Link>
 
-          {/* 3rd place */}
-          <Link href={`/profile/${sorted[2].clerkId}`}>
-            <div className="bg-[#111111] border border-[#2A2A2A] p-4 text-center card-hover mt-8">
-              <div className="flex items-center justify-center mb-2">
-                <Crown className="w-5 h-5" style={{ color: '#CD7F32' }} />
+            {/* 3rd */}
+            <Link href={`/profile/${sorted[2].clerkId}`} style={{ textDecoration: 'none' }}>
+              <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', padding: '16px 12px', textAlign: 'center', marginTop: 20 }}>
+                <Crown size={16} style={{ color: RANK_COLORS[2], margin: '0 auto 8px' }} />
+                <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--bg-elevated)', border: `2px solid ${RANK_COLORS[2]}`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px', overflow: 'hidden' }}>
+                  {sorted[2].avatarUrl ? <img src={sorted[2].avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontWeight: 700, fontSize: 18, color: RANK_COLORS[2] }}>{(sorted[2].username ?? '?')[0]?.toUpperCase()}</span>}
+                </div>
+                <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sorted[2].username}</p>
+                <p style={{ fontFamily: 'Syne, sans-serif', fontSize: 20, fontWeight: 800, color: RANK_COLORS[2], letterSpacing: '-0.02em' }}>
+                  {sortBy === 'weeklyKm' ? sorted[2].weeklyKm : sorted[2].sessionCount}
+                </p>
+                <p style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{activeTab.unit}</p>
               </div>
-              <Avatar
-                src={sorted[2].avatarUrl}
-                fallback={sorted[2].username ?? '?'}
-                size="lg"
-                className="mx-auto mb-2"
-              />
-              <p className="text-white text-sm font-semibold truncate">{sorted[2].username}</p>
-              <p className="font-display text-2xl" style={{ color: '#CD7F32' }}>3rd</p>
-              <p className="text-xs text-[#888888]">
-                {sortBy === 'weeklyKm' ? `${sorted[2].weeklyKm} km/wk` : `${sorted[2].sessionCount} sessions`}
-              </p>
-            </div>
-          </Link>
+            </Link>
+          </div>
         </div>
       )}
 
       {/* Full list */}
-      {loading ? (
-        <div className="flex flex-col gap-2">
-          {Array.from({ length: 10 }).map((_, i) => (
-            <div key={i} className="h-16 skeleton" />
-          ))}
-        </div>
-      ) : sorted.length === 0 ? (
-        <div className="text-center py-20">
-          <Trophy className="w-12 h-12 text-[#2A2A2A] mx-auto mb-4" />
-          <h3 className="font-display text-xl text-[#888888]">BE THE FIRST</h3>
-          <p className="text-[#888888] text-sm">Complete your profile to appear on the leaderboard</p>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-1">
-          {sorted.map((entry, index) => (
-            <Link key={entry.clerkId} href={`/profile/${entry.clerkId}`}>
-              <div
-                className="flex items-center gap-4 p-4 bg-[#111111] border card-hover"
-                style={
-                  entry.isCurrentUser
-                    ? { borderColor: '#FF4500' }
-                    : { borderColor: '#2A2A2A' }
-                }
-              >
-                {/* Rank */}
-                <div
-                  className="w-10 text-center font-display text-xl shrink-0"
-                  style={{ color: getRankColor(index + 1) }}
-                >
-                  {index + 1}
-                </div>
+      <div style={{ margin: '0 20px' }}>
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="skeleton" style={{ height: 64 }} />
+            ))}
+          </div>
+        ) : sorted.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+            <Trophy size={40} style={{ color: 'var(--border)', margin: '0 auto 12px', display: 'block' }} />
+            <h3 style={{ fontFamily: 'Syne, sans-serif', fontSize: 18, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 6 }}>Bądź pierwszy</h3>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Uzupełnij profil, aby pojawić się w rankingu</p>
+          </div>
+        ) : (
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Zap size={11} /> Pełny ranking
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {sorted.map((entry, index) => (
+                <Link key={entry.clerkId} href={`/profile/${entry.clerkId}`} style={{ textDecoration: 'none' }}>
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '12px 14px',
+                    background: 'var(--bg-card)',
+                    border: entry.isCurrentUser ? '1.5px solid var(--accent)' : '1px solid var(--border)',
+                    transition: 'all 0.15s',
+                  }}>
+                    {/* Rank */}
+                    <div style={{ width: 28, textAlign: 'center', fontFamily: 'Syne, sans-serif', fontSize: 16, fontWeight: 800, letterSpacing: '-0.02em', color: getRankColor(index + 1), flexShrink: 0 }}>
+                      {index + 1}
+                    </div>
 
-                {/* Avatar */}
-                <Avatar
-                  src={entry.avatarUrl}
-                  fallback={entry.username ?? '?'}
-                  size="md"
-                />
+                    {/* Avatar */}
+                    <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--bg-elevated)', border: index < 3 ? `1.5px solid ${getRankColor(index + 1)}` : '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                      {entry.avatarUrl
+                        ? <img src={entry.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        : <span style={{ fontWeight: 700, fontSize: 15, color: index < 3 ? getRankColor(index + 1) : 'var(--text-muted)' }}>{(entry.username ?? '?')[0]?.toUpperCase()}</span>
+                      }
+                    </div>
 
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-white text-sm truncate">
-                    {entry.username ?? 'Anonymous'}
-                    {entry.isCurrentUser && (
-                      <span className="ml-2 text-[10px] text-[#FF4500] uppercase tracking-wider">You</span>
-                    )}
-                  </p>
-                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                    {entry.city && (
-                      <span className="text-xs text-[#888888]">{entry.city}</span>
-                    )}
-                    {entry.sportTypes.slice(0, 2).map((s) => (
-                      <Badge key={s} sport={s} className="text-[10px]">
-                        {getSportLabel(s).slice(0, 4)}
-                      </Badge>
-                    ))}
+                    {/* Info */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {entry.username ?? 'Anonimowy'}
+                        </span>
+                        {entry.isCurrentUser && (
+                          <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-dim)', borderRadius: 4, padding: '1px 5px', letterSpacing: '0.06em', textTransform: 'uppercase', flexShrink: 0 }}>TY</span>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        {entry.city && (
+                          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{entry.city}</span>
+                        )}
+                        {entry.sportTypes.slice(0, 2).map(s => (
+                          <span key={s} className={`sport-${s}`} style={{ fontSize: 9, fontWeight: 600, padding: '1px 5px', borderRadius: 4 }}>
+                            {getSportLabel(s).slice(0, 5)}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Stat */}
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 18, fontWeight: 800, letterSpacing: '-0.02em', color: index < 3 ? getRankColor(index + 1) : 'var(--text)' }}>
+                        {sortBy === 'weeklyKm' ? entry.weeklyKm : entry.sessionCount}
+                      </div>
+                      <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        {activeTab.unit}
+                      </div>
+                    </div>
                   </div>
-                </div>
-
-                {/* Stats */}
-                <div className="text-right shrink-0">
-                  <p
-                    className="font-display text-xl"
-                    style={{ color: getRankColor(index + 1) }}
-                  >
-                    {sortBy === 'weeklyKm' ? `${entry.weeklyKm}` : `${entry.sessionCount}`}
-                  </p>
-                  <p className="text-[10px] text-[#888888] uppercase tracking-wider">
-                    {sortBy === 'weeklyKm' ? 'km/wk' : 'sessions'}
-                  </p>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

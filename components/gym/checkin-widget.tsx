@@ -29,7 +29,7 @@ interface CheckinResponse {
   checkins: OtherUser[];
 }
 
-const WORKOUT_TYPES = ['Push', 'Pull', 'Legs', 'Upper', 'Lower', 'Full Body', 'Cardio', 'Other'];
+const WORKOUT_TYPES = ['Push', 'Pull', 'Nogi', 'Góra ciała', 'Dół ciała', 'Całe ciało', 'Kardio', 'Inne'];
 
 export function CheckinWidget({ gymName, gymPlaceId }: { gymName?: string | null; gymPlaceId?: string | null }) {
   const [myCheckin, setMyCheckin] = useState<CheckinData | null>(null);
@@ -100,21 +100,21 @@ export function CheckinWidget({ gymName, gymPlaceId }: { gymName?: string | null
 
   if (!gymName) {
     return (
-      <div className="bg-[#111111] border border-[#2A2A2A] p-4">
+      <div className="bg-[var(--bg-card)] border border-[var(--border)] p-4">
         <div className="flex items-center gap-2 mb-2">
           <MapPin className="w-4 h-4 text-[#888888]" />
-          <h3 className="font-display text-sm text-[#888888] tracking-wider">GYM CHECK-IN</h3>
+          <h3 className="font-display text-sm text-[#888888] tracking-wider">ZAMELDUJ SIĘ</h3>
         </div>
-        <p className="text-xs text-[#555555]">Set your home gym to enable check-in</p>
+        <p className="text-xs text-[#555555]">Ustaw swoją siłownię w profilu, aby się zameldować</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-[#111111] border border-[#2A2A2A] p-4">
+    <div className="bg-[var(--bg-card)] border border-[var(--border)] p-4">
       <div className="flex items-center gap-2 mb-3">
-        <MapPin className="w-4 h-4 text-[#FF4500]" />
-        <h3 className="font-display text-sm text-[#888888] tracking-wider">GYM CHECK-IN</h3>
+        <MapPin className="w-4 h-4 text-[#6366F1]" />
+        <h3 className="font-display text-sm text-[#888888] tracking-wider">ZAMELDUJ SIĘ</h3>
       </div>
 
       {loading ? (
@@ -123,12 +123,12 @@ export function CheckinWidget({ gymName, gymPlaceId }: { gymName?: string | null
         <div>
           <div className="flex items-center justify-between mb-3">
             <div>
-              <p className="text-sm text-white font-semibold">At {myCheckin.gymName}</p>
+              <p className="text-sm text-white font-semibold">W: {myCheckin.gymName}</p>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <Clock className="w-3 h-3 text-[#888888]" />
                 <span className="text-xs text-[#888888]">{elapsed || '0m'}</span>
                 {myCheckin.workoutType && (
-                  <span className="text-xs text-[#FF4500] border border-[#FF4500]/30 px-1.5 py-0.5">
+                  <span className="text-xs text-[#6366F1] border border-[#6366F1]/30 px-1.5 py-0.5">
                     {myCheckin.workoutType}
                   </span>
                 )}
@@ -137,18 +137,18 @@ export function CheckinWidget({ gymName, gymPlaceId }: { gymName?: string | null
             <button
               onClick={handleCheckout}
               disabled={checking}
-              className="flex items-center gap-1.5 px-3 py-1.5 border border-[#2A2A2A] text-[#888888] hover:text-red-400 hover:border-red-800 text-xs font-semibold uppercase tracking-wider transition-all disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-1.5 border border-[var(--border)] text-[#888888] hover:text-red-400 hover:border-red-800 text-xs font-semibold uppercase tracking-wider transition-all disabled:opacity-50"
             >
               <LogOut className="w-3 h-3" />
-              Check Out
+              Wymelduj
             </button>
           </div>
 
           {others.length > 0 && (
-            <div className="border-t border-[#1A1A1A] pt-3">
+            <div className="border-t border-[var(--border)] pt-3">
               <div className="flex items-center gap-1.5 mb-2">
                 <Users className="w-3 h-3 text-[#888888]" />
-                <span className="text-xs text-[#888888]">{others.length} other{others.length !== 1 ? 's' : ''} here now</span>
+                <span className="text-xs text-[#888888]">{others.length} {others.length === 1 ? 'osoba' : 'osoby'} tu teraz</span>
               </div>
               <div className="flex flex-col gap-2">
                 {others.slice(0, 5).map((o) => (
@@ -166,12 +166,12 @@ export function CheckinWidget({ gymName, gymPlaceId }: { gymName?: string | null
                         {(o.user?.username ?? 'U')[0].toUpperCase()}
                       </div>
                     )}
-                    <span className="text-xs text-white flex-1 truncate">{o.user?.username ?? 'Unknown'}</span>
+                    <span className="text-xs text-white flex-1 truncate">{o.user?.username ?? 'Nieznany'}</span>
                     {o.user?.sportTypes?.[0] && (
                       <span className="text-[10px] text-[#888888]">{getSportLabel(o.user.sportTypes[0])}</span>
                     )}
                     {o.checkin.workoutType && (
-                      <span className="text-[10px] text-[#FF4500] border border-[#FF4500]/20 px-1">
+                      <span className="text-[10px] text-[#6366F1] border border-[#6366F1]/20 px-1">
                         {o.checkin.workoutType}
                       </span>
                     )}
@@ -183,14 +183,14 @@ export function CheckinWidget({ gymName, gymPlaceId }: { gymName?: string | null
         </div>
       ) : showTypeSelect ? (
         <div>
-          <p className="text-xs text-[#888888] mb-2">What are you training?</p>
+          <p className="text-xs text-[#888888] mb-2">Jaki masz dzisiaj trening?</p>
           <div className="grid grid-cols-2 gap-1.5 mb-3">
             {WORKOUT_TYPES.map((type) => (
               <button
                 key={type}
                 onClick={() => handleCheckin(type)}
                 disabled={checking}
-                className="py-1.5 text-xs font-semibold uppercase tracking-wider border border-[#2A2A2A] text-[#888888] hover:text-white hover:border-[#FF4500] transition-all disabled:opacity-50"
+                className="py-1.5 text-xs font-semibold uppercase tracking-wider border border-[var(--border)] text-[#888888] hover:text-white hover:border-[#6366F1] transition-all disabled:opacity-50"
               >
                 {type}
               </button>
@@ -200,21 +200,21 @@ export function CheckinWidget({ gymName, gymPlaceId }: { gymName?: string | null
             onClick={() => setShowTypeSelect(false)}
             className="text-xs text-[#555555] hover:text-[#888888]"
           >
-            Cancel
+            Anuluj
           </button>
         </div>
       ) : (
         <div>
           <p className="text-xs text-[#888888] mb-3">
-            Check in to {gymName} to see who&apos;s training with you
+            Zamelduj się w {gymName}, aby zobaczyć kto trenuje obok Ciebie
           </p>
           <button
             onClick={() => setShowTypeSelect(true)}
             disabled={checking}
-            className="w-full py-2.5 bg-[#FF4500] text-white text-xs font-semibold uppercase tracking-wider hover:shadow-[0_0_15px_rgba(255,69,0,0.4)] disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+            className="w-full py-2.5 bg-[#6366F1] text-white text-xs font-semibold uppercase tracking-wider hover:shadow-[0_0_15px_rgba(99,102,241,0.4)] disabled:opacity-50 transition-all flex items-center justify-center gap-2"
           >
             <MapPin className="w-4 h-4" />
-            Check In to Gym
+            Zamelduj się
           </button>
         </div>
       )}

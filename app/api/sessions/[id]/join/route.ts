@@ -1,18 +1,19 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { sessions, sessionParticipants } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 
 export async function POST(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const userId = await getAuthUserId();
+  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
 
   const { id } = await params;
   const sessionId = parseInt(id);
+  if (isNaN(sessionId)) return NextResponse.json({ error: 'Invalid session id' }, { status: 400 });
 
   try {
     const sessionRows = await db
@@ -46,20 +47,33 @@ export async function POST(
       return NextResponse.json({ error: 'Already joined' }, { status: 400 });
     }
 
-    const participants = await db
-      .select()
+    // Use DB-level count to avoid race condition
+    const countResult = await db
+      .select({ count: sql<number>`count(*)` })
       .from(sessionParticipants)
-      .where(eq(sessionParticipants.sessionId, sessionId));
+      .where(
+        and(
+          eq(sessionParticipants.sessionId, sessionId),
+          sql`${sessionParticipants.status} IN ('accepted', 'host')`
+        )
+      );
+    const acceptedCount = Number(countResult[0]?.count ?? 0);
 
-    if (participants.length >= session.maxParticipants) {
+    if (acceptedCount >= session.maxParticipants) {
       return NextResponse.json({ error: 'Session is full' }, { status: 400 });
     }
 
-    await db.insert(sessionParticipants).values({ sessionId, userId });
+    const isHost = session.creatorId === userId;
+    const status = isHost ? 'host' : 'pending';
 
-    return NextResponse.json({ success: true });
+    await db.insert(sessionParticipants).values({ sessionId, userId, status });
+
+    if (isHost) {
+      return NextResponse.json({ success: true });
+    }
+    return NextResponse.json({ pending: true });
   } catch (err) {
     console.error('POST /api/sessions/[id]/join error:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
   }
 }

@@ -1,20 +1,24 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { getAuthUserId } from '@/lib/server-auth';
 import { geocodeAddress } from '@/lib/maps';
 
 export async function POST(request: Request) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const userId = await getAuthUserId();
+  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
 
   const body = await request.json() as { address?: string };
   if (!body.address) {
     return NextResponse.json({ error: 'address is required' }, { status: 400 });
   }
 
-  const result = await geocodeAddress(body.address);
-  if (!result) {
-    return NextResponse.json({ error: 'Could not geocode address' }, { status: 404 });
+  try {
+    const result = await geocodeAddress(body.address);
+    if (!result) {
+      return NextResponse.json({ error: 'Could not geocode address' }, { status: 404 });
+    }
+    return NextResponse.json(result);
+  } catch (err) {
+    console.error('POST /api/maps/geocode error:', err);
+    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
   }
-
-  return NextResponse.json(result);
 }

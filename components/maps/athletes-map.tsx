@@ -27,12 +27,13 @@ interface ProfilePopup {
 export function AthletesMap({ athletes }: AthletesMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
+  const circlesRef = useRef<google.maps.Circle[]>([]);
   const [popup, setPopup] = useState<ProfilePopup | null>(null);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     async function init() {
-      await loadGoogleMapsAPI(['maps', 'marker']);
+      await loadGoogleMapsAPI();
 
       if (!mapRef.current) return;
 
@@ -43,7 +44,7 @@ export function AthletesMap({ athletes }: AthletesMapProps) {
 
       const map = new google.maps.Map(mapRef.current, {
         center,
-        zoom: 11,
+        zoom: 9,
         styles: DARK_MAP_STYLE,
         disableDefaultUI: true,
         zoomControl: true,
@@ -52,30 +53,33 @@ export function AthletesMap({ athletes }: AthletesMapProps) {
 
       markersRef.current.forEach((m) => m.setMap(null));
       markersRef.current = [];
+      circlesRef.current.forEach((c) => c.setMap(null));
+      circlesRef.current = [];
 
       athletes.forEach((athlete) => {
         const color = getSportColor(athlete.sport);
 
-        const marker = new google.maps.Marker({
-          position: { lat: athlete.lat, lng: athlete.lng },
+        const jitterLat = athlete.lat + (Math.random() - 0.5) * 0.1;
+        const jitterLng = athlete.lng + (Math.random() - 0.5) * 0.1;
+
+        const circle = new google.maps.Circle({
           map,
-          icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 10,
-            fillColor: color,
-            fillOpacity: 0.9,
-            strokeColor: '#0A0A0A',
-            strokeWeight: 2,
-          },
-          title: athlete.username ?? 'Athlete',
+          center: { lat: jitterLat, lng: jitterLng },
+          radius: 8000, // 8km in meters
+          fillColor: color,
+          fillOpacity: 0.12,
+          strokeColor: color,
+          strokeOpacity: 0.6,
+          strokeWeight: 2,
+          clickable: true,
         });
 
-        marker.addListener('click', () => {
+        circle.addListener('click', () => {
           setPopup({ athlete });
-          map.panTo({ lat: athlete.lat, lng: athlete.lng });
+          map.panTo({ lat: jitterLat, lng: jitterLng });
         });
 
-        markersRef.current.push(marker);
+        circlesRef.current.push(circle);
       });
 
       map.addListener('click', () => setPopup(null));
@@ -92,18 +96,18 @@ export function AthletesMap({ athletes }: AthletesMapProps) {
       <div ref={mapRef} className="w-full h-full" />
 
       {!ready && (
-        <div className="absolute inset-0 bg-[#0A0A0A] flex items-center justify-center">
-          <div className="text-[#888888] text-sm">Loading athletes map...</div>
+        <div className="absolute inset-0 bg-[var(--bg)] flex items-center justify-center">
+          <div className="text-[#888888] text-sm">Ładowanie mapy sportowców...</div>
         </div>
       )}
 
       {popup && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-64 bg-[#111111] border border-[#2A2A2A] p-4 z-50 shadow-2xl">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-64 bg-[var(--bg-card)] border border-[var(--border)] p-4 z-50 shadow-2xl">
           <div className="flex items-center gap-3 mb-3">
             {popup.athlete.avatarUrl ? (
               <Image
                 src={popup.athlete.avatarUrl}
-                alt={popup.athlete.username ?? 'Athlete'}
+                alt={popup.athlete.username ?? 'Sportowiec'}
                 width={40}
                 height={40}
                 className="w-10 h-10 object-cover"
@@ -118,7 +122,7 @@ export function AthletesMap({ athletes }: AthletesMapProps) {
             )}
             <div>
               <p className="text-white text-sm font-semibold">
-                {popup.athlete.username ?? 'Athlete'}
+                {popup.athlete.username ?? 'Sportowiec'}
               </p>
               <span
                 className="text-xs px-1.5 py-0.5"
@@ -135,13 +139,13 @@ export function AthletesMap({ athletes }: AthletesMapProps) {
           <div className="flex gap-2">
             <Link
               href={`/profile/${popup.athlete.id}`}
-              className="flex-1 py-1.5 text-center text-xs font-semibold uppercase tracking-wider border border-[#2A2A2A] text-[#888888] hover:text-white hover:border-[#FF4500] transition-all"
+              className="flex-1 py-1.5 text-center text-xs font-semibold uppercase tracking-wider border border-[var(--border)] text-[#888888] hover:text-white hover:border-[#6366F1] transition-all"
             >
-              View Profile
+              Pokaż profil
             </Link>
             <button
               onClick={() => setPopup(null)}
-              className="px-3 py-1.5 text-xs text-[#888888] hover:text-white border border-[#2A2A2A] transition-all"
+              className="px-3 py-1.5 text-xs text-[#888888] hover:text-white border border-[var(--border)] transition-all"
             >
               ×
             </button>

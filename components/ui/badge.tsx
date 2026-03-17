@@ -11,11 +11,10 @@ export function Badge({ className, sport, variant = 'default', children, ...prop
     const color = getSportColor(sport);
     return (
       <span
-        className={cn('inline-flex items-center px-2 py-0.5 text-xs font-semibold uppercase tracking-wider border', className)}
+        className={cn('inline-flex items-center px-2.5 py-0.5 text-xs font-semibold rounded-full', className)}
         style={{
           color,
-          background: `${color}20`,
-          borderColor: `${color}40`,
+          background: `${color}18`,
         }}
         {...props}
       >
@@ -25,15 +24,15 @@ export function Badge({ className, sport, variant = 'default', children, ...prop
   }
 
   const variants = {
-    default: 'bg-[#FF4500] text-white border-transparent',
-    outline: 'border border-[#2A2A2A] text-[#888888]',
-    muted: 'bg-[#1A1A1A] text-[#888888] border-[#2A2A2A] border',
+    default: 'bg-[#6366F1] text-white',
+    outline: 'border border-[var(--border)] text-[var(--text-muted)]',
+    muted: 'bg-[var(--bg-elevated)] text-[var(--text-muted)]',
   };
 
   return (
     <span
       className={cn(
-        'inline-flex items-center px-2 py-0.5 text-xs font-semibold uppercase tracking-wider',
+        'inline-flex items-center px-2.5 py-0.5 text-xs font-semibold rounded-full',
         variants[variant],
         className
       )}

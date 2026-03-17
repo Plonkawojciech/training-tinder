@@ -1,8 +1,22 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Input, Textarea } from '@/components/ui/input';
-import { SPORTS, getSportColor, GYM_SPORTS } from '@/lib/utils';
+import { SPORTS, getSportColor, GYM_SPORTS, getSportLabel } from '@/lib/utils';
+import { PaceInput } from '@/components/ui/pace-input';
+
+export interface SportProfileData {
+  pacePerKmSec?: number;
+  avgSpeedKmh?: number;
+  weeklyKm?: number;
+  weeklyHours?: number;
+  ftpWatts?: number;
+  vo2max?: number;
+  restingHr?: number;
+  maxHr?: number;
+  level?: string;
+  yearsExperience?: number;
+}
 
 export interface OnboardingData {
   username: string;
@@ -20,6 +34,17 @@ export interface OnboardingData {
   strengthLevel: string;
   trainingSplits: string[];
   goals: string[];
+  // Advanced athlete fields
+  athleteLevel: string;
+  ftpWatts: string;
+  vo2max: string;
+  restingHr: string;
+  maxHr: string;
+  sportProfiles: Record<string, SportProfileData>;
+  // Demographics
+  age: string;
+  gender: string;
+  weightKg: string;
 }
 
 interface StepProps {
@@ -28,42 +53,74 @@ interface StepProps {
 }
 
 const AVAILABILITY_OPTIONS = [
-  'Early Morning (5-8am)',
-  'Morning (8-11am)',
-  'Midday (11am-2pm)',
-  'Afternoon (2-5pm)',
-  'Evening (5-8pm)',
-  'Night (8pm+)',
-  'Weekdays',
-  'Weekends',
+  'Wczesny ranek (5-8)',
+  'Ranek (8-11)',
+  'Południe (11-14)',
+  'Popołudnie (14-17)',
+  'Wieczór (17-20)',
+  'Noc (20+)',
+  'Dni powszednie',
+  'Weekendy',
 ];
 
 const STRENGTH_LEVELS = [
-  { value: 'beginner', label: 'Beginner', color: '#00CC44' },
-  { value: 'intermediate', label: 'Intermediate', color: '#FFD700' },
-  { value: 'advanced', label: 'Advanced', color: '#FF8800' },
-  { value: 'elite', label: 'Elite', color: '#FF4500' },
+  { value: 'beginner', label: 'Początkujący', color: '#00CC44' },
+  { value: 'intermediate', label: 'Średniozaawansowany', color: '#FFD700' },
+  { value: 'advanced', label: 'Zaawansowany', color: '#A78BFA' },
+  { value: 'elite', label: 'Elita', color: '#6366F1' },
+];
+
+const ATHLETE_LEVELS = [
+  { value: 'beginner', label: 'Początkujący', desc: 'Dopiero zaczynam', color: '#00CC44' },
+  { value: 'recreational', label: 'Amator', desc: 'Trenuję dla przyjemności i zdrowia', color: '#FFD700' },
+  { value: 'competitive', label: 'Zawodnik amatorski', desc: 'Regularnie startuję w zawodach', color: '#A78BFA' },
+  { value: 'elite', label: 'Elita', desc: 'Poziom profesjonalny / semi-pro', color: '#6366F1' },
+];
+
+const YEARS_EXPERIENCE = [
+  { value: 0, label: '< 1 rok' },
+  { value: 1, label: '1 rok' },
+  { value: 2, label: '2–3 lata' },
+  { value: 4, label: '4–5 lat' },
+  { value: 6, label: '5+ lat' },
 ];
 
 const TRAINING_SPLITS = [
-  { value: 'push_pull_legs', label: 'Push/Pull/Legs' },
-  { value: 'full_body', label: 'Full Body' },
-  { value: 'upper_lower', label: 'Upper/Lower' },
+  { value: 'push_pull_legs', label: 'Push/Pull/Nogi' },
+  { value: 'full_body', label: 'Całe ciało' },
+  { value: 'upper_lower', label: 'Góra/Dół' },
   { value: 'bro_split', label: 'Bro Split' },
-  { value: 'powerlifting', label: 'Powerlifting' },
+  { value: 'powerlifting', label: 'Trójbój siłowy' },
 ];
 
 const GOAL_OPTIONS = [
-  { value: 'strength', label: 'Strength', emoji: '💪' },
-  { value: 'hypertrophy', label: 'Hypertrophy', emoji: '🏋️' },
-  { value: 'endurance', label: 'Endurance', emoji: '🏃' },
-  { value: 'weight_loss', label: 'Weight Loss', emoji: '⚡' },
-  { value: 'athletic', label: 'Athletic Performance', emoji: '🎯' },
+  { value: 'strength', label: 'Siła', emoji: '💪' },
+  { value: 'hypertrophy', label: 'Masa mięśniowa', emoji: '🏋️' },
+  { value: 'endurance', label: 'Wytrzymałość', emoji: '🏃' },
+  { value: 'weight_loss', label: 'Redukcja', emoji: '⚡' },
+  { value: 'athletic', label: 'Atletyka', emoji: '🎯' },
 ];
+
+// Endurance sports that have pace/speed fields
+const ENDURANCE_SPORT_VALUES = [
+  'cycling', 'running', 'triathlon', 'swimming', 'trail_running', 'gravel', 'duathlon', 'mtb',
+];
+
+// Sports that use FTP (power meter)
+const FTP_SPORTS = ['cycling', 'gravel', 'mtb', 'triathlon', 'duathlon'];
+
+// Sports that use VO2max
+const VO2MAX_SPORTS = ['running', 'trail_running', 'triathlon', 'duathlon'];
 
 // Split sports into categories for better display
 const ENDURANCE_SPORTS = SPORTS.filter((s) => !GYM_SPORTS.includes(s.value));
 const GYM_SPORT_LIST = SPORTS.filter((s) => GYM_SPORTS.includes(s.value));
+
+const GENDER_OPTIONS = [
+  { value: 'male', label: 'Mężczyzna' },
+  { value: 'female', label: 'Kobieta' },
+  { value: 'other', label: 'Inne' },
+];
 
 export function Step1SportsBio({ data, onChange }: StepProps) {
   function toggleSport(sport: string) {
@@ -74,13 +131,12 @@ export function Step1SportsBio({ data, onChange }: StepProps) {
     onChange({ sportTypes: updated });
   }
 
-  const hasGymSport = data.sportTypes.some((s) => GYM_SPORTS.includes(s));
-
   return (
     <div className="flex flex-col gap-6">
+      {/* Sports */}
       <div>
         <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-1">
-          Endurance Sports
+          Sporty wytrzymałościowe
         </label>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
           {ENDURANCE_SPORTS.map((sport) => {
@@ -105,7 +161,7 @@ export function Step1SportsBio({ data, onChange }: StepProps) {
         </div>
 
         <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-1">
-          Gym & Strength
+          Siłownia
         </label>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {GYM_SPORT_LIST.map((sport) => {
@@ -130,93 +186,495 @@ export function Step1SportsBio({ data, onChange }: StepProps) {
         </div>
 
         {data.sportTypes.length === 0 && (
-          <p className="text-xs text-red-400 mt-2">Select at least one sport</p>
-        )}
-
-        {hasGymSport && (
-          <div className="mt-2 p-2 bg-[rgba(255,69,0,0.06)] border border-[rgba(255,69,0,0.2)] text-xs text-[#FF4500]">
-            You selected gym sports — we will ask about your strength level next!
-          </div>
+          <p className="text-xs text-red-400 mt-2">Wybierz co najmniej jeden sport</p>
         )}
       </div>
 
       <Input
-        label="Display Name"
+        label="Nazwa wyświetlana"
         value={data.username}
         onChange={(e) => onChange({ username: e.target.value })}
-        placeholder="Your athlete name"
+        placeholder="Twoja nazwa sportowa"
       />
 
       <Textarea
-        label="Bio (optional)"
+        label="Bio (opcjonalne)"
         value={data.bio}
         onChange={(e) => onChange({ bio: e.target.value })}
-        placeholder="Tell other athletes about yourself, your goals, and training style..."
-        className="min-h-[120px]"
+        placeholder="Opisz siebie, swoje cele i styl treningowy..."
+        className="min-h-[100px]"
       />
+
+      {/* Age */}
+      <div>
+        <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-2">
+          Wiek
+        </label>
+        <input
+          type="number"
+          placeholder="np. 28"
+          min="13"
+          max="100"
+          value={data.age}
+          onChange={(e) => onChange({ age: e.target.value })}
+          className="w-full bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] px-3 py-2.5 text-sm focus:border-[#6366F1] focus:outline-none placeholder:text-[#444444]"
+        />
+      </div>
+
+      {/* Gender */}
+      <div>
+        <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-2">
+          Płeć
+        </label>
+        <div className="flex gap-2">
+          {GENDER_OPTIONS.map((opt) => {
+            const isSelected = data.gender === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => onChange({ gender: opt.value })}
+                className="flex-1 py-2.5 border text-sm font-medium transition-all"
+                style={
+                  isSelected
+                    ? { borderColor: '#6366F1', background: 'rgba(99,102,241,0.1)', color: '#6366F1' }
+                    : { borderColor: '#2A2A2A', background: 'transparent', color: '#888888' }
+                }
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Weight — only for female */}
+      {(data.gender === 'female' || data.gender === 'Kobieta') && (
+        <div>
+          <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-2">
+            Waga (kg)
+          </label>
+          <input
+            type="number"
+            placeholder="np. 60"
+            min="30"
+            max="200"
+            step="0.5"
+            value={data.weightKg}
+            onChange={(e) => onChange({ weightKg: e.target.value })}
+            className="w-full bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] px-3 py-2.5 text-sm focus:border-[#6366F1] focus:outline-none placeholder:text-[#444444]"
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function Step2LocationAvailability({ data, onChange }: StepProps) {
+  function toggleAvailability(slot: string) {
+    const current = data.availability;
+    const updated = current.includes(slot)
+      ? current.filter((s) => s !== slot)
+      : [...current, slot];
+    onChange({ availability: updated });
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <Input
+        label="Miasto / Region"
+        value={data.city}
+        onChange={(e) => onChange({ city: e.target.value })}
+        placeholder="np. Warszawa"
+      />
+
+      <div>
+        <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-3">
+          Dostępność treningowa
+        </label>
+        <div className="grid grid-cols-2 gap-2">
+          {AVAILABILITY_OPTIONS.map((slot) => {
+            const isSelected = data.availability.includes(slot);
+            return (
+              <button
+                key={slot}
+                type="button"
+                onClick={() => toggleAvailability(slot)}
+                className="p-2.5 border text-xs font-medium text-left transition-all"
+                style={
+                  isSelected
+                    ? { border: '1px solid #6366F1', background: 'rgba(99,102,241,0.1)', color: '#6366F1' }
+                    : { border: '1px solid #2A2A2A', background: 'transparent', color: '#888888' }
+                }
+              >
+                {slot}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function Step3PhotoOnly({ data, onChange }: StepProps) {
+  const [uploading, setUploading] = React.useState(false);
+  const [error, setError] = React.useState('');
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Plik musi być mniejszy niż 5MB');
+      return;
+    }
+
+    setUploading(true);
+    setError('');
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/upload/avatar', {
+        method: 'POST',
+        body: formData,
+      });
+      if (!res.ok) throw new Error('Upload failed');
+      const { url } = await res.json() as { url: string };
+      onChange({ avatarUrl: url });
+    } catch {
+      setError('Błąd przesyłania. Spróbuj ponownie.');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-6">
+      {data.avatarUrl ? (
+        <div className="flex flex-col items-center gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={data.avatarUrl}
+            alt="Zdjęcie profilowe"
+            className="w-32 h-32 object-cover border-2 border-[#6366F1]"
+            style={{ borderRadius: 16 }}
+          />
+          <p className="text-sm text-[#00CC44]">Zdjęcie przesłane!</p>
+        </div>
+      ) : (
+        <div
+          className="w-32 h-32 bg-[var(--bg-elevated)] border border-[var(--border)] flex items-center justify-center"
+          style={{ borderRadius: 16 }}
+        >
+          <span className="font-display text-4xl text-[#6366F1]">
+            {data.username?.[0]?.toUpperCase() ?? '?'}
+          </span>
+        </div>
+      )}
+
+      <div className="flex flex-col items-center gap-3 w-full max-w-xs">
+        <label className="cursor-pointer w-full">
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+          <div className="w-full py-3 bg-[var(--bg-elevated)] border border-[var(--border)] text-center text-sm text-white hover:border-[#6366F1] transition-all cursor-pointer uppercase tracking-wider font-semibold">
+            {uploading ? 'Przesyłanie...' : 'Wybierz zdjęcie'}
+          </div>
+        </label>
+        <p className="text-xs text-[#888888] text-center">
+          Wgraj wyraźne zdjęcie siebie. Maks. 5MB. JPEG, PNG, WebP.
+        </p>
+        {error && <p className="text-xs text-red-400">{error}</p>}
+      </div>
+
+      <p className="text-xs text-[#555555] text-center">
+        Zdjęcie jest opcjonalne — możesz je dodać później w ustawieniach profilu.
+      </p>
+    </div>
+  );
+}
+
+// Per-sport section component
+function SportProfileSection({
+  sport,
+  profile,
+  onUpdate,
+}: {
+  sport: string;
+  profile: SportProfileData;
+  onUpdate: (updates: SportProfileData) => void;
+}) {
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const color = getSportColor(sport);
+  const showFtp = FTP_SPORTS.includes(sport);
+  const showVo2max = VO2MAX_SPORTS.includes(sport);
+
+  return (
+    <div
+      className="border p-4 flex flex-col gap-4"
+      style={{ borderColor: `${color}40`, background: `${color}08` }}
+    >
+      <div className="flex items-center gap-2">
+        <span className="font-bold text-sm" style={{ color }}>
+          {getSportLabel(sport).toUpperCase()}
+        </span>
+        <div className="h-px flex-1" style={{ background: `${color}30` }} />
+      </div>
+
+      {/* Core fields — always visible */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <PaceInput
+          label="Średnie tempo / prędkość"
+          valueSec={profile.pacePerKmSec ?? null}
+          onChange={(sec) =>
+            onUpdate({ ...profile, pacePerKmSec: sec, avgSpeedKmh: Math.round((3600 / sec) * 10) / 10 })
+          }
+        />
+
+        <div>
+          <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-2">
+            Tygodniowy dystans (km)
+          </label>
+          <input
+            type="number"
+            placeholder="np. 80"
+            min="0"
+            max="2000"
+            value={profile.weeklyKm ?? ''}
+            onChange={(e) => {
+              const v = parseInt(e.target.value);
+              onUpdate({ ...profile, weeklyKm: isNaN(v) ? undefined : v });
+            }}
+            className="w-full bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] px-3 py-2 text-sm focus:border-[#6366F1] focus:outline-none"
+          />
+        </div>
+      </div>
+
+      {/* Advanced toggle — on mobile hidden behind button */}
+      <button
+        type="button"
+        onClick={() => setShowAdvanced((v) => !v)}
+        className="text-xs text-[#888888] hover:text-white transition-colors text-left flex items-center gap-1 md:hidden"
+      >
+        {showAdvanced ? 'Ukryj zaawansowane ▴' : 'Pokaż zaawansowane ▾'}
+      </button>
+
+      {/* Advanced fields */}
+      <div className={`flex flex-col gap-4 ${showAdvanced ? '' : 'hidden md:flex'}`}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-2">
+              Tygodniowe godziny
+            </label>
+            <input
+              type="number"
+              placeholder="np. 8"
+              min="0"
+              max="40"
+              step="0.5"
+              value={profile.weeklyHours ?? ''}
+              onChange={(e) => {
+                const v = parseFloat(e.target.value);
+                onUpdate({ ...profile, weeklyHours: isNaN(v) ? undefined : v });
+              }}
+              className="w-full bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] px-3 py-2 text-sm focus:border-[#6366F1] focus:outline-none"
+            />
+          </div>
+
+          {showFtp && (
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-2">
+                FTP (Watts)
+                <span
+                  className="ml-1 text-[#555555] cursor-help"
+                  title="Funkcjonalna Moc Progowa — maksymalna moc, którą możesz utrzymać przez ok. 1 godzinę"
+                >
+                  ⓘ
+                </span>
+              </label>
+              <input
+                type="number"
+                placeholder="np. 250"
+                min="50"
+                max="600"
+                value={profile.ftpWatts ?? ''}
+                onChange={(e) => {
+                  const v = parseInt(e.target.value);
+                  onUpdate({ ...profile, ftpWatts: isNaN(v) ? undefined : v });
+                }}
+                className="w-full bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] px-3 py-2 text-sm focus:border-[#6366F1] focus:outline-none"
+              />
+            </div>
+          )}
+
+          {showVo2max && (
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-2">
+                VO2max (ml/kg/min) <span className="text-[#555555]">(opcjonalne)</span>
+              </label>
+              <input
+                type="number"
+                placeholder="np. 55"
+                min="20"
+                max="90"
+                step="0.1"
+                value={profile.vo2max ?? ''}
+                onChange={(e) => {
+                  const v = parseFloat(e.target.value);
+                  onUpdate({ ...profile, vo2max: isNaN(v) ? undefined : v });
+                }}
+                className="w-full bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] px-3 py-2 text-sm focus:border-[#6366F1] focus:outline-none"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Heart rate */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-2">
+              Tętno spoczynkowe (bpm) <span className="text-[#555555]">(opcjonalne)</span>
+            </label>
+            <input
+              type="number"
+              placeholder="np. 50"
+              min="30"
+              max="100"
+              value={profile.restingHr ?? ''}
+              onChange={(e) => {
+                const v = parseInt(e.target.value);
+                onUpdate({ ...profile, restingHr: isNaN(v) ? undefined : v });
+              }}
+              className="w-full bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] px-3 py-2 text-sm focus:border-[#6366F1] focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-2">
+              Tętno max (bpm) <span className="text-[#555555]">(opcjonalne)</span>
+            </label>
+            <input
+              type="number"
+              placeholder="np. 185"
+              min="100"
+              max="220"
+              value={profile.maxHr ?? ''}
+              onChange={(e) => {
+                const v = parseInt(e.target.value);
+                onUpdate({ ...profile, maxHr: isNaN(v) ? undefined : v });
+              }}
+              className="w-full bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] px-3 py-2 text-sm focus:border-[#6366F1] focus:outline-none"
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
 
 export function Step2Performance({ data, onChange }: StepProps) {
-  const paceMin = data.pacePerKm
-    ? Math.floor(Number(data.pacePerKm) / 60).toString()
-    : '';
-  const paceSec = data.pacePerKm
-    ? (Number(data.pacePerKm) % 60).toString().padStart(2, '0')
-    : '';
+  const enduranceSports = data.sportTypes.filter((s) => ENDURANCE_SPORT_VALUES.includes(s));
 
-  function handlePaceChange(minutes: string, seconds: string) {
-    const m = parseInt(minutes) || 0;
-    const s = parseInt(seconds) || 0;
-    if (m > 0 || s > 0) {
-      onChange({ pacePerKm: String(m * 60 + s) });
-    } else {
-      onChange({ pacePerKm: '' });
-    }
+  function updateSportProfile(sport: string, updates: SportProfileData) {
+    onChange({
+      sportProfiles: {
+        ...data.sportProfiles,
+        [sport]: updates,
+      },
+    });
   }
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Athlete level */}
       <div>
         <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-3">
-          Average Pace (min/km)
+          Poziom zawodnika
         </label>
-        <div className="flex items-center gap-2">
-          <input
-            type="number"
-            placeholder="5"
-            min="1"
-            max="30"
-            value={paceMin}
-            onChange={(e) => handlePaceChange(e.target.value, paceSec)}
-            className="w-20 bg-[#0A0A0A] border border-[#2A2A2A] text-white px-3 py-2.5 text-sm focus:border-[#FF4500] focus:outline-none text-center"
-          />
-          <span className="text-[#888888] text-xl">:</span>
-          <input
-            type="number"
-            placeholder="30"
-            min="0"
-            max="59"
-            value={paceSec}
-            onChange={(e) => handlePaceChange(paceMin, e.target.value)}
-            className="w-20 bg-[#0A0A0A] border border-[#2A2A2A] text-white px-3 py-2.5 text-sm focus:border-[#FF4500] focus:outline-none text-center"
-          />
-          <span className="text-[#888888] text-sm">/km</span>
+        <div className="grid grid-cols-2 gap-2">
+          {ATHLETE_LEVELS.map((level) => {
+            const isSelected = data.athleteLevel === level.value;
+            return (
+              <button
+                key={level.value}
+                type="button"
+                onClick={() => onChange({ athleteLevel: level.value })}
+                className="p-3 border text-left transition-all"
+                style={
+                  isSelected
+                    ? { borderColor: level.color, background: `${level.color}20`, color: level.color }
+                    : { borderColor: '#2A2A2A', background: 'transparent', color: '#888888' }
+                }
+              >
+                <div className="text-sm font-bold">{level.label}</div>
+                <div className="text-xs opacity-70 mt-0.5">{level.desc}</div>
+              </button>
+            );
+          })}
         </div>
-        <p className="text-xs text-[#888888] mt-1">Used for running/cycling pace matching</p>
       </div>
 
-      <Input
-        label="Weekly Distance (km)"
-        type="number"
-        value={data.weeklyKm}
-        onChange={(e) => onChange({ weeklyKm: e.target.value })}
-        placeholder="100"
-        min="0"
-        max="1000"
-        hint="Your average weekly training distance across all sports"
-      />
+      {/* Years of experience */}
+      <div>
+        <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-3">
+          Lata doświadczenia
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {YEARS_EXPERIENCE.map((yr) => {
+            const currentYears = data.sportProfiles['_global']?.yearsExperience;
+            const isSelected = currentYears === yr.value;
+            return (
+              <button
+                key={yr.value}
+                type="button"
+                onClick={() =>
+                  onChange({
+                    sportProfiles: {
+                      ...data.sportProfiles,
+                      _global: { ...(data.sportProfiles['_global'] ?? {}), yearsExperience: yr.value },
+                    },
+                  })
+                }
+                className="px-4 py-2 border text-sm font-medium transition-all"
+                style={
+                  isSelected
+                    ? { borderColor: '#6366F1', background: 'rgba(99,102,241,0.1)', color: '#6366F1' }
+                    : { borderColor: '#2A2A2A', background: 'transparent', color: '#888888' }
+                }
+              >
+                {yr.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Per-sport sections */}
+      {enduranceSports.length > 0 && (
+        <div className="flex flex-col gap-4">
+          <label className="text-xs font-semibold uppercase tracking-wider text-[#888888]">
+            Parametry wydajności
+          </label>
+          {enduranceSports.map((sport) => (
+            <SportProfileSection
+              key={sport}
+              sport={sport}
+              profile={data.sportProfiles[sport] ?? {}}
+              onUpdate={(updates) => updateSportProfile(sport, updates)}
+            />
+          ))}
+        </div>
+      )}
+
+      {enduranceSports.length === 0 && (
+        <div className="p-4 border border-[var(--border)] text-[#888888] text-sm text-center">
+          Wybierz sporty wytrzymałościowe w kroku 1, aby skonfigurować profil wydajności
+        </div>
+      )}
     </div>
   );
 }
@@ -243,37 +701,37 @@ export function Step3Location({ data, onChange }: StepProps) {
   return (
     <div className="flex flex-col gap-6">
       <Input
-        label="City / Area"
+        label="Miasto / Okolica"
         value={data.city}
         onChange={(e) => onChange({ city: e.target.value })}
-        placeholder="e.g. Warsaw, Poland"
+        placeholder="np. Warszawa, Polska"
       />
 
       <div>
         <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-3">
-          GPS Coordinates (optional)
+          Współrzędne GPS (opcjonalne)
         </label>
         <div className="flex gap-2">
           <input
             type="number"
-            placeholder="Latitude"
+            placeholder="Szerokość geogr."
             value={data.lat}
             onChange={(e) => onChange({ lat: e.target.value })}
-            className="flex-1 bg-[#0A0A0A] border border-[#2A2A2A] text-white px-3 py-2.5 text-sm focus:border-[#FF4500] focus:outline-none placeholder:text-[#444444]"
+            className="flex-1 bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] px-3 py-2.5 text-sm focus:border-[#6366F1] focus:outline-none placeholder:text-[#444444]"
             step="any"
           />
           <input
             type="number"
-            placeholder="Longitude"
+            placeholder="Długość geogr."
             value={data.lon}
             onChange={(e) => onChange({ lon: e.target.value })}
-            className="flex-1 bg-[#0A0A0A] border border-[#2A2A2A] text-white px-3 py-2.5 text-sm focus:border-[#FF4500] focus:outline-none placeholder:text-[#444444]"
+            className="flex-1 bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] px-3 py-2.5 text-sm focus:border-[#6366F1] focus:outline-none placeholder:text-[#444444]"
             step="any"
           />
           <button
             type="button"
             onClick={detectLocation}
-            className="px-4 py-2.5 bg-[#1A1A1A] border border-[#2A2A2A] text-[#888888] hover:text-white hover:border-[#FF4500] text-sm transition-all"
+            className="px-4 py-2.5 bg-[var(--bg-elevated)] border border-[var(--border)] text-[#888888] hover:text-white hover:border-[#6366F1] text-sm transition-all"
           >
             Auto
           </button>
@@ -282,7 +740,7 @@ export function Step3Location({ data, onChange }: StepProps) {
 
       <div>
         <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-3">
-          Training Availability
+          Dostępność treningowa
         </label>
         <div className="grid grid-cols-2 gap-2">
           {AVAILABILITY_OPTIONS.map((slot) => {
@@ -295,7 +753,7 @@ export function Step3Location({ data, onChange }: StepProps) {
                 className="p-2.5 border text-xs font-medium text-left transition-all"
                 style={
                   isSelected
-                    ? { border: '1px solid #FF4500', background: 'rgba(255,69,0,0.1)', color: '#FF4500' }
+                    ? { border: '1px solid #6366F1', background: 'rgba(99,102,241,0.1)', color: '#6366F1' }
                     : { border: '1px solid #2A2A2A', background: 'transparent', color: '#888888' }
                 }
               >
@@ -321,12 +779,12 @@ export function Step3HalfGym({ data, onChange }: StepProps) {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <p className="text-xs text-[#FF4500] uppercase tracking-wider font-bold mb-4">
-          Gym Profile Setup
+        <p className="text-xs text-[#6366F1] uppercase tracking-wider font-bold mb-4">
+          Konfiguracja profilu siłowni
         </p>
 
         <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-3">
-          Strength Level
+          Poziom siłowy
         </label>
         <div className="grid grid-cols-2 gap-2">
           {STRENGTH_LEVELS.map((level) => {
@@ -352,7 +810,7 @@ export function Step3HalfGym({ data, onChange }: StepProps) {
 
       <div>
         <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-3">
-          Training Split
+          Plan treningowy
         </label>
         <div className="grid grid-cols-2 gap-2">
           {TRAINING_SPLITS.map((split) => {
@@ -365,7 +823,7 @@ export function Step3HalfGym({ data, onChange }: StepProps) {
                 className="p-2.5 border text-xs font-medium transition-all text-left"
                 style={
                   isSelected
-                    ? { border: '1px solid #FF4500', background: 'rgba(255,69,0,0.1)', color: '#FF4500' }
+                    ? { border: '1px solid #6366F1', background: 'rgba(99,102,241,0.1)', color: '#6366F1' }
                     : { border: '1px solid #2A2A2A', background: 'transparent', color: '#888888' }
                 }
               >
@@ -377,11 +835,11 @@ export function Step3HalfGym({ data, onChange }: StepProps) {
       </div>
 
       <Input
-        label="Preferred Gym Name (optional)"
+        label="Nazwa siłowni (opcjonalne)"
         value={data.gymName ?? ''}
         onChange={(e) => onChange({ gymName: e.target.value })}
-        placeholder="e.g. Gold's Gym Downtown"
-        hint="Used to match you with athletes at the same gym"
+        placeholder="np. Gold's Gym"
+        hint="Używane do dopasowania sportowców z tej samej siłowni"
       />
     </div>
   );
@@ -404,7 +862,7 @@ export function Step4Photo({ data, onChange }: StepProps) {
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      setError('File must be under 5MB');
+      setError('Plik musi być mniejszy niż 5MB');
       return;
     }
 
@@ -422,7 +880,7 @@ export function Step4Photo({ data, onChange }: StepProps) {
       const { url } = await res.json() as { url: string };
       onChange({ avatarUrl: url });
     } catch {
-      setError('Upload failed. Try again.');
+      setError('Błąd przesyłania. Spróbuj ponownie.');
     } finally {
       setUploading(false);
     }
@@ -438,13 +896,13 @@ export function Step4Photo({ data, onChange }: StepProps) {
             <img
               src={data.avatarUrl}
               alt="Profile"
-              className="w-32 h-32 object-cover border-2 border-[#FF4500]"
+              className="w-32 h-32 object-cover border-2 border-[#6366F1]"
             />
-            <p className="text-sm text-[#00CC44]">Photo uploaded!</p>
+            <p className="text-sm text-[#00CC44]">Zdjęcie przesłane!</p>
           </div>
         ) : (
-          <div className="w-32 h-32 bg-[#1A1A1A] border border-[#2A2A2A] flex items-center justify-center">
-            <span className="font-display text-4xl text-[#FF4500]">
+          <div className="w-32 h-32 bg-[var(--bg-elevated)] border border-[var(--border)] flex items-center justify-center">
+            <span className="font-display text-4xl text-[#6366F1]">
               {data.username?.[0]?.toUpperCase() ?? '?'}
             </span>
           </div>
@@ -458,12 +916,12 @@ export function Step4Photo({ data, onChange }: StepProps) {
               onChange={handleFileChange}
               className="hidden"
             />
-            <div className="w-full py-3 bg-[#1A1A1A] border border-[#2A2A2A] text-center text-sm text-white hover:border-[#FF4500] transition-all cursor-pointer uppercase tracking-wider font-semibold">
-              {uploading ? 'Uploading...' : 'Choose Photo'}
+            <div className="w-full py-3 bg-[var(--bg-elevated)] border border-[var(--border)] text-center text-sm text-white hover:border-[#6366F1] transition-all cursor-pointer uppercase tracking-wider font-semibold">
+              {uploading ? 'Przesyłanie...' : 'Wybierz zdjęcie'}
             </div>
           </label>
           <p className="text-xs text-[#888888] text-center">
-            Upload a clear photo of yourself. Max 5MB. JPEG, PNG, WebP.
+            Wgraj wyraźne zdjęcie siebie. Maks. 5MB. JPEG, PNG, WebP.
           </p>
           {error && <p className="text-xs text-red-400">{error}</p>}
         </div>
@@ -472,7 +930,7 @@ export function Step4Photo({ data, onChange }: StepProps) {
       {/* Goals section */}
       <div>
         <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-3">
-          Training Goals (select all that apply)
+          Cele treningowe (zaznacz wszystkie odpowiednie)
         </label>
         <div className="grid grid-cols-2 gap-2">
           {GOAL_OPTIONS.map((goal) => {
@@ -485,7 +943,7 @@ export function Step4Photo({ data, onChange }: StepProps) {
                 className="p-3 border text-sm font-medium transition-all flex items-center gap-2"
                 style={
                   isSelected
-                    ? { borderColor: '#FF4500', background: 'rgba(255,69,0,0.1)', color: '#FF4500' }
+                    ? { borderColor: '#6366F1', background: 'rgba(99,102,241,0.1)', color: '#6366F1' }
                     : { borderColor: '#2A2A2A', background: 'transparent', color: '#888888' }
                 }
               >
@@ -495,6 +953,87 @@ export function Step4Photo({ data, onChange }: StepProps) {
             );
           })}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Step 5: Integrations (optional, skippable) ───────────────────────────────
+export function Step5Integrations() {
+  const [stravaLoading, setStravaLoading] = useState(false);
+
+  function handleStrava() {
+    setStravaLoading(true);
+    window.location.href = '/api/strava/connect';
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <p style={{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.6 }}>
+        Połącz swoje konto z Strava lub Garmin Connect, żeby automatycznie zaimportować
+        dane treningowe i zweryfikować swoje wyniki. Ten krok jest opcjonalny.
+      </p>
+
+      {/* Strava */}
+      <button
+        onClick={handleStrava}
+        disabled={stravaLoading}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 14,
+          padding: '16px 20px', borderRadius: 20,
+          background: stravaLoading ? 'rgba(252,76,2,0.3)' : '#FC4C02',
+          border: 'none', cursor: stravaLoading ? 'not-allowed' : 'pointer',
+          width: '100%', textAlign: 'left',
+          transition: 'all 0.2s',
+        }}
+      >
+        <svg viewBox="0 0 24 24" style={{ width: 28, height: 28, fill: 'white', flexShrink: 0 }}>
+          <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" />
+        </svg>
+        <div>
+          <div style={{ color: 'white', fontWeight: 700, fontSize: 15, marginBottom: 2 }}>
+            {stravaLoading ? 'Przekierowanie...' : 'Połącz ze Strava'}
+          </div>
+          <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>
+            Automatycznie importuj aktywności · zweryfikuj tempo
+          </div>
+        </div>
+      </button>
+
+      {/* Garmin */}
+      <a
+        href="/profile/import"
+        style={{
+          display: 'flex', alignItems: 'center', gap: 14,
+          padding: '16px 20px', borderRadius: 20,
+          background: 'rgba(0,155,255,0.1)',
+          border: '1px solid rgba(0,155,255,0.3)',
+          textDecoration: 'none',
+          width: '100%', boxSizing: 'border-box',
+          transition: 'all 0.2s',
+        }}
+      >
+        <div style={{
+          width: 28, height: 28, borderRadius: 14,
+          background: '#009BFF',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0, fontSize: 14, fontWeight: 900, color: 'white',
+        }}>G</div>
+        <div>
+          <div style={{ color: 'white', fontWeight: 700, fontSize: 15, marginBottom: 2 }}>
+            Połącz z Garmin
+          </div>
+          <div style={{ color: '#777', fontSize: 12 }}>
+            Importuj dane przez link profilu lub ciasteczka sesji
+          </div>
+        </div>
+      </a>
+
+      <div style={{
+        textAlign: 'center', color: '#444', fontSize: 12,
+        paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)',
+      }}>
+        Możesz to pominąć i połączyć konto później w ustawieniach profilu
       </div>
     </div>
   );
