@@ -1,19 +1,20 @@
 import { NextResponse } from 'next/server';
 import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
-import { sessions, sessionParticipants, sessionMessages, sessionReviews, activityFeed, users } from '@/lib/db/schema';
+import { sessions, sessionParticipants, sessionMessages, sessionReviews, users } from '@/lib/db/schema';
 import { eq, inArray, and } from 'drizzle-orm';
+import { unauthorized, forbidden, notFound, serverError, badRequest, ErrorCode } from '@/lib/api-errors';
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   const { id } = await params;
   const sessionId = parseInt(id);
-  if (isNaN(sessionId)) return NextResponse.json({ error: 'Invalid session id' }, { status: 400 });
+  if (isNaN(sessionId)) return badRequest(ErrorCode.INVALID_INPUT, 'Invalid session id');
 
   try {
     const result = await db
@@ -23,7 +24,7 @@ export async function GET(
       .limit(1);
 
     if (result.length === 0) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+      return notFound('Session not found');
     }
 
     const session = result[0];
@@ -36,7 +37,7 @@ export async function GET(
         .where(and(eq(sessionParticipants.sessionId, sessionId), eq(sessionParticipants.userId, userId)))
         .limit(1);
       if (membership.length === 0) {
-        return NextResponse.json({ error: 'Brak dostępu' }, { status: 403 });
+        return forbidden();
       }
     }
 
@@ -49,11 +50,11 @@ export async function GET(
     const allNeededIds = [...new Set([...participants.map((p) => p.userId), session.creatorId])];
     const allUserRows = allNeededIds.length > 0
       ? await db
-          .select({ clerkId: users.clerkId, username: users.username, avatarUrl: users.avatarUrl })
+          .select({ authEmail: users.authEmail, username: users.username, avatarUrl: users.avatarUrl })
           .from(users)
-          .where(inArray(users.clerkId, allNeededIds))
+          .where(inArray(users.authEmail, allNeededIds))
       : [];
-    const userMap = Object.fromEntries(allUserRows.map((u) => [u.clerkId, u]));
+    const userMap = Object.fromEntries(allUserRows.map((u) => [u.authEmail, u]));
 
     const participantUsers = participants.map((p) => ({ ...p, ...(userMap[p.userId] ?? {}) }));
     const creatorUser = userMap[session.creatorId] ?? null;
@@ -71,7 +72,7 @@ export async function GET(
     });
   } catch (err) {
     console.error('GET /api/sessions/[id] error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }
 
@@ -80,11 +81,11 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   const { id } = await params;
   const sessionId = parseInt(id);
-  if (isNaN(sessionId)) return NextResponse.json({ error: 'Invalid session id' }, { status: 400 });
+  if (isNaN(sessionId)) return badRequest(ErrorCode.INVALID_INPUT, 'Invalid session id');
 
   try {
     const existing = await db
@@ -94,11 +95,11 @@ export async function PUT(
       .limit(1);
 
     if (existing.length === 0) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+      return notFound('Session not found');
     }
 
     if (existing[0].creatorId !== userId) {
-      return NextResponse.json({ error: 'Brak dostępu' }, { status: 403 });
+      return forbidden();
     }
 
     const body = await request.json() as Partial<{
@@ -107,6 +108,21 @@ export async function PUT(
       status: string;
       maxParticipants: number;
     }>;
+
+    // Validate input fields
+    const validStatuses = ['open', 'closed', 'cancelled', 'completed'];
+    if (body.status !== undefined && !validStatuses.includes(body.status)) {
+      return badRequest(ErrorCode.INVALID_STATUS, `Invalid status. Must be one of: ${validStatuses.join(', ')}`);
+    }
+    if (body.maxParticipants !== undefined && (body.maxParticipants <= 0 || body.maxParticipants > 200)) {
+      return badRequest(ErrorCode.INVALID_INPUT, 'maxParticipants must be between 1 and 200');
+    }
+    if (body.title !== undefined && body.title.length > 200) {
+      return badRequest(ErrorCode.INVALID_INPUT, 'Title must be 200 characters or less');
+    }
+    if (body.description !== undefined && body.description.length > 5000) {
+      return badRequest(ErrorCode.CONTENT_TOO_LONG, 'Description must be 5000 characters or less');
+    }
 
     const [updated] = await db
       .update(sessions)
@@ -122,7 +138,7 @@ export async function PUT(
     return NextResponse.json(updated);
   } catch (err) {
     console.error('PUT /api/sessions/[id] error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }
 
@@ -131,11 +147,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   const { id } = await params;
   const sessionId = parseInt(id);
-  if (isNaN(sessionId)) return NextResponse.json({ error: 'Invalid session id' }, { status: 400 });
+  if (isNaN(sessionId)) return badRequest(ErrorCode.INVALID_INPUT, 'Invalid session id');
 
   try {
     const existing = await db
@@ -145,11 +161,11 @@ export async function DELETE(
       .limit(1);
 
     if (existing.length === 0) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+      return notFound('Session not found');
     }
 
     if (existing[0].creatorId !== userId) {
-      return NextResponse.json({ error: 'Brak dostępu' }, { status: 403 });
+      return forbidden();
     }
 
     // Delete all related records before deleting the session
@@ -163,6 +179,6 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error('DELETE /api/sessions/[id] error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

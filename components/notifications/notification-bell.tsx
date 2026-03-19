@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Bell, Check, X, Users, Calendar, MessageSquare } from 'lucide-react';
+import { useLang } from '@/lib/lang';
 import { formatRelativeTime } from '@/lib/utils';
 
 interface NotificationItem {
@@ -13,13 +14,22 @@ interface NotificationItem {
 }
 
 export function NotificationBell() {
+  const { t } = useLang();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetchNotifications();
+    fetch('/api/notifications')
+      .then((res) => res.ok ? res.json() as Promise<NotificationItem[]> : null)
+      .then((data) => {
+        if (data) {
+          setNotifications(data);
+          setUnreadCount(data.filter((n) => !n.read).length);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -31,18 +41,6 @@ export function NotificationBell() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  async function fetchNotifications() {
-    try {
-      const res = await fetch('/api/notifications');
-      if (!res.ok) return;
-      const data: NotificationItem[] = await res.json();
-      setNotifications(data);
-      setUnreadCount(data.filter((n) => !n.read).length);
-    } catch {
-      // ignore
-    }
-  }
 
   async function markAllRead() {
     try {
@@ -66,10 +64,10 @@ export function NotificationBell() {
   function getLabel(n: NotificationItem): string {
     const data = n.dataJson as Record<string, string> | null;
     switch (n.type) {
-      case 'match': return `Nowe dopasowanie z ${data?.username ?? 'sportowcem'}`;
-      case 'session_invite': return `Zaproszenie na sesję: ${data?.title ?? 'Trening'}`;
-      case 'message': return `Wiadomość od ${data?.username ?? 'kogoś'}`;
-      default: return 'Nowe powiadomienie';
+      case 'match': return t('notif_new_match', { name: data?.username ?? t('notif_athlete') });
+      case 'session_invite': return t('notif_session_invite', { title: data?.title ?? t('notif_training') });
+      case 'message': return t('notif_message_from', { name: data?.username ?? t('notif_someone') });
+      default: return t('notif_new');
     }
   }
 
@@ -91,21 +89,21 @@ export function NotificationBell() {
       {open && (
         <div className="absolute right-0 top-10 w-80 bg-[var(--bg-card)] border border-[var(--border)] shadow-2xl z-50 animate-fade-in">
           <div className="flex items-center justify-between p-3 border-b border-[var(--border)]">
-            <h3 className="font-display text-sm text-white tracking-wider">POWIADOMIENIA</h3>
+            <h3 className="font-display text-sm text-white tracking-wider">{t('notif_title')}</h3>
             <div className="flex items-center gap-2">
               {unreadCount > 0 && (
                 <button
                   onClick={markAllRead}
-                  aria-label="Oznacz wszystkie jako przeczytane"
+                  aria-label={t('notif_mark_read_aria')}
                   className="text-[10px] text-[#888888] hover:text-[#6366F1] flex items-center gap-1 uppercase tracking-wider"
                 >
                   <Check className="w-3 h-3" />
-                  Oznacz przeczytane
+                  {t('notif_mark_read')}
                 </button>
               )}
               <button
                 onClick={() => setOpen(false)}
-                aria-label="Zamknij powiadomienia"
+                aria-label={t('notif_close_aria')}
                 className="text-[#888888] hover:text-white"
               >
                 <X className="w-4 h-4" />
@@ -116,7 +114,7 @@ export function NotificationBell() {
           <div className="max-h-80 overflow-y-auto">
             {notifications.length === 0 ? (
               <div className="p-6 text-center text-[#888888] text-sm">
-                Brak powiadomień
+                {t('notif_empty')}
               </div>
             ) : (
               notifications.map((n) => (

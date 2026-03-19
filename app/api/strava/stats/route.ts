@@ -3,10 +3,11 @@ import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { users, stravaActivities, stravaGear, stravaBestEfforts } from '@/lib/db/schema';
 import { eq, desc, count, gte, and, ilike, sql } from 'drizzle-orm';
+import { unauthorized, serverError } from '@/lib/api-errors';
 
 export async function GET() {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -23,7 +24,7 @@ export async function GET() {
     running30,
   ] = await Promise.all([
     db.select({ stravaStatsJson: users.stravaStatsJson, ftpWatts: users.ftpWatts, city: users.city, lat: users.lat, lon: users.lon })
-      .from(users).where(eq(users.clerkId, userId)),
+      .from(users).where(eq(users.authEmail, userId)),
     db.select().from(stravaGear).where(eq(stravaGear.userId, userId)).orderBy(stravaGear.gearType, desc(stravaGear.distanceM)),
     db.select().from(stravaBestEfforts).where(eq(stravaBestEfforts.userId, userId)),
     db.select().from(stravaActivities)
@@ -122,6 +123,6 @@ export async function GET() {
   });
   } catch (err) {
     console.error('GET /api/strava/stats error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

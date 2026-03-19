@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { CalendarDays, Clock, MapPin, Users, Repeat } from 'lucide-react';
 import { Input, Textarea } from '@/components/ui/input';
 import { SPORTS, getSportColor } from '@/lib/utils';
+import { useLang } from '@/lib/lang';
 
 export interface SeriesFormData {
   title: string;
@@ -42,29 +43,7 @@ interface SeriesFormProps {
   onChange: (form: SeriesFormData) => void;
 }
 
-const DAYS = [
-  { label: 'Pon', value: 0 },
-  { label: 'Wt', value: 1 },
-  { label: 'Śr', value: 2 },
-  { label: 'Czw', value: 3 },
-  { label: 'Pt', value: 4 },
-  { label: 'Sob', value: 5 },
-  { label: 'Nd', value: 6 },
-];
-
-const FREQUENCIES = [
-  { value: 'weekly', label: 'Co tydzień' },
-  { value: 'biweekly', label: 'Co 2 tygodnie' },
-  { value: 'monthly', label: 'Co miesiąc' },
-];
-
-const LEVELS = [
-  { value: '', label: 'Dowolny poziom', color: '#888888' },
-  { value: 'beginner', label: 'Początkujący', color: '#00CC44' },
-  { value: 'recreational', label: 'Rekreacyjny', color: '#FFD700' },
-  { value: 'competitive', label: 'Wyczynowy', color: '#A78BFA' },
-  { value: 'elite', label: 'Elita', color: '#6366F1' },
-];
+// DAYS, FREQUENCIES, LEVELS are built inside the component using t() calls
 
 function computeNextOccurrences(
   startDate: string,
@@ -85,7 +64,7 @@ function computeNextOccurrences(
   // JS getDay(): 0=Sun, 1=Mon... so we convert our 0=Mon to JS day
   const jsDayOfWeek = dayOfWeek === 6 ? 0 : dayOfWeek + 1;
 
-  let candidate = new Date(start);
+  const candidate = new Date(start);
   candidate.setHours(h ?? 7, m ?? 0, 0, 0);
 
   // Advance to the correct day of week
@@ -109,16 +88,42 @@ function computeNextOccurrences(
   return results;
 }
 
-function formatOccurrence(date: Date): string {
-  return date.toLocaleDateString('pl-PL', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
-
 export function SeriesForm({ form, onChange }: SeriesFormProps) {
+  const { t, lang } = useLang();
+
+  const DAYS = [
+    { label: t('series_day_mon'), value: 0 },
+    { label: t('series_day_tue'), value: 1 },
+    { label: t('series_day_wed'), value: 2 },
+    { label: t('series_day_thu'), value: 3 },
+    { label: t('series_day_fri'), value: 4 },
+    { label: t('series_day_sat'), value: 5 },
+    { label: t('series_day_sun'), value: 6 },
+  ];
+
+  const FREQUENCIES = [
+    { value: 'weekly', label: t('series_freq_weekly') },
+    { value: 'biweekly', label: t('series_freq_biweekly') },
+    { value: 'monthly', label: t('series_freq_monthly') },
+  ];
+
+  const LEVELS = [
+    { value: '', label: t('series_form_level_any'), color: '#888888' },
+    { value: 'beginner', label: t('level_beginner'), color: '#00CC44' },
+    { value: 'recreational', label: t('level_recreational'), color: '#FFD700' },
+    { value: 'competitive', label: t('level_competitive'), color: '#A78BFA' },
+    { value: 'elite', label: t('level_elite'), color: '#6366F1' },
+  ];
+
+  function formatOccurrence(date: Date): string {
+    return date.toLocaleDateString(lang === 'pl' ? 'pl-PL' : 'en-GB', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  }
+
   function update(partial: Partial<SeriesFormData>) {
     onChange({ ...form, ...partial });
   }
@@ -180,24 +185,24 @@ export function SeriesForm({ form, onChange }: SeriesFormProps) {
       </div>
 
       <Input
-        label="Tytuł serii *"
+        label={t('series_form_title')}
         value={form.title}
         onChange={(e) => update({ title: e.target.value })}
-        placeholder="np. Środowe wieczorne kolarstwo"
+        placeholder={t('series_form_title_placeholder')}
       />
 
       <Textarea
-        label="Opis"
+        label={t('series_form_desc')}
         value={form.description}
         onChange={(e) => update({ description: e.target.value })}
-        placeholder="Opisz cykliczną sesję, typową trasę lub trening..."
+        placeholder={t('series_form_desc_placeholder')}
       />
 
       {/* Day of week picker */}
       <div>
         <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-2">
           <CalendarDays className="inline w-3.5 h-3.5 mr-1" />
-          Dzień tygodnia *
+          {t('series_form_day_of_week')}
         </label>
         <div className="flex gap-2">
           {DAYS.map((day) => (
@@ -223,7 +228,7 @@ export function SeriesForm({ form, onChange }: SeriesFormProps) {
         <div>
           <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-2">
             <Clock className="inline w-3.5 h-3.5 mr-1" />
-            Godzina startu *
+            {t('series_form_start_time')}
           </label>
           <input
             type="time"
@@ -235,7 +240,7 @@ export function SeriesForm({ form, onChange }: SeriesFormProps) {
         <div>
           <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-2">
             <Repeat className="inline w-3.5 h-3.5 mr-1" />
-            Częstotliwość *
+            {t('series_form_frequency')}
           </label>
           <div className="flex flex-col gap-1">
             {FREQUENCIES.map((freq) => (
@@ -260,14 +265,14 @@ export function SeriesForm({ form, onChange }: SeriesFormProps) {
       {/* Location */}
       <div>
         <Input
-          label="Miejsce spotkania *"
+          label={t('series_form_location')}
           value={form.location}
           onChange={(e) => update({ location: e.target.value })}
-          placeholder="np. Wejście do parku od południa"
+          placeholder={t('series_form_location_placeholder')}
         />
         <div className="grid grid-cols-2 gap-4 mt-3">
           <Input
-            label="Szerokość geogr. (opcjonalnie)"
+            label={t('series_form_lat')}
             type="number"
             step="any"
             value={form.lat}
@@ -275,7 +280,7 @@ export function SeriesForm({ form, onChange }: SeriesFormProps) {
             placeholder="52.2297"
           />
           <Input
-            label="Długość geogr. (opcjonalnie)"
+            label={t('series_form_lon')}
             type="number"
             step="any"
             value={form.lon}
@@ -288,13 +293,13 @@ export function SeriesForm({ form, onChange }: SeriesFormProps) {
       {/* Start / End date */}
       <div className="grid grid-cols-2 gap-4">
         <Input
-          label="Data początku *"
+          label={t('series_form_start_date')}
           type="date"
           value={form.startDate}
           onChange={(e) => update({ startDate: e.target.value })}
         />
         <Input
-          label="Data końca (opcjonalnie)"
+          label={t('series_form_end_date')}
           type="date"
           value={form.endDate}
           onChange={(e) => update({ endDate: e.target.value })}
@@ -304,7 +309,7 @@ export function SeriesForm({ form, onChange }: SeriesFormProps) {
       {/* Minimum Level */}
       <div>
         <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-2">
-          Minimalny poziom
+          {t('series_form_min_level')}
         </label>
         <div className="flex gap-2 flex-wrap">
           {LEVELS.map((level) => (
@@ -328,7 +333,7 @@ export function SeriesForm({ form, onChange }: SeriesFormProps) {
       <div>
         <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-2">
           <Users className="inline w-3.5 h-3.5 mr-1" />
-          Maks. uczestników
+          {t('series_form_max_participants')}
         </label>
         <input
           type="number"
@@ -345,14 +350,14 @@ export function SeriesForm({ form, onChange }: SeriesFormProps) {
         <div className="border border-[var(--border)] bg-[var(--bg-card)] p-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-[#888888] mb-3">
             <MapPin className="inline w-3.5 h-3.5 mr-1" />
-            Podgląd 4 kolejnych terminów
+            {t('series_form_preview')}
           </p>
           <div className="flex flex-col gap-2">
             {nextOccurrences.map((date, i) => (
               <div key={i} className="flex items-center gap-3">
                 <span className="text-[#6366F1] text-xs font-semibold w-4">{i + 1}</span>
                 <span className="text-white text-sm">{formatOccurrence(date)}</span>
-                <span className="text-[#888888] text-xs">o {form.time}</span>
+                <span className="text-[#888888] text-xs">{t('series_form_at_time')} {form.time}</span>
               </div>
             ))}
           </div>

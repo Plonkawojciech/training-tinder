@@ -38,7 +38,7 @@ export interface SessionSwipeCardProps {
 const SWIPE_THRESHOLD = 80;
 
 export function SessionSwipeCard({ session, onJoin, onPass, style, isTop }: SessionSwipeCardProps) {
-  const { lang } = useLang();
+  const { t, lang } = useLang();
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const startX = useRef(0);
@@ -132,7 +132,7 @@ export function SessionSwipeCard({ session, onJoin, onPass, style, isTop }: Sess
         padding: '6px 16px',
         color: '#00C851', fontSize: 22, fontWeight: 900, letterSpacing: 2,
       }}>
-        {lang === 'pl' ? 'DOŁĄCZ' : 'JOIN'}
+        {t('discover_join')}
       </div>
 
       {/* PASS overlay */}
@@ -144,7 +144,7 @@ export function SessionSwipeCard({ session, onJoin, onPass, style, isTop }: Sess
         padding: '6px 16px',
         color: '#FF4458', fontSize: 22, fontWeight: 900, letterSpacing: 2,
       }}>
-        {lang === 'pl' ? 'POMIŃ' : 'PASS'}
+        {t('discover_pass')}
       </div>
 
       {/* Content */}
@@ -166,17 +166,17 @@ export function SessionSwipeCard({ session, onJoin, onPass, style, isTop }: Sess
                 {session.sportType.replace('_', ' ')}
               </div>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>
-                {lang === 'pl' ? 'przez' : 'by'} {session.creatorName ?? '?'}
+                {t('discover_by')} {session.creatorName ?? '?'}
               </div>
             </div>
           </div>
           {isFull ? (
             <span style={{ fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 99, background: 'rgba(255,68,88,0.15)', color: '#FF4458', border: '1px solid rgba(255,68,88,0.3)' }}>
-              {lang === 'pl' ? 'PEŁNE' : 'FULL'}
+              {t('discover_full')}
             </span>
           ) : spotsLeft !== null ? (
             <span style={{ fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 99, background: 'rgba(0,200,81,0.12)', color: '#00C851', border: '1px solid rgba(0,200,81,0.25)' }}>
-              {spotsLeft} {lang === 'pl' ? 'miejsc' : 'spots'}
+              {spotsLeft} {t('discover_spots')}
             </span>
           ) : null}
         </div>
@@ -212,7 +212,7 @@ export function SessionSwipeCard({ session, onJoin, onPass, style, isTop }: Sess
             <Users style={{ width: 14, height: 14, color: 'rgba(255,255,255,0.35)', flexShrink: 0 }} />
             <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', fontWeight: 500 }}>
               {session.participantCount}
-              {session.maxParticipants ? ` / ${session.maxParticipants}` : ''} {lang === 'pl' ? 'uczestników' : 'participants'}
+              {session.maxParticipants ? ` / ${session.maxParticipants}` : ''} {t('discover_participants')}
             </span>
           </div>
         </div>
@@ -231,7 +231,7 @@ export function SessionSwipeCard({ session, onJoin, onPass, style, isTop }: Sess
               }}
             >
               <X style={{ width: 16, height: 16 }} />
-              {lang === 'pl' ? 'Pomiń' : 'Pass'}
+              {t('discover_pass_btn')}
             </button>
             <button
               onPointerDown={(e) => e.stopPropagation()}
@@ -245,7 +245,7 @@ export function SessionSwipeCard({ session, onJoin, onPass, style, isTop }: Sess
               }}
             >
               <Heart style={{ width: 16, height: 16 }} />
-              {lang === 'pl' ? 'Dołącz' : 'Join'}
+              {t('discover_join_btn')}
               <ChevronRight style={{ width: 14, height: 14 }} />
             </button>
           </div>

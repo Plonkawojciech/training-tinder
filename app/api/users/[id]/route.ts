@@ -3,20 +3,21 @@ import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { unauthorized, notFound, serverError } from '@/lib/api-errors';
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   const { id } = await params;
 
   try {
     const result = await db
       .select({
-        clerkId: users.clerkId,
+        authEmail: users.authEmail,
         username: users.username,
         bio: users.bio,
         avatarUrl: users.avatarUrl,
@@ -38,17 +39,26 @@ export async function GET(
         profileSongUrl: users.profileSongUrl,
         age: users.age,
         gender: users.gender,
+        profileVisibility: users.profileVisibility,
         createdAt: users.createdAt,
       })
       .from(users)
-      .where(eq(users.clerkId, id))
+      .where(eq(users.authEmail, id))
       .limit(1);
     if (result.length === 0) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return notFound('User not found');
     }
-    return NextResponse.json(result[0]);
+
+    const profile = result[0];
+
+    // Enforce profile visibility — only show full profile if public or if viewing own profile
+    if (profile.profileVisibility === 'nobody' && id !== userId) {
+      return notFound('User not found');
+    }
+
+    return NextResponse.json(profile);
   } catch (err) {
     console.error('GET /api/users/[id] error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

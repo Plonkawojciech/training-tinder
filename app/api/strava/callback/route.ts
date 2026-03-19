@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { stravaTokens, users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { signToken, COOKIE_NAME } from '@/lib/jwt';
+import { encrypt } from '@/lib/crypto';
 import {
   type StravaAthlete,
   type StravaStats,
@@ -25,7 +26,7 @@ async function importStravaData(userId: string, athlete: StravaAthlete, accessTo
 
   // Store full stats JSON
   await db.update(users).set({ stravaStatsJson: stats as Record<string, unknown> })
-    .where(eq(users.clerkId, userId));
+    .where(eq(users.authEmail, userId));
 
   // 2. Sport profiles + user weekly km
   const { detectedSports, weeklyKm } = await updateSportProfiles(userId, stats, { ftp: athlete.ftp });
@@ -36,7 +37,7 @@ async function importStravaData(userId: string, athlete: StravaAthlete, accessTo
     sportTypes: detectedSports,
     weeklyKm,
     ftpWatts: athlete.ftp ? Math.round(athlete.ftp) : null,
-  }).where(eq(users.clerkId, userId));
+  }).where(eq(users.authEmail, userId));
 
   // 3. Import gear (bikes + shoes)
   try {
@@ -125,17 +126,17 @@ export async function GET(req: NextRequest) {
       let userId: string;
 
       if (existingRows.length > 0) {
-        userId = existingRows[0].clerkId;
+        userId = existingRows[0].authEmail;
         await db.update(users).set({
           avatarUrl: athlete.profile || athlete.profile_medium || existingRows[0].avatarUrl,
-        }).where(eq(users.clerkId, userId));
+        }).where(eq(users.authEmail, userId));
       } else {
         userId = `strava:${stravaAthleteId}`;
         const fullName = `${athlete.firstname ?? ''} ${athlete.lastname ?? ''}`.trim();
         const city = [athlete.city, athlete.country].filter(Boolean).join(', ') || null;
 
         await db.insert(users).values({
-          clerkId: userId,
+          authEmail: userId,
           username: fullName || `athlete_${stravaAthleteId}`,
           avatarUrl: athlete.profile || athlete.profile_medium || null,
           stravaId: stravaAthleteId,
@@ -146,12 +147,15 @@ export async function GET(req: NextRequest) {
         });
       }
 
+      const encAccessToken = process.env.ENCRYPTION_KEY ? encrypt(accessToken) : accessToken;
+      const encRefreshToken = process.env.ENCRYPTION_KEY ? encrypt(tokenData.refresh_token) : tokenData.refresh_token;
+
       await db.insert(stravaTokens).values({
-        userId, stravaAthleteId, accessToken,
-        refreshToken: tokenData.refresh_token, expiresAt,
+        userId, stravaAthleteId, accessToken: encAccessToken,
+        refreshToken: encRefreshToken, expiresAt,
       }).onConflictDoUpdate({
         target: stravaTokens.userId,
-        set: { stravaAthleteId, accessToken, refreshToken: tokenData.refresh_token, expiresAt },
+        set: { stravaAthleteId, accessToken: encAccessToken, refreshToken: encRefreshToken, expiresAt },
       });
 
       try {
@@ -173,12 +177,15 @@ export async function GET(req: NextRequest) {
 
     } else {
       // CONNECT MODE: link Strava to existing user
+      const encAccessTokenConnect = process.env.ENCRYPTION_KEY ? encrypt(accessToken) : accessToken;
+      const encRefreshTokenConnect = process.env.ENCRYPTION_KEY ? encrypt(tokenData.refresh_token) : tokenData.refresh_token;
+
       await db.insert(stravaTokens).values({
-        userId: existingUserId!, stravaAthleteId, accessToken,
-        refreshToken: tokenData.refresh_token, expiresAt,
+        userId: existingUserId!, stravaAthleteId, accessToken: encAccessTokenConnect,
+        refreshToken: encRefreshTokenConnect, expiresAt,
       }).onConflictDoUpdate({
         target: stravaTokens.userId,
-        set: { stravaAthleteId, accessToken, refreshToken: tokenData.refresh_token, expiresAt },
+        set: { stravaAthleteId, accessToken: encAccessTokenConnect, refreshToken: encRefreshTokenConnect, expiresAt },
       });
 
       const updatePayload: Record<string, unknown> = {
@@ -190,7 +197,7 @@ export async function GET(req: NextRequest) {
       if (athlete.city) {
         updatePayload.city = [athlete.city, athlete.country].filter(Boolean).join(', ') || athlete.city;
       }
-      await db.update(users).set(updatePayload).where(eq(users.clerkId, existingUserId!));
+      await db.update(users).set(updatePayload).where(eq(users.authEmail, existingUserId!));
 
       try {
         await importStravaData(existingUserId!, athlete, accessToken);

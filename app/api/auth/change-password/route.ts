@@ -6,16 +6,17 @@ import { db } from '@/lib/db';
 import { authUsers } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { isRateLimited, getClientIp } from '@/lib/rate-limit';
+import { unauthorized, serverError, badRequest, rateLimited, notFound, ErrorCode } from '@/lib/api-errors';
 
 export async function POST(request: Request) {
   // Rate limit: 5 attempts per IP per 15 minutes
   const ip = getClientIp(request);
   if (isRateLimited(`change-password:${ip}`, 5, 15 * 60 * 1000)) {
-    return NextResponse.json({ error: 'Zbyt wiele prób. Spróbuj ponownie za 15 minut.' }, { status: 429 });
+    return rateLimited('Too many attempts. Try again in 15 minutes.');
   }
 
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   try {
     const { currentPassword, newPassword } = await request.json() as {
@@ -24,10 +25,10 @@ export async function POST(request: Request) {
     };
 
     if (!currentPassword || !newPassword) {
-      return NextResponse.json({ error: 'Wypełnij wszystkie pola' }, { status: 400 });
+      return badRequest(ErrorCode.MISSING_FIELDS, 'All fields are required');
     }
     if (newPassword.length < 8) {
-      return NextResponse.json({ error: 'Nowe hasło musi mieć co najmniej 8 znaków' }, { status: 400 });
+      return badRequest(ErrorCode.WEAK_PASSWORD, 'New password must be at least 8 characters');
     }
 
     const [row] = await db
@@ -37,12 +38,12 @@ export async function POST(request: Request) {
       .limit(1);
 
     if (!row?.passwordHash) {
-      return NextResponse.json({ error: 'Użytkownik nie istnieje' }, { status: 404 });
+      return notFound('User not found');
     }
 
     const valid = await bcrypt.compare(currentPassword, row.passwordHash);
     if (!valid) {
-      return NextResponse.json({ error: 'Nieprawidłowe aktualne hasło' }, { status: 400 });
+      return badRequest(ErrorCode.INVALID_CURRENT_PASSWORD, 'Invalid current password');
     }
 
     const newHash = await bcrypt.hash(newPassword, 12);
@@ -65,6 +66,6 @@ export async function POST(request: Request) {
     return res;
   } catch (err) {
     console.error('[tt/auth/change-password]', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

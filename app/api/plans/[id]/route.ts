@@ -3,17 +3,18 @@ import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { trainingPlans, trainingPlanWeeks, users } from '@/lib/db/schema';
 import { eq, and, asc } from 'drizzle-orm';
+import { unauthorized, forbidden, notFound, serverError, badRequest, ErrorCode } from '@/lib/api-errors';
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   const { id } = await params;
   const planId = parseInt(id);
-  if (isNaN(planId)) return NextResponse.json({ error: 'Invalid plan id' }, { status: 400 });
+  if (isNaN(planId)) return badRequest(ErrorCode.INVALID_INPUT, 'Invalid plan id');
 
   try {
     const [plan] = await db
@@ -22,9 +23,9 @@ export async function GET(
       .where(eq(trainingPlans.id, planId))
       .limit(1);
 
-    if (!plan) return NextResponse.json({ error: 'Nie znaleziono' }, { status: 404 });
+    if (!plan) return notFound();
     if (!plan.isPublic && plan.creatorId !== userId) {
-      return NextResponse.json({ error: 'Brak dostępu' }, { status: 403 });
+      return forbidden();
     }
 
     const weeks = await db
@@ -34,15 +35,15 @@ export async function GET(
       .orderBy(asc(trainingPlanWeeks.weekNumber));
 
     const creator = await db
-      .select({ username: users.username, avatarUrl: users.avatarUrl, clerkId: users.clerkId })
+      .select({ username: users.username, avatarUrl: users.avatarUrl, authEmail: users.authEmail })
       .from(users)
-      .where(eq(users.clerkId, plan.creatorId))
+      .where(eq(users.authEmail, plan.creatorId))
       .limit(1);
 
     return NextResponse.json({ ...plan, weeks, creator: creator[0] ?? null });
   } catch (err) {
     console.error('GET /api/plans/[id] error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }
 
@@ -51,11 +52,11 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   const { id } = await params;
   const planId = parseInt(id);
-  if (isNaN(planId)) return NextResponse.json({ error: 'Invalid plan id' }, { status: 400 });
+  if (isNaN(planId)) return badRequest(ErrorCode.INVALID_INPUT, 'Invalid plan id');
 
   try {
     const body = await request.json() as Partial<{
@@ -73,11 +74,11 @@ export async function PUT(
       .where(and(eq(trainingPlans.id, planId), eq(trainingPlans.creatorId, userId)))
       .returning();
 
-    if (!updated) return NextResponse.json({ error: 'Nie znaleziono' }, { status: 404 });
+    if (!updated) return notFound();
     return NextResponse.json(updated);
   } catch (err) {
     console.error('PUT /api/plans/[id] error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }
 
@@ -86,11 +87,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   const { id } = await params;
   const planId = parseInt(id);
-  if (isNaN(planId)) return NextResponse.json({ error: 'Invalid plan id' }, { status: 400 });
+  if (isNaN(planId)) return badRequest(ErrorCode.INVALID_INPUT, 'Invalid plan id');
 
   try {
     const [plan] = await db
@@ -99,7 +100,7 @@ export async function DELETE(
       .where(and(eq(trainingPlans.id, planId), eq(trainingPlans.creatorId, userId)))
       .limit(1);
 
-    if (!plan) return NextResponse.json({ error: 'Nie znaleziono' }, { status: 404 });
+    if (!plan) return notFound();
 
     await db.delete(trainingPlanWeeks).where(eq(trainingPlanWeeks.planId, planId));
     await db.delete(trainingPlans).where(eq(trainingPlans.id, planId));
@@ -107,6 +108,6 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error('DELETE /api/plans/[id] error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

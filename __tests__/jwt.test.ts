@@ -28,9 +28,11 @@ describe('jwt – signToken / verifyToken', () => {
 
   it('returns null for a tampered token', async () => {
     const token = await signToken('user-456');
-    // Flip the last character
-    const lastChar = token.at(-1) === 'A' ? 'B' : 'A';
-    const tampered = token.slice(0, -1) + lastChar;
+    // Corrupt the signature section (after the last dot)
+    const parts = token.split('.');
+    // Reverse the signature to guarantee corruption
+    parts[2] = parts[2].split('').reverse().join('');
+    const tampered = parts.join('.');
     const result = await verifyToken(tampered);
     expect(result).toBeNull();
   });

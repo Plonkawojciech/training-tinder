@@ -9,12 +9,13 @@ import {
   jsonb,
   date,
   index,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
-  /** Legacy column name — now stores email/auth ID, not a Clerk ID. Column not renamed to avoid migration. */
-  clerkId: text('clerk_id').notNull().unique(),
+  /** Auth email / identifier. DB column still named clerk_id to avoid migration. */
+  authEmail: text('clerk_id').notNull().unique(),
   username: text('username'),
   bio: text('bio'),
   avatarUrl: text('avatar_url'),
@@ -46,9 +47,12 @@ export const users = pgTable('users', {
   photoUrls: jsonb('photo_urls').$type<string[]>().default([]),
   profileSongUrl: text('profile_song_url'),
   stravaStatsJson: jsonb('strava_stats_json').$type<Record<string, unknown>>(),
+  profileVisibility: text('profile_visibility').notNull().default('public'), // 'public' | 'friends' | 'nobody'
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
+}, (table) => [
+  index('users_lat_lon_idx').on(table.lat, table.lon),
+]);
 
 // Per-sport detailed profile with zones
 export const userSportProfiles = pgTable('user_sport_profiles', {
@@ -170,6 +174,7 @@ export const sessionMessages = pgTable('session_messages', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => [
   index('session_messages_session_id_idx').on(table.sessionId),
+  index('session_messages_sender_id_idx').on(table.senderId),
 ]);
 
 export const messages = pgTable('messages', {
@@ -180,6 +185,7 @@ export const messages = pgTable('messages', {
   read: boolean('read').notNull().default(false),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => [
+  index('messages_sender_id_idx').on(table.senderId),
   index('messages_sender_receiver_idx').on(table.senderId, table.receiverId),
   index('messages_receiver_id_idx').on(table.receiverId),
 ]);
@@ -193,6 +199,7 @@ export const matches = pgTable('matches', {
 }, (table) => [
   index('matches_user1_id_idx').on(table.user1Id),
   index('matches_user2_id_idx').on(table.user2Id),
+  uniqueIndex('matches_user1_user2_unique_idx').on(table.user1Id, table.user2Id),
 ]);
 
 export const swipes = pgTable('swipes', {
@@ -203,7 +210,7 @@ export const swipes = pgTable('swipes', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => [
   index('swipes_swiper_id_idx').on(table.swiperId),
-  index('swipes_swiper_target_idx').on(table.swiperId, table.targetId),
+  uniqueIndex('swipes_swiper_target_unique_idx').on(table.swiperId, table.targetId),
 ]);
 
 export const notifications = pgTable('notifications', {
@@ -321,6 +328,7 @@ export const sessionReviews = pgTable('session_reviews', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => [
   index('session_reviews_session_id_idx').on(table.sessionId),
+  index('session_reviews_reviewer_id_idx').on(table.reviewerId),
 ]);
 
 export const planReviews = pgTable('plan_reviews', {
@@ -332,6 +340,7 @@ export const planReviews = pgTable('plan_reviews', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => [
   index('plan_reviews_plan_id_idx').on(table.planId),
+  index('plan_reviews_reviewer_id_idx').on(table.reviewerId),
 ]);
 
 export const userFollows = pgTable('user_follows', {
@@ -363,7 +372,9 @@ export const stravaTokens = pgTable('strava_tokens', {
   refreshToken: text('refresh_token').notNull(),
   expiresAt: timestamp('expires_at').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+}, (table) => [
+  index('strava_tokens_user_id_idx').on(table.userId),
+]);
 
 // Strava synced activities
 export const stravaActivities = pgTable('strava_activities', {
@@ -424,6 +435,7 @@ export const forumComments = pgTable('forum_comments', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => [
   index('forum_comments_post_id_idx').on(table.postId),
+  index('forum_comments_user_id_idx').on(table.userId),
 ]);
 
 // Forum likes (posts and comments)
@@ -434,6 +446,7 @@ export const forumLikes = pgTable('forum_likes', {
   commentId: integer('comment_id'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => [
+  index('forum_likes_user_id_idx').on(table.userId),
   index('forum_likes_post_id_idx').on(table.postId),
   index('forum_likes_user_post_idx').on(table.userId, table.postId),
 ]);
@@ -466,7 +479,9 @@ export const spotterRequests = pgTable('spotter_requests', {
   acceptedById: text('accepted_by_id'),
   createdAt: timestamp('created_at').defaultNow(),
   expiresAt: timestamp('expires_at'),
-});
+}, (table) => [
+  index('spotter_requests_requester_id_idx').on(table.requesterId),
+]);
 
 export const friends = pgTable('friends', {
   id: serial('id').primaryKey(),
@@ -489,6 +504,19 @@ export const feedComments = pgTable('feed_comments', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => [
   index('feed_comments_workout_log_id_idx').on(table.workoutLogId),
+  index('feed_comments_author_id_idx').on(table.authorId),
+]);
+
+// Feed likes (for workout log entries)
+export const feedLikes = pgTable('feed_likes', {
+  id: serial('id').primaryKey(),
+  workoutLogId: integer('workout_log_id').notNull(),
+  userId: text('user_id').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('feed_likes_workout_log_id_idx').on(table.workoutLogId),
+  index('feed_likes_user_id_idx').on(table.userId),
+  uniqueIndex('feed_likes_user_workout_idx').on(table.userId, table.workoutLogId),
 ]);
 
 // Strava gear (bikes and shoes)
@@ -589,3 +617,4 @@ export type Friend = typeof friends.$inferSelect;
 export type NewFriend = typeof friends.$inferInsert;
 export type FeedComment = typeof feedComments.$inferSelect;
 export type NewFeedComment = typeof feedComments.$inferInsert;
+export type FeedLike = typeof feedLikes.$inferSelect;

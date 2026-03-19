@@ -3,17 +3,18 @@ import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { sessionParticipants, sessions } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { unauthorized, forbidden, serverError, badRequest, ErrorCode } from '@/lib/api-errors';
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   const { id } = await params;
   const sessionId = parseInt(id);
-  if (isNaN(sessionId)) return NextResponse.json({ error: 'Invalid session id' }, { status: 400 });
+  if (isNaN(sessionId)) return badRequest(ErrorCode.INVALID_INPUT, 'Invalid session id');
 
   const body = await request.json() as { memberId: string; action: 'accept' | 'reject' };
 
@@ -26,7 +27,7 @@ export async function PATCH(
       .limit(1);
 
     if (!session || session.creatorId !== userId) {
-      return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
+      return forbidden();
     }
 
     if (body.action === 'accept') {
@@ -53,6 +54,6 @@ export async function PATCH(
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error('PATCH /api/sessions/[id]/members error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

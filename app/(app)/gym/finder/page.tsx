@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { MapPin, Search, Star, Navigation, CheckCircle } from 'lucide-react';
 import type { GymPlace } from '@/components/maps/gym-map';
 import { Button } from '@/components/ui/button';
+import { useLang } from '@/lib/lang';
 
 const GymMap = dynamic(
   () => import('@/components/maps/gym-map').then((m) => m.GymMap),
@@ -22,6 +23,7 @@ function distanceKm(lat1: number, lng1: number, lat2: number, lng2: number): num
 }
 
 export default function GymFinderPage() {
+  const { t } = useLang();
   const [gyms, setGyms] = useState<GymPlace[]>([]);
   const [userLat, setUserLat] = useState<number | undefined>();
   const [userLng, setUserLng] = useState<number | undefined>();
@@ -40,9 +42,9 @@ export default function GymFinderPage() {
       if (!res.ok) throw new Error('Failed to fetch gyms');
       const data: GymPlace[] = await res.json();
       setGyms(data);
-      if (data.length === 0) setError('Brak siłowni w tym obszarze. Spróbuj poszerzyć wyszukiwanie.');
+      if (data.length === 0) setError(t('finder_no_gyms'));
     } catch {
-      setError('Błąd podczas wyszukiwania siłowni. Spróbuj ponownie.');
+      setError(t('finder_fetch_error'));
     } finally {
       setLoading(false);
     }
@@ -50,7 +52,7 @@ export default function GymFinderPage() {
 
   function handleUseMyLocation() {
     if (!navigator.geolocation) {
-      setError('Twoja przeglądarka nie obsługuje geolokalizacji.');
+      setError(t('finder_no_geolocation'));
       return;
     }
     setLocating(true);
@@ -63,7 +65,7 @@ export default function GymFinderPage() {
         setLocating(false);
       },
       () => {
-        setError('Nie udało się pobrać lokalizacji. Wpisz adres ręcznie.');
+        setError(t('finder_location_error'));
         setLocating(false);
       }
     );
@@ -90,7 +92,7 @@ export default function GymFinderPage() {
       setUserLng(lng);
       await fetchGyms(lat, lng);
     } catch {
-      setError('Nie znaleziono podanego adresu. Spróbuj ponownie.');
+      setError(t('finder_address_error'));
       setLoading(false);
     }
   }
@@ -127,9 +129,9 @@ export default function GymFinderPage() {
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-1">
           <MapPin className="w-6 h-6 text-[#6366F1]" />
-          <h1 className="font-display text-3xl text-white tracking-wider">ZNAJDŹ SIŁOWNIĘ</h1>
+          <h1 className="font-display text-3xl text-white tracking-wider">{t('finder_title')}</h1>
         </div>
-        <p className="text-[#888888] text-sm">Odkryj siłownie w pobliżu, ustaw swoją domową siłownię</p>
+        <p className="text-[#888888] text-sm">{t('finder_subtitle')}</p>
       </div>
 
       {/* Search Controls */}
@@ -142,7 +144,7 @@ export default function GymFinderPage() {
           className="shrink-0"
         >
           <Navigation className="w-4 h-4" />
-          Użyj mojej lokalizacji
+          {t('finder_use_location')}
         </Button>
 
         <form onSubmit={handleSearchSubmit} className="flex gap-2 flex-1">
@@ -152,12 +154,12 @@ export default function GymFinderPage() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Wpisz miasto lub adres..."
+              placeholder={t('finder_search_ph')}
               className="w-full bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] pl-9 pr-3 py-2.5 text-sm placeholder:text-[#444444]"
             />
           </div>
           <Button type="submit" loading={loading && !locating}>
-            Szukaj
+            {t('finder_search_btn')}
           </Button>
         </form>
       </div>
@@ -193,7 +195,7 @@ export default function GymFinderPage() {
       {!loading && gyms.length > 0 && (
         <div>
           <h2 className="font-display text-sm text-[#888888] tracking-wider mb-3">
-            {gyms.length} SIŁOWNI ZNALEZIONYCH
+            {gyms.length} {t('finder_gyms_found')}
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {gyms.map((gym) => {
@@ -225,7 +227,7 @@ export default function GymFinderPage() {
                           : 'text-[#888888] border border-[var(--border)]'
                       }`}
                     >
-                      {gym.open_now === undefined ? 'Godziny N/D' : gym.open_now ? 'Otwarte' : 'Zamknięte'}
+                      {gym.open_now === undefined ? t('finder_hours_na') : gym.open_now ? t('finder_open') : t('finder_closed')}
                     </span>
                     {dist !== null && (
                       <span className="text-xs text-[#555555] ml-auto">{dist.toFixed(1)} km</span>
@@ -235,7 +237,7 @@ export default function GymFinderPage() {
                   {successGym === gym.place_id ? (
                     <div className="flex items-center gap-2 text-green-400 text-xs py-2">
                       <CheckCircle className="w-4 h-4" />
-                      Ustawiono jako Twoja siłownia!
+                      {t('finder_set_success')}
                     </div>
                   ) : (
                     <button
@@ -243,7 +245,7 @@ export default function GymFinderPage() {
                       disabled={settingGym === gym.place_id}
                       className="mt-auto py-2 bg-[#6366F1] text-white text-xs font-semibold uppercase tracking-wider hover:shadow-[0_0_15px_rgba(99,102,241,0.4)] disabled:opacity-50 transition-all"
                     >
-                      {settingGym === gym.place_id ? 'Ustawianie...' : 'Ustaw jako moją siłownię'}
+                      {settingGym === gym.place_id ? t('finder_setting') : t('finder_set_gym')}
                     </button>
                   )}
                 </div>
@@ -257,9 +259,9 @@ export default function GymFinderPage() {
       {!loading && gyms.length === 0 && userLat === undefined && (
         <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
           <MapPin className="w-14 h-14 text-[#2A2A2A]" />
-          <h3 className="font-display text-xl text-[#888888]">ZNAJDŹ SIŁOWNIĘ</h3>
+          <h3 className="font-display text-xl text-[#888888]">{t('finder_empty_title')}</h3>
           <p className="text-[#888888] text-sm max-w-xs">
-            Użyj lokalizacji lub wyszukaj miasto, aby znaleźć pobliskie siłownie.
+            {t('finder_empty_desc')}
           </p>
         </div>
       )}

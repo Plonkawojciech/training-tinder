@@ -2,7 +2,7 @@ import { haversineDistance } from './utils';
 
 export interface UserForMatching {
   id: string;
-  clerkId: string;
+  authEmail: string;
   username: string | null;
   avatarUrl: string | null;
   bio: string | null;
@@ -17,6 +17,7 @@ export interface UserForMatching {
   trainingSplits?: string[] | null;
   goals?: string[] | null;
   availability?: string[] | null;
+  stravaVerified?: boolean | null;
 }
 
 export interface MatchResult {
@@ -193,7 +194,7 @@ export function rankMatches(
   candidates: UserForMatching[]
 ): MatchResult[] {
   return candidates
-    .filter((c) => c.clerkId !== currentUser.clerkId)
+    .filter((c) => c.authEmail !== currentUser.authEmail)
     .map((candidate) => calculateMatchScore(currentUser, candidate))
     .sort((a, b) => b.score - a.score);
 }

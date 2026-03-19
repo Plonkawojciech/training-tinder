@@ -1,0 +1,1 @@
+Przeczytaj progress.md i PROMPT.md. Wykonaj DOKLADNIE WSZYSTKO. Po kazdej zmianie aktualizuj progress.md. Po kazdej zmianie build plus lint plus test i napraw bledy. Nie spiesz sie. Czytaj kazdy plik zanim go zmienisz. Sprawdz kazda strone, kazdy test, kazdy endpoint. Na koniec build lint test musi byc 0 errors.

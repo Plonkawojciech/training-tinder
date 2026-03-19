@@ -1,7 +1,8 @@
 'use client';
 
-import { Clock, Dumbbell, User } from 'lucide-react';
+import { Clock, Dumbbell } from 'lucide-react';
 import { formatRelativeTime } from '@/lib/utils';
+import { useLang } from '@/lib/lang';
 
 interface WorkoutCardProps {
   id: number;
@@ -35,6 +36,7 @@ export function WorkoutCard({
   isOwn,
   onClick,
 }: WorkoutCardProps) {
+  const { t } = useLang();
   const color = TYPE_COLORS[type] ?? '#888888';
 
   return (
@@ -60,7 +62,7 @@ export function WorkoutCard({
       <div className="flex items-center gap-4 text-xs text-[#888888]">
         <div className="flex items-center gap-1">
           <Dumbbell className="w-3 h-3" />
-          <span>{exerciseCount} {exerciseCount === 1 ? 'ćwiczenie' : 'ćwiczeń'}</span>
+          <span>{exerciseCount} {exerciseCount === 1 ? t('gym_exercise_count') : t('gym_exercise_count_plural')}</span>
         </div>
         {durationMin && (
           <div className="flex items-center gap-1">

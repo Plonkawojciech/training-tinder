@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input, Textarea } from '@/components/ui/input';
 import { SPORTS, getSportColor } from '@/lib/utils';
 import { X } from 'lucide-react';
+import { useLang, type TKey } from '@/lib/lang';
 
 interface Plan {
   id: number;
@@ -20,14 +21,15 @@ interface Plan {
 }
 
 const DIFFICULTIES = ['beginner', 'intermediate', 'advanced', 'elite'];
-const DIFFICULTY_LABELS: Record<string, string> = {
-  beginner: 'Początkujący',
-  intermediate: 'Średniozaawansowany',
-  advanced: 'Zaawansowany',
-  elite: 'Elita',
+const DIFFICULTY_KEYS: Record<string, TKey> = {
+  beginner: 'plans_diff_beginner',
+  intermediate: 'plans_diff_intermediate',
+  advanced: 'plans_diff_advanced',
+  elite: 'plans_diff_elite',
 };
 
 export default function PlansPage() {
+  const { t } = useLang();
   const [activeTab, setActiveTab] = useState<'browse' | 'mine'>('browse');
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,23 +47,17 @@ export default function PlansPage() {
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
-    loadPlans();
-  }, [activeTab, sportFilter, difficultyFilter]);
-
-  async function loadPlans() {
     setLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (activeTab === 'mine') params.set('mine', 'true');
-      if (sportFilter) params.set('sport', sportFilter);
-      if (difficultyFilter) params.set('difficulty', difficultyFilter);
+    const params = new URLSearchParams();
+    if (activeTab === 'mine') params.set('mine', 'true');
+    if (sportFilter) params.set('sport', sportFilter);
+    if (difficultyFilter) params.set('difficulty', difficultyFilter);
 
-      const res = await fetch(`/api/plans?${params}`);
-      if (res.ok) setPlans(await res.json());
-    } finally {
-      setLoading(false);
-    }
-  }
+    fetch(`/api/plans?${params}`)
+      .then((res) => res.ok ? res.json() : [])
+      .then((data) => setPlans(data))
+      .finally(() => setLoading(false));
+  }, [activeTab, sportFilter, difficultyFilter]);
 
   async function handleCreate() {
     if (!form.title || !form.sportType || !form.difficulty) return;
@@ -93,12 +89,12 @@ export default function PlansPage() {
     <div className="p-4 md:p-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="font-display text-3xl text-white tracking-wider">PLANY TRENINGOWE</h1>
-          <p className="text-[#888888] text-sm mt-1">Przeglądaj i udostępniaj plany treningowe</p>
+          <h1 className="font-display text-3xl text-white tracking-wider">{t('plans_title')}</h1>
+          <p className="text-[#888888] text-sm mt-1">{t('plans_subtitle')}</p>
         </div>
         <Button onClick={() => setShowCreate(true)}>
           <Plus className="w-4 h-4" />
-          Utwórz plan
+          {t('plans_create')}
         </Button>
       </div>
 
@@ -115,20 +111,20 @@ export default function PlansPage() {
                 : { borderColor: 'transparent', color: '#888888' }
             }
           >
-            {tab === 'browse' ? 'Wszystkie plany' : 'Moje plany'}
+            {tab === 'browse' ? t('plans_tab_browse') : t('plans_tab_mine')}
           </button>
         ))}
       </div>
 
       {/* Filters */}
       <div className="flex items-center gap-2 mb-4 flex-wrap">
-        <span className="text-xs text-[#555555] uppercase tracking-wider">Filtr:</span>
+        <span className="text-xs text-[#555555] uppercase tracking-wider">{t('plans_filter')}</span>
         <select
           value={sportFilter}
           onChange={(e) => setSportFilter(e.target.value)}
           className="bg-[var(--bg-card)] border border-[var(--border)] text-sm text-[#888888] px-2 py-1 focus:border-[#6366F1] focus:outline-none"
         >
-          <option value="">Wszystkie sporty</option>
+          <option value="">{t('plans_all_sports')}</option>
           {SPORTS.map((s) => (
             <option key={s.value} value={s.value}>{s.label}</option>
           ))}
@@ -138,9 +134,9 @@ export default function PlansPage() {
           onChange={(e) => setDifficultyFilter(e.target.value)}
           className="bg-[var(--bg-card)] border border-[var(--border)] text-sm text-[#888888] px-2 py-1 focus:border-[#6366F1] focus:outline-none"
         >
-          <option value="">Wszystkie poziomy</option>
+          <option value="">{t('plans_all_levels')}</option>
           {DIFFICULTIES.map((d) => (
-            <option key={d} value={d}>{DIFFICULTY_LABELS[d] ?? d}</option>
+            <option key={d} value={d}>{t(DIFFICULTY_KEYS[d])}</option>
           ))}
         </select>
         {(sportFilter || difficultyFilter) && (
@@ -148,7 +144,7 @@ export default function PlansPage() {
             onClick={() => { setSportFilter(''); setDifficultyFilter(''); }}
             className="text-xs text-[#6366F1] flex items-center gap-1"
           >
-            <X className="w-3 h-3" /> Wyczyść
+            <X className="w-3 h-3" /> {t('plans_clear_filters')}
           </button>
         )}
       </div>
@@ -164,16 +160,16 @@ export default function PlansPage() {
         <div className="flex flex-col items-center justify-center py-16 gap-4">
           <BookOpen className="w-12 h-12 text-[#2A2A2A]" />
           <h3 className="font-display text-xl text-[#888888]">
-            {activeTab === 'mine' ? 'BRAK PLANÓW' : 'BRAK WYNIKÓW'}
+            {activeTab === 'mine' ? t('plans_empty_mine_title') : t('plans_empty_browse_title')}
           </h3>
           <p className="text-[#888888] text-sm text-center max-w-sm">
             {activeTab === 'mine'
-              ? 'Utwórz swój pierwszy plan treningowy i podziel się nim ze społecznością'
-              : 'Brak planów pasujących do filtrów. Zmień filtry lub utwórz nowy!'}
+              ? t('plans_empty_mine_desc')
+              : t('plans_empty_browse_desc')}
           </p>
           <Button onClick={() => setShowCreate(true)}>
             <Plus className="w-4 h-4" />
-            Utwórz plan
+            {t('plans_create')}
           </Button>
         </div>
       ) : (
@@ -189,7 +185,7 @@ export default function PlansPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <div className="bg-[var(--bg-card)] border border-[var(--border)] w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-display text-xl text-white tracking-wider">UTWÓRZ PLAN</h3>
+              <h3 className="font-display text-xl text-white tracking-wider">{t('plans_modal_title')}</h3>
               <button onClick={() => setShowCreate(false)} className="text-[#888888] hover:text-white">
                 <X className="w-5 h-5" />
               </button>
@@ -197,22 +193,22 @@ export default function PlansPage() {
 
             <div className="flex flex-col gap-4">
               <Input
-                label="Tytuł *"
+                label={t('plans_form_title')}
                 value={form.title}
                 onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
-                placeholder="np. 12-tygodniowy program siłowy"
+                placeholder={t('plans_form_title_ph')}
               />
 
               <Textarea
-                label="Opis"
+                label={t('plans_form_desc')}
                 value={form.description}
                 onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-                placeholder="Opisz cele programu, dla kogo jest i jaki sprzęt jest potrzebny..."
+                placeholder={t('plans_form_desc_ph')}
               />
 
               <div>
                 <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-2">
-                  Typ sportu *
+                  {t('plans_form_sport')}
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   {SPORTS.map((sport) => {
@@ -239,7 +235,7 @@ export default function PlansPage() {
 
               <div>
                 <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-2">
-                  Poziom trudności *
+                  {t('plans_form_difficulty')}
                 </label>
                 <div className="grid grid-cols-4 gap-2">
                   {DIFFICULTIES.map((d) => {
@@ -260,7 +256,7 @@ export default function PlansPage() {
                             : { borderColor: '#2A2A2A', background: 'transparent', color: '#888888' }
                         }
                       >
-                        {DIFFICULTY_LABELS[d] ?? d}
+                        {t(DIFFICULTY_KEYS[d])}
                       </button>
                     );
                   })}
@@ -268,7 +264,7 @@ export default function PlansPage() {
               </div>
 
               <Input
-                label="Czas trwania (tygodnie)"
+                label={t('plans_form_duration')}
                 type="number"
                 min="1"
                 max="52"
@@ -277,7 +273,7 @@ export default function PlansPage() {
               />
 
               <div className="flex items-center justify-between p-3 border border-[var(--border)]">
-                <span className="text-sm text-[#888888]">Udostępnij plan publicznie</span>
+                <span className="text-sm text-[#888888]">{t('plans_form_public')}</span>
                 <button
                   type="button"
                   onClick={() => setForm((p) => ({ ...p, isPublic: !p.isPublic }))}
@@ -294,11 +290,11 @@ export default function PlansPage() {
 
             <div className="flex gap-3 mt-6">
               <Button variant="outline" onClick={() => setShowCreate(false)} className="flex-1">
-                Anuluj
+                {t('gen_cancel')}
               </Button>
               <Button onClick={handleCreate} loading={creating} className="flex-1">
                 <Plus className="w-4 h-4" />
-                Utwórz plan
+                {t('plans_create')}
               </Button>
             </div>
           </div>

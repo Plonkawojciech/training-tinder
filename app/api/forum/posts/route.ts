@@ -4,12 +4,14 @@ import { db } from '@/lib/db';
 import { forumPosts, activityFeed, users } from '@/lib/db/schema';
 import { eq, desc, sql, inArray } from 'drizzle-orm';
 import { isRateLimited } from '@/lib/rate-limit';
+import { sanitizeText } from '@/lib/utils';
+import { unauthorized, serverError, rateLimited, badRequest, ErrorCode } from '@/lib/api-errors';
 
 const VALID_CATEGORIES = ['general', 'training', 'nutrition', 'gear', 'race-report', 'question'] as const;
 
 export async function GET(request: Request) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   const { searchParams } = new URL(request.url);
   const category = searchParams.get('category') ?? 'all';
@@ -41,11 +43,11 @@ export async function GET(request: Request) {
     const authorIds = [...new Set(posts.map((p) => p.userId))];
     const authorRows = authorIds.length > 0
       ? await db
-          .select({ clerkId: users.clerkId, username: users.username, avatarUrl: users.avatarUrl })
+          .select({ authEmail: users.authEmail, username: users.username, avatarUrl: users.avatarUrl })
           .from(users)
-          .where(inArray(users.clerkId, authorIds))
+          .where(inArray(users.authEmail, authorIds))
       : [];
-    const authorMap = Object.fromEntries(authorRows.map((u) => [u.clerkId, u]));
+    const authorMap = Object.fromEntries(authorRows.map((u) => [u.authEmail, u]));
 
     const enriched = posts.map((post) => ({
       ...post,
@@ -71,39 +73,39 @@ export async function GET(request: Request) {
     return NextResponse.json({ posts: enriched, total });
   } catch (err) {
     console.error('GET /api/forum/posts error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }
 
 export async function POST(request: Request) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
-  // Rate limit: 10 posts per user per hour
-  if (isRateLimited(`forum-post:${userId}`, 10, 60 * 60 * 1000)) {
-    return NextResponse.json({ error: 'Tworzysz posty zbyt szybko. Poczekaj chwilę.' }, { status: 429 });
+  // Rate limit: 10 posts per user per 5 minutes
+  if (isRateLimited(`forum-post:${userId}`, 10, 5 * 60 * 1000)) {
+    return rateLimited();
   }
 
   try {
     const body = await request.json() as { title?: unknown; content?: unknown; category?: unknown; imageUrl?: unknown; workoutLogId?: unknown; sessionId?: unknown };
-    const title = typeof body.title === 'string' ? body.title.trim() : '';
-    const content = typeof body.content === 'string' ? body.content.trim() : '';
+    const title = typeof body.title === 'string' ? sanitizeText(body.title) : '';
+    const content = typeof body.content === 'string' ? sanitizeText(body.content) : '';
     const category = typeof body.category === 'string' ? body.category : 'general';
 
     if (title.length < 3) {
-      return NextResponse.json({ error: 'Tytuł musi mieć co najmniej 3 znaki' }, { status: 400 });
+      return badRequest(ErrorCode.TITLE_TOO_SHORT, 'Title must be at least 3 characters');
     }
     if (title.length > 200) {
-      return NextResponse.json({ error: 'Tytuł może mieć max. 200 znaków' }, { status: 400 });
+      return badRequest(ErrorCode.CONTENT_TOO_LONG, 'Title must be at most 200 characters');
     }
     if (content.length < 10) {
-      return NextResponse.json({ error: 'Treść musi mieć co najmniej 10 znaków' }, { status: 400 });
+      return badRequest(ErrorCode.CONTENT_TOO_SHORT, 'Content must be at least 10 characters');
     }
     if (content.length > 10000) {
-      return NextResponse.json({ error: 'Treść może mieć max. 10 000 znaków' }, { status: 400 });
+      return badRequest(ErrorCode.CONTENT_TOO_LONG, 'Content must be at most 10,000 characters');
     }
     if (!VALID_CATEGORIES.includes(category as typeof VALID_CATEGORIES[number])) {
-      return NextResponse.json({ error: 'Nieprawidłowa kategoria' }, { status: 400 });
+      return badRequest(ErrorCode.INVALID_CATEGORY, 'Invalid category');
     }
 
     const imageUrl = typeof body.imageUrl === 'string' ? body.imageUrl.slice(0, 500) : null;
@@ -132,6 +134,6 @@ export async function POST(request: Request) {
     return NextResponse.json(post, { status: 201 });
   } catch (err) {
     console.error('POST /api/forum/posts error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

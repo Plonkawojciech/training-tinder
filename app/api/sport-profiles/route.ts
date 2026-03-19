@@ -3,10 +3,11 @@ import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { userSportProfiles } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { unauthorized, serverError, badRequest, ErrorCode } from '@/lib/api-errors';
 
 export async function GET() {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   try {
     const profiles = await db
@@ -16,13 +17,13 @@ export async function GET() {
     return NextResponse.json(profiles);
   } catch (err) {
     console.error('GET /api/sport-profiles error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }
 
 export async function POST(request: Request) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   try {
     const body = await request.json() as {
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
     };
 
     if (!body.sport) {
-      return NextResponse.json({ error: 'sport is required' }, { status: 400 });
+      return badRequest(ErrorCode.MISSING_FIELDS, 'Sport is required');
     }
 
     const existing = await db
@@ -82,6 +83,6 @@ export async function POST(request: Request) {
     }
   } catch (err) {
     console.error('POST /api/sport-profiles error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

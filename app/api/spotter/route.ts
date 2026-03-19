@@ -3,10 +3,11 @@ import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { spotterRequests, users } from '@/lib/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
+import { unauthorized, forbidden, notFound, serverError, badRequest, apiError, ErrorCode } from '@/lib/api-errors';
 
 export async function POST(request: Request) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   try {
     const body = await request.json() as {
@@ -18,18 +19,18 @@ export async function POST(request: Request) {
     };
 
     if (typeof body.exercise !== 'string' || body.exercise.trim().length < 1) {
-      return NextResponse.json({ error: 'exercise jest wymagany' }, { status: 400 });
+      return badRequest(ErrorCode.MISSING_FIELDS, 'Exercise is required');
     }
     if (typeof body.gymName !== 'string' || body.gymName.trim().length < 1) {
-      return NextResponse.json({ error: 'gymName jest wymagany' }, { status: 400 });
+      return badRequest(ErrorCode.MISSING_FIELDS, 'Gym name is required');
     }
     if (body.exercise.trim().length > 100 || body.gymName.trim().length > 150) {
-      return NextResponse.json({ error: 'Dane są za długie' }, { status: 400 });
+      return badRequest(ErrorCode.CONTENT_TOO_LONG, 'Input data is too long');
     }
 
     const weightKg = body.weightKg !== undefined ? Number(body.weightKg) : null;
     if (weightKg !== null && (isNaN(weightKg) || weightKg < 0 || weightKg > 500)) {
-      return NextResponse.json({ error: 'Nieprawidłowy ciężar' }, { status: 400 });
+      return badRequest(ErrorCode.INVALID_WEIGHT, 'Invalid weight');
     }
 
     const message = typeof body.message === 'string' ? body.message.trim().slice(0, 300) : null;
@@ -54,13 +55,13 @@ export async function POST(request: Request) {
     return NextResponse.json(spotterReq);
   } catch (err) {
     console.error('POST /api/spotter error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }
 
 export async function GET(request: Request) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   const { searchParams } = new URL(request.url);
   const gymPlaceId = searchParams.get('gymPlaceId');
@@ -81,36 +82,36 @@ export async function GET(request: Request) {
       .select({
         request: spotterRequests,
         requester: {
-          clerkId: users.clerkId,
+          authEmail: users.authEmail,
           username: users.username,
           avatarUrl: users.avatarUrl,
         },
       })
       .from(spotterRequests)
-      .leftJoin(users, eq(spotterRequests.requesterId, users.clerkId))
+      .leftJoin(users, eq(spotterRequests.requesterId, users.authEmail))
       .where(and(...whereConditions))
       .limit(50);
 
     return NextResponse.json(results.filter((r) => r.requester !== null));
   } catch (err) {
     console.error('GET /api/spotter error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }
 
 export async function PATCH(request: Request) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   try {
     const body = await request.json() as { id?: unknown; action?: unknown };
 
     const spotterReqId = Number(body.id);
     if (!Number.isInteger(spotterReqId) || spotterReqId <= 0) {
-      return NextResponse.json({ error: 'Nieprawidłowe id' }, { status: 400 });
+      return badRequest(ErrorCode.INVALID_INPUT, 'Invalid id');
     }
     if (body.action !== 'accept' && body.action !== 'close') {
-      return NextResponse.json({ error: 'Nieprawidłowa akcja' }, { status: 400 });
+      return badRequest(ErrorCode.INVALID_ACTION, 'Invalid action');
     }
 
     // Load the request first to enforce ownership rules
@@ -120,15 +121,15 @@ export async function PATCH(request: Request) {
       .where(eq(spotterRequests.id, spotterReqId))
       .limit(1);
 
-    if (!existing) return NextResponse.json({ error: 'Nie znaleziono' }, { status: 404 });
+    if (!existing) return notFound();
     if (existing.status !== 'open') {
-      return NextResponse.json({ error: 'Prośba jest już nieaktywna' }, { status: 409 });
+      return apiError(ErrorCode.INVALID_STATUS, 'Request is already inactive', 409);
     }
 
     if (body.action === 'close') {
       // Only the requester can close their own request
       if (existing.requesterId !== userId) {
-        return NextResponse.json({ error: 'Brak dostępu' }, { status: 403 });
+        return forbidden();
       }
       const [updated] = await db
         .update(spotterRequests)
@@ -141,7 +142,7 @@ export async function PATCH(request: Request) {
     // action === 'accept'
     // Cannot accept your own request
     if (existing.requesterId === userId) {
-      return NextResponse.json({ error: 'Nie możesz zaakceptować własnej prośby' }, { status: 400 });
+      return badRequest(ErrorCode.SELF_ACTION, 'Cannot accept your own request');
     }
 
     const [updated] = await db
@@ -153,6 +154,6 @@ export async function PATCH(request: Request) {
     return NextResponse.json(updated);
   } catch (err) {
     console.error('PATCH /api/spotter error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

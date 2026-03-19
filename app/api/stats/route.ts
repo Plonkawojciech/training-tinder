@@ -2,11 +2,12 @@ import { NextResponse } from 'next/server';
 import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { userStats, workoutLogs, personalRecords, exercises } from '@/lib/db/schema';
-import { eq, desc, inArray, sql, and, gte } from 'drizzle-orm';
+import { eq, desc, sql, and, gte } from 'drizzle-orm';
+import { unauthorized, serverError, badRequest, ErrorCode } from '@/lib/api-errors';
 
 export async function GET(request: Request) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   const { searchParams } = new URL(request.url);
   const type = searchParams.get('type') ?? 'body';
@@ -68,16 +69,16 @@ export async function GET(request: Request) {
       return NextResponse.json(countByDate);
     }
 
-    return NextResponse.json({ error: 'Unknown type' }, { status: 400 });
+    return badRequest(ErrorCode.INVALID_INPUT, 'Unknown stats type');
   } catch (err) {
     console.error('GET /api/stats error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }
 
 export async function POST(request: Request) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   try {
     const body = await request.json() as {
@@ -101,6 +102,6 @@ export async function POST(request: Request) {
     return NextResponse.json(stat);
   } catch (err) {
     console.error('POST /api/stats error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

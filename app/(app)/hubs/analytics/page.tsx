@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { TrendingUp, Activity, Dumbbell, Trophy, ChevronRight } from 'lucide-react';
+import { useLang } from '@/lib/lang';
 
 interface WorkoutLog {
   id: number;
@@ -57,11 +58,14 @@ function groupBySport(activities: StravaActivity[]) {
 const SPORT_COLORS = ['#6366F1', '#00CC88', '#FFD700', '#A78BFA', '#CC0044', '#0088FF'];
 
 export default function AnalyticsHubPage() {
+  const { t, lang } = useLang();
   const [workouts, setWorkouts] = useState<WorkoutLog[]>([]);
   const [prs, setPRs] = useState<PRRecord[]>([]);
   const [activities, setActivities] = useState<StravaActivity[]>([]);
   const [stravaConnected, setStravaConnected] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const dateLocale = lang === 'pl' ? 'pl-PL' : 'en-US';
 
   useEffect(() => {
     async function load() {
@@ -109,17 +113,17 @@ export default function AnalyticsHubPage() {
           <TrendingUp className="w-5 h-5 text-[#6366F1]" />
         </div>
         <div>
-          <h1 className="font-display text-3xl text-white tracking-wider">HUB ANALITYCZNY</h1>
-          <p className="text-[#888888] text-sm">Postęp · Trendy · Rekordy</p>
+          <h1 className="font-display text-3xl text-white tracking-wider">{t('hub_analytics_title')}</h1>
+          <p className="text-[#888888] text-sm">{t('hub_analytics_subtitle')}</p>
         </div>
       </div>
 
       {/* Summary stats */}
       <div className="grid grid-cols-3 gap-3 mb-6">
         {[
-          { label: 'Łącznie km', value: totalKm.toFixed(0), icon: Activity, color: '#6366F1' },
-          { label: 'Treningi', value: String(totalWorkouts), icon: Dumbbell, color: '#00CC88' },
-          { label: 'Rekordy', value: String(totalPRs), icon: Trophy, color: '#FFD700' },
+          { label: t('hub_ana_total_km'), value: totalKm.toFixed(0), icon: Activity, color: '#6366F1' },
+          { label: t('hub_ana_workouts'), value: String(totalWorkouts), icon: Dumbbell, color: '#00CC88' },
+          { label: t('hub_ana_records'), value: String(totalPRs), icon: Trophy, color: '#FFD700' },
         ].map((s) => {
           const Icon = s.icon;
           return (
@@ -136,17 +140,17 @@ export default function AnalyticsHubPage() {
 
       {/* Weekly distance chart */}
       <div className="bg-[var(--bg-card)] border border-[var(--border)] p-5 mb-6">
-        <h2 className="font-display text-sm text-[#888888] tracking-wider mb-4">TYGODNIOWY DYSTANS (km)</h2>
+        <h2 className="font-display text-sm text-[#888888] tracking-wider mb-4">{t('hub_ana_weekly_distance')}</h2>
         {loading ? (
           <div className="h-40 skeleton" />
         ) : !stravaConnected ? (
           <div className="text-center py-8">
             <Activity className="w-10 h-10 text-[#2A2A2A] mx-auto mb-2" />
-            <p className="text-[#888888] text-sm mb-2">Połącz Stravę, aby zobaczyć dane aktywności</p>
-            <Link href="/profile" className="text-xs text-[#6366F1] hover:underline">Połącz ze Stravą →</Link>
+            <p className="text-[#888888] text-sm mb-2">{t('hub_ana_connect_strava')}</p>
+            <Link href="/profile" className="text-xs text-[#6366F1] hover:underline">{t('hub_ana_connect_btn')}</Link>
           </div>
         ) : weeklyData.length === 0 ? (
-          <p className="text-[#888888] text-sm text-center py-6">Brak danych aktywności</p>
+          <p className="text-[#888888] text-sm text-center py-6">{t('hub_ana_no_data')}</p>
         ) : (
           <div className="flex items-end gap-2 h-40">
             {weeklyData.map((w) => {
@@ -160,7 +164,7 @@ export default function AnalyticsHubPage() {
                     title={`${w.week}: ${w.km} km`}
                   />
                   <span className="text-[8px] text-[#444444]">
-                    {new Date(w.week).toLocaleDateString('pl-PL', { month: 'short', day: 'numeric' })}
+                    {new Date(w.week).toLocaleDateString(dateLocale, { month: 'short', day: 'numeric' })}
                   </span>
                 </div>
               );
@@ -172,7 +176,7 @@ export default function AnalyticsHubPage() {
       {/* Sport breakdown */}
       {sportBreakdown.length > 0 && (
         <div className="bg-[var(--bg-card)] border border-[var(--border)] p-5 mb-6">
-          <h2 className="font-display text-sm text-[#888888] tracking-wider mb-4">PODZIAŁ NA DYSCYPLINY</h2>
+          <h2 className="font-display text-sm text-[#888888] tracking-wider mb-4">{t('hub_ana_sport_breakdown')}</h2>
           <div className="flex flex-col gap-2">
             {sportBreakdown.map((s, i) => (
               <div key={s.sport} className="flex items-center gap-3">
@@ -193,9 +197,9 @@ export default function AnalyticsHubPage() {
       {/* Personal Records */}
       <div className="bg-[var(--bg-card)] border border-[var(--border)] p-5 mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display text-sm text-[#888888] tracking-wider">REKORDY OSOBISTE</h2>
+          <h2 className="font-display text-sm text-[#888888] tracking-wider">{t('hub_ana_personal_records')}</h2>
           <Link href="/stats" className="text-xs text-[#6366F1] hover:text-[#818CF8] flex items-center gap-1 transition-colors">
-            Wszystkie <ChevronRight className="w-3 h-3" />
+            {t('hub_ana_all')} <ChevronRight className="w-3 h-3" />
           </Link>
         </div>
         {loading ? (
@@ -203,14 +207,14 @@ export default function AnalyticsHubPage() {
             {[1, 2, 3].map((i) => <div key={i} className="h-12 skeleton" />)}
           </div>
         ) : prs.length === 0 ? (
-          <p className="text-[#888888] text-sm text-center py-4">Brak rekordów. Zaloguj treningi, aby ustanawiać rekordy!</p>
+          <p className="text-[#888888] text-sm text-center py-4">{t('hub_ana_no_records')}</p>
         ) : (
           <div className="flex flex-col gap-2">
             {prs.slice(0, 8).map((pr, i) => (
               <div key={pr.exerciseName} className="flex items-center gap-4 p-3 bg-[var(--bg-card)] border border-[var(--border)]">
                 <span className="font-display text-base text-[#6366F1] w-6 shrink-0">#{i + 1}</span>
                 <span className="text-sm text-white flex-1 truncate">{pr.exerciseName}</span>
-                <span className="text-sm font-display text-white shrink-0">{pr.weightKg}kg × {pr.reps}</span>
+                <span className="text-sm font-display text-white shrink-0">{pr.weightKg}kg x {pr.reps}</span>
               </div>
             ))}
           </div>
@@ -219,11 +223,11 @@ export default function AnalyticsHubPage() {
 
       {/* Workout frequency chart */}
       <div className="bg-[var(--bg-card)] border border-[var(--border)] p-5">
-        <h2 className="font-display text-sm text-[#888888] tracking-wider mb-4">CZĘSTOTLIWOŚĆ TRENINGÓW (ostatnie 12 tygodni)</h2>
+        <h2 className="font-display text-sm text-[#888888] tracking-wider mb-4">{t('hub_ana_workout_freq')}</h2>
         {loading ? (
           <div className="h-24 skeleton" />
         ) : workouts.length === 0 ? (
-          <p className="text-[#888888] text-sm text-center py-4">Brak danych o treningach</p>
+          <p className="text-[#888888] text-sm text-center py-4">{t('hub_ana_no_workout_data')}</p>
         ) : (() => {
           // Build a simple week-by-week frequency
           const weekCounts: Record<string, number> = {};

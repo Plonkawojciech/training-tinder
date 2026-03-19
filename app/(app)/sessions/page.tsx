@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Plus, Dumbbell, Navigation, X } from 'lucide-react';
 import { SessionCard } from '@/components/sessions/session-card';
 import { Button } from '@/components/ui/button';
+import { useLang } from '@/lib/lang';
 
 interface SessionData {
   id: number;
@@ -22,15 +23,6 @@ interface SessionData {
   creatorName: string | null;
 }
 
-const SPORT_PILLS = [
-  { value: 'all', label: 'Wszystkie', emoji: '⚡' },
-  { value: 'cycling', label: 'Kolarstwo', emoji: '🚴' },
-  { value: 'running', label: 'Bieganie', emoji: '🏃' },
-  { value: 'gym', label: 'Siłownia', emoji: '🏋️' },
-  { value: 'trail_running', label: 'Trail', emoji: '🌿' },
-  { value: 'swimming', label: 'Pływanie', emoji: '🏊' },
-];
-
 const NEARBY_RADIUS_KM = 50;
 
 function getBboxFromCenter(lat: number, lon: number, radiusKm: number) {
@@ -46,12 +38,22 @@ function getBboxFromCenter(lat: number, lon: number, radiusKm: number) {
 }
 
 export default function SessionsPage() {
+  const { t } = useLang();
   const [sessions, setSessions] = useState<SessionData[]>([]);
   const [loading, setLoading] = useState(true);
   const [sport, setSport] = useState('all');
   const [tab, setTab] = useState<'all' | 'mine'>('all');
   const [activeBbox, setActiveBbox] = useState<string | null>(null);
   const [geoLoading, setGeoLoading] = useState(false);
+
+  const SPORT_PILLS = [
+    { value: 'all', label: t('sess_filter_all'), emoji: '⚡' },
+    { value: 'cycling', label: t('dash_cycling'), emoji: '🚴' },
+    { value: 'running', label: t('dash_running'), emoji: '🏃' },
+    { value: 'gym', label: t('dash_gym'), emoji: '🏋️' },
+    { value: 'trail_running', label: 'Trail', emoji: '🌿' },
+    { value: 'swimming', label: t('sess_swimming'), emoji: '🏊' },
+  ];
 
   const fetchSessions = useCallback(async () => {
     setLoading(true);
@@ -96,9 +98,9 @@ export default function SessionsPage() {
           {/* Header */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 12px' }}>
             <div>
-              <h1 style={{ fontWeight: 800, fontSize: 22, color: 'var(--text)', letterSpacing: -0.5 }}>Sesje</h1>
-              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-                {sessions.length} sesji treningowych
+              <h1 style={{ fontWeight: 800, fontSize: 22, color: 'var(--text)', letterSpacing: -0.5 }}>{t('sess_title')}</h1>
+              <p style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 2 }}>
+                {sessions.length} {t('sess_count')}
               </p>
             </div>
             <Link href="/sessions/new" style={{ textDecoration: 'none' }}>
@@ -115,33 +117,34 @@ export default function SessionsPage() {
 
           {/* Tab switcher */}
           <div style={{ display: 'flex', padding: '0 16px', gap: 8, marginBottom: 10 }}>
-            {(['all', 'mine'] as const).map((t) => (
+            {(['all', 'mine'] as const).map((tabVal) => (
               <button
-                key={t}
-                onClick={() => setTab(t)}
+                key={tabVal}
+                onClick={() => setTab(tabVal)}
                 style={{
                   flex: 1, padding: '10px 0', borderRadius: 12, border: 'none', cursor: 'pointer',
-                  fontWeight: 700, fontSize: 13,
-                  background: tab === t ? '#6366F1' : 'var(--bg-elevated)',
-                  color: tab === t ? 'white' : 'var(--text-muted)',
+                  fontWeight: 700, fontSize: 13, minHeight: 44,
+                  background: tab === tabVal ? '#6366F1' : 'var(--bg-elevated)',
+                  color: tab === tabVal ? 'white' : 'var(--text-muted)',
                   transition: 'all 0.15s',
                 }}
               >
-                {t === 'all' ? 'Wszystkie' : 'Moje'}
+                {tabVal === 'all' ? t('sess_tab_all_short') : t('sess_tab_mine_short')}
               </button>
             ))}
           </div>
 
           {/* Sport pills */}
-          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '0 16px', paddingBottom: 2 }}>
+          <div style={{ position: 'relative' }}>
+            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '0 16px', paddingBottom: 2, scrollbarWidth: 'none', msOverflowStyle: 'none', maskImage: 'linear-gradient(to right, black 80%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to right, black 80%, transparent 100%)' }}>
             {SPORT_PILLS.map((s) => (
               <button
                 key={s.value}
                 onClick={() => setSport(s.value)}
                 style={{
                   flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5,
-                  padding: '7px 14px', borderRadius: 99, border: 'none', cursor: 'pointer',
-                  fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap',
+                  padding: '10px 14px', borderRadius: 99, border: 'none', cursor: 'pointer',
+                  fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap', minHeight: 44,
                   background: sport === s.value ? '#6366F1' : 'var(--bg-elevated)',
                   color: sport === s.value ? 'white' : 'var(--text-muted)',
                   transition: 'all 0.15s',
@@ -150,6 +153,7 @@ export default function SessionsPage() {
                 <span>{s.emoji}</span>{s.label}
               </button>
             ))}
+            </div>
           </div>
         </div>
 
@@ -163,11 +167,11 @@ export default function SessionsPage() {
               padding: '8px 14px', borderRadius: 99, border: '1.5px solid var(--border)', cursor: 'pointer',
               background: activeBbox ? 'rgba(99,102,241,0.1)' : 'var(--bg-card)',
               color: activeBbox ? '#6366F1' : 'var(--text-muted)',
-              fontWeight: 600, fontSize: 12, transition: 'all 0.15s',
+              fontWeight: 600, fontSize: 12, transition: 'all 0.15s', minHeight: 44,
             }}
           >
             <Navigation style={{ width: 13, height: 13 }} />
-            {geoLoading ? 'Lokalizowanie...' : `W okolicy (${NEARBY_RADIUS_KM}km)`}
+            {geoLoading ? t('sess_locating') : `${t('sess_nearby')} (${NEARBY_RADIUS_KM}km)`}
           </button>
           {activeBbox && (
             <button
@@ -176,11 +180,11 @@ export default function SessionsPage() {
                 display: 'flex', alignItems: 'center', gap: 5,
                 padding: '8px 12px', borderRadius: 99, border: 'none', cursor: 'pointer',
                 background: 'rgba(239,68,68,0.1)', color: '#EF4444',
-                fontWeight: 600, fontSize: 12,
+                fontWeight: 600, fontSize: 12, minHeight: 44,
               }}
             >
               <X style={{ width: 12, height: 12 }} />
-              Wyczyść
+              {t('sess_clear')}
             </button>
           )}
         </div>
@@ -194,12 +198,12 @@ export default function SessionsPage() {
           ) : sessions.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '60px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
               <Dumbbell style={{ width: 48, height: 48, color: 'var(--text-dim)' }} />
-              <p style={{ fontWeight: 700, fontSize: 18, color: 'var(--text)' }}>Brak sesji</p>
+              <p style={{ fontWeight: 700, fontSize: 18, color: 'var(--text)' }}>{t('sess_empty')}</p>
               <p style={{ fontSize: 14, color: 'var(--text-muted)' }}>
-                {tab === 'mine' ? 'Nie masz jeszcze żadnych sesji.' : 'Bądź pierwszy! Utwórz sesję treningową.'}
+                {tab === 'mine' ? t('sess_empty_mine') : t('sess_empty_all')}
               </p>
               <Link href="/sessions/new" style={{ textDecoration: 'none' }}>
-                <Button><Plus className="w-4 h-4" />Utwórz Sesję</Button>
+                <Button><Plus className="w-4 h-4" />{t('sess_create')}</Button>
               </Link>
             </div>
           ) : (
@@ -213,28 +217,28 @@ export default function SessionsPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="font-bold text-2xl tracking-tight" style={{ color: 'var(--text)' }}>Sesje</h1>
-            <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>{sessions.length} sesji treningowych</p>
+            <h1 className="font-bold text-2xl tracking-tight" style={{ color: 'var(--text)' }}>{t('sess_title')}</h1>
+            <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>{sessions.length} {t('sess_count')}</p>
           </div>
           <Link href="/sessions/new">
-            <Button><Plus className="w-4 h-4" />Nowa Sesja</Button>
+            <Button><Plus className="w-4 h-4" />{t('sess_new')}</Button>
           </Link>
         </div>
 
         {/* Tabs */}
         <div className="flex gap-2 mb-5">
-          {(['all', 'mine'] as const).map((t) => (
+          {(['all', 'mine'] as const).map((tabVal) => (
             <button
-              key={t}
-              onClick={() => setTab(t)}
+              key={tabVal}
+              onClick={() => setTab(tabVal)}
               className="px-5 py-2.5 rounded-[12px] text-sm font-semibold transition-all"
               style={{
-                background: tab === t ? '#6366F1' : 'var(--bg-card)',
-                color: tab === t ? 'white' : 'var(--text-muted)',
-                boxShadow: tab === t ? '0 4px 12px rgba(99,102,241,0.3)' : 'var(--shadow-card)',
+                background: tab === tabVal ? '#6366F1' : 'var(--bg-card)',
+                color: tab === tabVal ? 'white' : 'var(--text-muted)',
+                boxShadow: tab === tabVal ? '0 4px 12px rgba(99,102,241,0.3)' : 'var(--shadow-card)',
               }}
             >
-              {t === 'all' ? 'Wszystkie sesje' : 'Moje sesje'}
+              {tabVal === 'all' ? t('sess_tab_all') : t('sess_tab_mine')}
             </button>
           ))}
         </div>
@@ -268,7 +272,7 @@ export default function SessionsPage() {
             }}
           >
             <Navigation className="w-4 h-4" />
-            {geoLoading ? 'Lokalizowanie...' : `W okolicy (${NEARBY_RADIUS_KM}km)`}
+            {geoLoading ? t('sess_locating') : `${t('sess_nearby')} (${NEARBY_RADIUS_KM}km)`}
           </button>
           {activeBbox && (
             <button
@@ -276,7 +280,7 @@ export default function SessionsPage() {
               className="flex items-center gap-1.5 px-4 py-2 rounded-[10px] text-sm font-semibold"
               style={{ background: 'rgba(239,68,68,0.1)', color: '#EF4444' }}
             >
-              <X className="w-3.5 h-3.5" />Wyczyść filtr
+              <X className="w-3.5 h-3.5" />{t('sess_clear_filter')}
             </button>
           )}
         </div>
@@ -291,11 +295,11 @@ export default function SessionsPage() {
         ) : sessions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
             <Dumbbell className="w-12 h-12" style={{ color: 'var(--text-dim)' }} />
-            <p className="font-bold text-lg" style={{ color: 'var(--text)' }}>Brak sesji</p>
+            <p className="font-bold text-lg" style={{ color: 'var(--text)' }}>{t('sess_empty')}</p>
             <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              {tab === 'mine' ? 'Nie masz jeszcze żadnych sesji.' : 'Bądź pierwszy! Utwórz sesję treningową.'}
+              {tab === 'mine' ? t('sess_empty_mine') : t('sess_empty_all')}
             </p>
-            <Link href="/sessions/new"><Button><Plus className="w-4 h-4" />Utwórz Sesję</Button></Link>
+            <Link href="/sessions/new"><Button><Plus className="w-4 h-4" />{t('sess_create')}</Button></Link>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Download, ChevronLeft, User, CheckCircle2, Circle, ArrowRight } from 'lucide-react';
 import { ImportWidget } from '@/components/profile/import-widget';
 import { Button } from '@/components/ui/button';
+import { useLang } from '@/lib/lang';
 
 interface StravaStatus {
   connected: boolean;
@@ -33,6 +34,7 @@ function ConnectionStatus({ label, connected, detail }: {
   connected: boolean;
   detail?: string;
 }) {
+  const { t } = useLang();
   return (
     <div className="flex items-center justify-between py-3 border-b border-[var(--border)] last:border-0">
       <div className="flex items-center gap-3">
@@ -53,7 +55,7 @@ function ConnectionStatus({ label, connected, detail }: {
               : { color: '#555555', background: '#0A0A0A', border: '1px solid #1A1A1A' }
           }
         >
-          {connected ? 'Połączone' : 'Niepołączone'}
+          {connected ? t('import_connected') : t('import_disconnected')}
         </span>
       </div>
     </div>
@@ -61,6 +63,7 @@ function ConnectionStatus({ label, connected, detail }: {
 }
 
 export default function ImportPage() {
+  const { t } = useLang();
   const [stravaStatus, setStravaStatus] = useState<StravaStatus | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -102,15 +105,15 @@ export default function ImportPage() {
         className="inline-flex items-center gap-1.5 text-xs text-[#888888] hover:text-white transition-colors mb-6"
       >
         <ChevronLeft className="w-4 h-4" />
-        Powrót do profilu
+        {t('import_back_profile')}
       </Link>
 
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <Download className="w-5 h-5 text-[#6366F1]" />
         <div>
-          <h1 className="font-display text-3xl text-white tracking-wider">IMPORT DANYCH</h1>
-          <p className="text-[#888888] text-sm">Połącz konta treningowe, aby automatycznie uzupełnić profil</p>
+          <h1 className="font-display text-3xl text-white tracking-wider">{t('import_data_title')}</h1>
+          <p className="text-[#888888] text-sm">{t('import_connect_desc')}</p>
         </div>
       </div>
 
@@ -119,8 +122,8 @@ export default function ImportPage() {
         <div className="bg-[var(--bg-card)] border border-[var(--border)] p-5 mb-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="font-display text-sm text-[#888888] tracking-wider">KOMPLETNOŚĆ PROFILU</h2>
-              <p className="text-xs text-[#555555] mt-0.5">{completionCount}/{totalCount} kluczowych pól uzupełnionych</p>
+              <h2 className="font-display text-sm text-[#888888] tracking-wider">{t('import_completion_title')}</h2>
+              <p className="text-xs text-[#555555] mt-0.5">{completionCount}/{totalCount} {t('import_fields_filled')}</p>
             </div>
             <div className="flex items-center gap-3">
               <div className="text-2xl font-display text-white">{completionPct}%</div>
@@ -140,9 +143,9 @@ export default function ImportPage() {
             {[
               { key: 'ftp', label: 'FTP', value: userProfile.ftpWatts ? `${userProfile.ftpWatts}W` : null },
               { key: 'maxHr', label: 'Max HR', value: userProfile.maxHr ? `${userProfile.maxHr} bpm` : null },
-              { key: 'pace', label: 'Tempo progowe', value: userProfile.pacePerKm ? formatPace(userProfile.pacePerKm) : null },
-              { key: 'weeklyKm', label: 'Tygodniowe km', value: userProfile.weeklyKm ? `${userProfile.weeklyKm}km` : null },
-              { key: 'city', label: 'Miasto', value: userProfile.city },
+              { key: 'pace', label: t('import_threshold_pace'), value: userProfile.pacePerKm ? formatPace(userProfile.pacePerKm) : null },
+              { key: 'weeklyKm', label: t('import_weekly_km'), value: userProfile.weeklyKm ? `${userProfile.weeklyKm}km` : null },
+              { key: 'city', label: t('import_city_label'), value: userProfile.city },
             ].map(({ key, label, value }) => (
               <div
                 key={key}
@@ -165,11 +168,11 @@ export default function ImportPage() {
           {completionPct < 100 && (
             <div className="mt-4 flex items-center justify-between">
               <p className="text-xs text-[#555555]">
-                Uzupełnij brakujące dane ręcznie w Strefach Treningowych lub przez import poniżej
+                {t('import_manual_hint')}
               </p>
               <Link href="/training">
                 <Button size="sm" variant="outline">
-                  Ustaw strefy
+                  {t('import_set_zones')}
                   <ArrowRight className="w-4 h-4 ml-1" />
                 </Button>
               </Link>
@@ -180,7 +183,7 @@ export default function ImportPage() {
 
       {/* Connected accounts status */}
       <div className="bg-[var(--bg-card)] border border-[var(--border)] p-5 mb-6">
-        <h2 className="font-display text-sm text-[#888888] tracking-wider mb-4">POŁĄCZONE KONTA</h2>
+        <h2 className="font-display text-sm text-[#888888] tracking-wider mb-4">{t('import_connected_accounts')}</h2>
 
         {loading ? (
           <div className="flex flex-col gap-3">
@@ -193,15 +196,15 @@ export default function ImportPage() {
             <ConnectionStatus
               label="Strava"
               connected={stravaStatus?.connected ?? false}
-              detail={stravaStatus?.connected ? `${stravaStatus.activityCount} aktywności` : undefined}
+              detail={stravaStatus?.connected ? `${stravaStatus.activityCount} ${t('import_activities_count')}` : undefined}
             />
             <ConnectionStatus
               label="Garmin Connect"
               connected={false}
-              detail="Wkrótce"
+              detail={t('import_coming_soon')}
             />
             <ConnectionStatus
-              label="Profil treningowy"
+              label={t('import_training_profile')}
               connected={!!userProfile?.ftpWatts || !!userProfile?.maxHr}
               detail="FTP / Max HR"
             />
@@ -214,18 +217,18 @@ export default function ImportPage() {
         <User className="w-4 h-4 text-[#444444] shrink-0 mt-0.5" />
         <div>
           <p className="text-xs text-[#888888] mb-1">
-            <span className="text-white">Brak integracji?</span> Bez problemu. Możesz ręcznie wpisać FTP, maks. tętno i tempo w{' '}
+            <span className="text-white">{t('import_no_integration')}</span> {t('import_no_problem')}{' '}
             <Link href="/training" className="text-[#6366F1] hover:underline">
-              Strefach treningowych
+              {t('import_training_zones')}
             </Link>
-            {' '}lub uzupełnić pełny profil na stronie{' '}
+            {' '}{t('import_or_fill_profile')}{' '}
             <Link href="/profile" className="text-[#6366F1] hover:underline">
-              Profilu
+              {t('import_profile')}
             </Link>
             .
           </p>
           <p className="text-[10px] text-[#444444]">
-            Wszystkie dane wydolnościowe są opcjonalne i służą wyłącznie do poprawy jakości dopasowań i obliczeń stref.
+            {t('import_optional_note')}
           </p>
         </div>
       </div>

@@ -2,6 +2,7 @@
 
 import { Plus, Trash2 } from 'lucide-react';
 import { epley1RM } from '@/lib/utils';
+import { useLang } from '@/lib/lang';
 
 interface SetRow {
   reps: number;
@@ -15,6 +16,7 @@ interface SetTableProps {
 }
 
 export function SetTable({ sets, onChange, showOneRM = true }: SetTableProps) {
+  const { t } = useLang();
   function addSet() {
     const last = sets[sets.length - 1];
     onChange([...sets, { reps: last?.reps ?? 8, weight: last?.weight ?? 0 }]);
@@ -84,7 +86,7 @@ export function SetTable({ sets, onChange, showOneRM = true }: SetTableProps) {
         className="flex items-center gap-2 text-xs text-[#6366F1] hover:text-[#818CF8] mt-2 transition-colors"
       >
         <Plus className="w-4 h-4" />
-        Dodaj serię
+        {t('gym_add_set')}
       </button>
 
       {showOneRM && maxSet.rm > 0 && maxSet.reps > 1 && (

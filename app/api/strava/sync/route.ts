@@ -3,10 +3,12 @@ import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { stravaTokens, users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { unauthorized, badRequest, apiError, ErrorCode } from '@/lib/api-errors';
 import {
   type StravaAthlete,
   type StravaStats,
   fetchStravaApi,
+  refreshStravaTokenIfNeeded,
   updateSportProfiles,
   importStravaGear,
   fetchStravaActivities,
@@ -15,41 +17,24 @@ import {
   upsertBestEfforts,
 } from '@/lib/strava';
 
-async function refreshStravaToken(token: { userId: string; refreshToken: string }) {
-  const res = await fetch('https://www.strava.com/oauth/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      client_id: process.env.STRAVA_CLIENT_ID,
-      client_secret: process.env.STRAVA_CLIENT_SECRET,
-      refresh_token: token.refreshToken,
-      grant_type: 'refresh_token',
-    }),
-  });
-  if (!res.ok) throw new Error('Failed to refresh Strava token');
-  const data = await res.json() as { access_token: string; refresh_token: string; expires_at: number };
-  const expiresAt = new Date(data.expires_at * 1000);
-  await db.update(stravaTokens).set({
-    accessToken: data.access_token,
-    refreshToken: data.refresh_token,
-    expiresAt,
-  }).where(eq(stravaTokens.userId, token.userId));
-  return { accessToken: data.access_token, expiresAt };
-}
-
 export async function POST() {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   const tokenRows = await db.select().from(stravaTokens).where(eq(stravaTokens.userId, userId));
-  if (tokenRows.length === 0) return NextResponse.json({ error: 'Strava not connected' }, { status: 400 });
+  if (tokenRows.length === 0) return badRequest(ErrorCode.STRAVA_CONNECTION_ERROR, 'Strava not connected');
 
-  let { accessToken } = tokenRows[0];
-  const { expiresAt, refreshToken, stravaAthleteId } = tokenRows[0];
+  let accessToken: string;
+  const { stravaAthleteId } = tokenRows[0];
 
-  if (expiresAt.getTime() < Date.now() + 60_000) {
-    const refreshed = await refreshStravaToken({ userId, refreshToken });
-    accessToken = refreshed.accessToken;
+  try {
+    accessToken = await refreshStravaTokenIfNeeded(tokenRows[0]);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : '';
+    if (msg === 'STRAVA_TOKEN_REVOKED') {
+      return apiError(ErrorCode.STRAVA_TOKEN_EXPIRED, 'Strava token revoked. Please reconnect your account.', 401);
+    }
+    return badRequest(ErrorCode.STRAVA_CONNECTION_ERROR, 'Failed to refresh Strava token');
   }
 
   // 1. Sync athlete stats
@@ -61,11 +46,11 @@ export async function POST() {
 
     await db.update(users).set({
       stravaStatsJson: stats as Record<string, unknown>,
-    }).where(eq(users.clerkId, userId));
+    }).where(eq(users.authEmail, userId));
 
     const { weeklyKm } = await updateSportProfiles(userId, stats);
 
-    await db.update(users).set({ weeklyKm }).where(eq(users.clerkId, userId));
+    await db.update(users).set({ weeklyKm }).where(eq(users.authEmail, userId));
   } catch (err) {
     console.error('Failed to sync Strava stats:', err);
   }
@@ -84,7 +69,7 @@ export async function POST() {
     }
     if (athlete.city) profileUpdate.city = athlete.city;
     if (Object.keys(profileUpdate).length > 0) {
-      await db.update(users).set(profileUpdate).where(eq(users.clerkId, userId));
+      await db.update(users).set(profileUpdate).where(eq(users.authEmail, userId));
     }
 
     await importStravaGear(userId, {

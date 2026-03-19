@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Activity, Users, Calendar, ChevronRight, Zap, Route, Clock, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useLang } from '@/lib/lang';
 
 interface StravaStatus {
   connected: boolean;
@@ -20,6 +21,7 @@ interface StravaActivity {
 }
 
 export default function EnduranceHubPage() {
+  const { t, lang } = useLang();
   const [stravaStatus, setStravaStatus] = useState<StravaStatus | null>(null);
   const [activities, setActivities] = useState<StravaActivity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,6 +69,7 @@ export default function EnduranceHubPage() {
   const weeklyKm = activities.reduce((sum, a) => sum + a.distance / 1000, 0);
   const weeklyGoal = 50;
   const progressPct = Math.min((weeklyKm / weeklyGoal) * 100, 100);
+  const dateLocale = lang === 'pl' ? 'pl-PL' : 'en-US';
 
   return (
     <div className="p-4 md:p-6 max-w-5xl mx-auto md:pb-6">
@@ -76,18 +79,18 @@ export default function EnduranceHubPage() {
           <Activity className="w-5 h-5 text-[#6366F1]" />
         </div>
         <div>
-          <h1 className="font-display text-3xl text-white tracking-wider">ENDURANCE HUB</h1>
-          <p className="text-[#888888] text-sm">Running · Cycling · Swimming · Triathlon</p>
+          <h1 className="font-display text-3xl text-white tracking-wider">{t('hub_endurance_title')}</h1>
+          <p className="text-[#888888] text-sm">{t('hub_endurance_subtitle')}</p>
         </div>
       </div>
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         {[
-          { label: 'Ten tydzień', value: weeklyKm.toFixed(1) + ' km', icon: Route, color: '#6366F1' },
-          { label: 'Aktywności', value: String(activities.length), icon: Zap, color: '#00CC88' },
-          { label: 'Czas ruchu', value: formatDuration(activities.reduce((s, a) => s + a.moving_time, 0)), icon: Clock, color: '#FFD700' },
-          { label: 'Cel tygodniowy', value: weeklyGoal + ' km', icon: TrendingUp, color: '#6366F1' },
+          { label: t('hub_end_this_week'), value: weeklyKm.toFixed(1) + ' km', icon: Route, color: '#6366F1' },
+          { label: t('hub_end_activities'), value: String(activities.length), icon: Zap, color: '#00CC88' },
+          { label: t('hub_end_moving_time'), value: formatDuration(activities.reduce((s, a) => s + a.moving_time, 0)), icon: Clock, color: '#FFD700' },
+          { label: t('hub_end_weekly_goal'), value: weeklyGoal + ' km', icon: TrendingUp, color: '#6366F1' },
         ].map((stat) => {
           const Icon = stat.icon;
           return (
@@ -105,7 +108,7 @@ export default function EnduranceHubPage() {
       {/* Weekly distance progress */}
       <div className="bg-[var(--bg-card)] border border-[var(--border)] p-5 mb-6">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-display text-sm text-[#888888] tracking-wider">TYGODNIOWY CEL DYSTANSU</h2>
+          <h2 className="font-display text-sm text-[#888888] tracking-wider">{t('hub_end_weekly_dist_goal')}</h2>
           <span className="text-xs text-[#6366F1] font-semibold">
             {weeklyKm.toFixed(1)} / {weeklyGoal} km
           </span>
@@ -116,17 +119,17 @@ export default function EnduranceHubPage() {
             style={{ width: `${progressPct}%` }}
           />
         </div>
-        <p className="text-xs text-[#555555] mt-2">{Math.round(progressPct)}% celu</p>
+        <p className="text-xs text-[#555555] mt-2">{Math.round(progressPct)}% {t('hub_end_of_goal')}</p>
       </div>
 
       {/* Strava section */}
       <div className="bg-[var(--bg-card)] border border-[var(--border)] p-5 mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display text-sm text-[#888888] tracking-wider">OSTATNIE AKTYWNOŚCI</h2>
+          <h2 className="font-display text-sm text-[#888888] tracking-wider">{t('hub_end_recent_activities')}</h2>
           {stravaStatus?.connected && (
             <span className="flex items-center gap-1.5 text-xs text-green-400">
               <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
-              Strava połączona
+              {t('hub_end_strava_connected')}
             </span>
           )}
         </div>
@@ -140,26 +143,26 @@ export default function EnduranceHubPage() {
         ) : !stravaStatus?.connected ? (
           <div className="text-center py-8">
             <Activity className="w-10 h-10 text-[#2A2A2A] mx-auto mb-3" />
-            <p className="text-[#888888] text-sm mb-3">Połącz Stravę, aby zobaczyć swoje aktywności</p>
+            <p className="text-[#888888] text-sm mb-3">{t('hub_end_connect_strava')}</p>
             <Link href="/profile">
-              <Button size="sm">Połącz ze Stravą</Button>
+              <Button size="sm">{t('hub_end_connect_btn')}</Button>
             </Link>
           </div>
         ) : activities.length === 0 ? (
-          <p className="text-[#888888] text-sm text-center py-6">Brak ostatnich aktywności ze Stravy</p>
+          <p className="text-[#888888] text-sm text-center py-6">{t('hub_end_no_activities')}</p>
         ) : (
           <div className="flex flex-col gap-2">
             {activities.map((activity) => (
               <div
                 key={activity.id}
-                className="flex items-center gap-4 p-3 bg-[var(--bg-card)] border border-[var(--border)] hover:border-[var(--border)] transition-colors"
+                className="flex items-center gap-4 p-3 bg-[var(--bg-card)] border border-[var(--border)] hover:border-[#6366F1] transition-colors"
               >
                 <div className="w-8 h-8 bg-[rgba(99,102,241,0.1)] flex items-center justify-center shrink-0">
                   <Activity className="w-4 h-4 text-[#6366F1]" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-white font-medium truncate">{activity.name}</p>
-                  <p className="text-xs text-[#555555]">{formatSportType(activity.sport_type)} · {new Date(activity.start_date).toLocaleDateString()}</p>
+                  <p className="text-xs text-[#555555]">{formatSportType(activity.sport_type)} · {new Date(activity.start_date).toLocaleDateString(dateLocale)}</p>
                 </div>
                 <div className="text-right shrink-0">
                   <p className="text-sm text-white font-display">{formatDistance(activity.distance)}</p>
@@ -173,12 +176,12 @@ export default function EnduranceHubPage() {
 
       {/* Quick links */}
       <div className="bg-[var(--bg-card)] border border-[var(--border)] p-5">
-        <h2 className="font-display text-sm text-[#888888] tracking-wider mb-4">SZYBKIE AKCJE</h2>
+        <h2 className="font-display text-sm text-[#888888] tracking-wider mb-4">{t('hub_end_quick_actions')}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {[
-            { href: '/discover?sport=running', label: 'Znajdź Biegaczy', icon: Users },
-            { href: '/discover?sport=cycling', label: 'Znajdź Kolarzy', icon: Users },
-            { href: '/sessions/new', label: 'Nowa Sesja', icon: Calendar },
+            { href: '/discover?sport=running', label: t('hub_end_find_runners'), icon: Users },
+            { href: '/discover?sport=cycling', label: t('hub_end_find_cyclists'), icon: Users },
+            { href: '/sessions/new', label: t('hub_end_new_session'), icon: Calendar },
           ].map((link) => {
             const Icon = link.icon;
             return (

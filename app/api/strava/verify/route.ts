@@ -3,11 +3,12 @@ import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { stravaActivities, users } from '@/lib/db/schema';
 import { and, eq, gte } from 'drizzle-orm';
+import { unauthorized, notFound, serverError } from '@/lib/api-errors';
 
 export async function POST() {
   const userId = await getAuthUserId();
   if (!userId) {
-    return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+    return unauthorized();
   }
 
   try {
@@ -15,10 +16,10 @@ export async function POST() {
   const userRows = await db
     .select()
     .from(users)
-    .where(eq(users.clerkId, userId));
+    .where(eq(users.authEmail, userId));
 
   if (userRows.length === 0) {
-    return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    return notFound('User not found');
   }
 
   const user = userRows[0];
@@ -93,7 +94,7 @@ export async function POST() {
     await db
       .update(users)
       .set({ stravaVerified: verified, verifiedPacePerKm: actualPace })
-      .where(eq(users.clerkId, userId));
+      .where(eq(users.authEmail, userId));
 
     return NextResponse.json({
       verified,
@@ -109,7 +110,7 @@ export async function POST() {
   await db
     .update(users)
     .set({ stravaVerified: verified, verifiedPacePerKm: actualPace })
-    .where(eq(users.clerkId, userId));
+    .where(eq(users.authEmail, userId));
 
   return NextResponse.json({
     verified,
@@ -121,6 +122,6 @@ export async function POST() {
   });
   } catch (err) {
     console.error('POST /api/strava/verify error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

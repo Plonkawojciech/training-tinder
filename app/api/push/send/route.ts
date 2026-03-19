@@ -3,6 +3,7 @@ import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { pushSubscriptions, friends, sessionParticipants } from '@/lib/db/schema';
 import { eq, and, or, inArray } from 'drizzle-orm';
+import { unauthorized, forbidden, serverError, badRequest, apiError, ErrorCode } from '@/lib/api-errors';
 
 const VAPID_CONFIGURED = Boolean(
   process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY && process.env.VAPID_EMAIL
@@ -10,10 +11,10 @@ const VAPID_CONFIGURED = Boolean(
 
 export async function POST(request: Request) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   if (!VAPID_CONFIGURED) {
-    return NextResponse.json({ error: 'Push notifications not configured' }, { status: 503 });
+    return apiError(ErrorCode.INTERNAL_SERVER_ERROR, 'Push notifications not configured', 503);
   }
 
   try {
@@ -21,7 +22,7 @@ export async function POST(request: Request) {
     const { userId: targetUserId, title, body: notifBody, url } = body;
 
     if (!targetUserId || !title || !notifBody) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      return badRequest(ErrorCode.MISSING_FIELDS, 'Missing required fields');
     }
 
     // Authorization: sender can push to themselves, accepted friends, or co-participants in a shared session
@@ -75,7 +76,7 @@ export async function POST(request: Request) {
       }
 
       if (!authorized) {
-        return NextResponse.json({ error: 'Not authorized to send push to this user' }, { status: 403 });
+        return forbidden('Not authorized to send push to this user');
       }
     }
 
@@ -105,6 +106,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ sent });
   } catch (err) {
     console.error('POST /api/push/send error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

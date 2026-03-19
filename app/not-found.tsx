@@ -1,6 +1,10 @@
+'use client';
+
 import Link from 'next/link';
+import { useLang } from '@/lib/lang';
 
 export default function NotFound() {
+  const { t } = useLang();
   return (
     <div
       style={{
@@ -41,7 +45,7 @@ export default function NotFound() {
           letterSpacing: '-0.02em',
         }}
       >
-        Strona nie istnieje
+        {t('notfound_title')}
       </h1>
 
       <p
@@ -53,7 +57,7 @@ export default function NotFound() {
           marginBottom: 32,
         }}
       >
-        Nie znaleziono strony, której szukasz. Mogła zostać usunięta lub adres jest nieprawidłowy.
+        {t('notfound_desc')}
       </p>
 
       <Link
@@ -73,7 +77,7 @@ export default function NotFound() {
           boxShadow: '0 4px 14px rgba(99, 102, 241, 0.3)',
         }}
       >
-        Wróć na stronę główną
+        {t('notfound_back')}
       </Link>
     </div>
   );

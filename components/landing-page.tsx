@@ -2,95 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-
-const MARQUEE_ITEMS = [
-  'KOLARSTWO', 'BIEGANIE', 'TRIATHLON', 'PŁYWANIE', 'TRAIL RUNNING',
-  'GRAVEL', 'SIŁOWNIA', 'MTB', 'DUATHLON', 'CROSSFIT', 'WIOSŁOWANIE',
-  'KOLARSTWO', 'BIEGANIE', 'TRIATHLON', 'PŁYWANIE', 'TRAIL RUNNING',
-  'GRAVEL', 'SIŁOWNIA', 'MTB', 'DUATHLON', 'CROSSFIT', 'WIOSŁOWANIE',
-];
-
-const PILLARS = [
-  {
-    num: '01',
-    title: 'Odkryj',
-    subtitle: 'Athlete Discovery',
-    desc: 'System dopasowania oparty na prawdziwych danych treningowych — tempo, poziom, lokalizacja, dostępność. Żadnego self-reportingu. Tylko weryfikowane profile.',
-    tags: ['Strava Sync', 'Geolokalizacja', 'Matching'],
-  },
-  {
-    num: '02',
-    title: 'Sesje',
-    subtitle: 'Group Sessions',
-    desc: 'Twórz sesje grupowe lub dołącz do istniejących. Kolarstwo, bieganie, siłownia — każda sesja z poziomem trudności, limitem uczestników i trasą GPX.',
-    tags: ['Live Tracking', 'GPX Routes', 'Limity'],
-  },
-  {
-    num: '03',
-    title: 'Społeczność',
-    subtitle: 'Athlete Community',
-    desc: 'Feed aktywności, forum sportowe, rankingi, znajomi — platforma społecznościowa stworzona specjalnie dla sportowców, nie dla influencerów.',
-    tags: ['Feed', 'Forum', 'Leaderboard'],
-  },
-];
-
-const FEATURES = [
-  {
-    num: '01',
-    title: 'Weryfikacja tempa',
-    desc: 'Synchronizujemy realne dane z Twojej historii treningowej. Koniec z sesją "rekreacyjną", która okazuje się wyścigiem.',
-  },
-  {
-    num: '02',
-    title: 'Sesje na żywo',
-    desc: 'Twórz lub dołączaj do sesji dzisiaj — z lokalizacją startową, limitem uczestników i opcjonalnym plikiem GPX trasy.',
-  },
-  {
-    num: '03',
-    title: 'Real-time Chat',
-    desc: 'Wbudowany komunikator na bazie Pusher. Koordynuj punkt zbiórki, udostępniaj trasy, organizuj sesję bez wychodzenia z apki.',
-  },
-  {
-    num: '04',
-    title: 'Kalendarz treningowy',
-    desc: 'Planuj tydzień z wyprzedzeniem. System automatycznie dopasowuje Ci partnerów do każdego zaplanowanego okna treningowego.',
-  },
-  {
-    num: '05',
-    title: 'Gym Tracker',
-    desc: 'Kompletny moduł siłowniany — logi treningowe, ćwiczenia, serie, ciężary, rekordy osobiste. Wszystko w jednym miejscu.',
-  },
-  {
-    num: '06',
-    title: 'Rekordy & Statystyki',
-    desc: 'Śledź swoje PR, heatmapy aktywności, wykresy postępu. Połącz ze Stravą, żeby mieć pełny obraz swojej formy.',
-  },
-];
-
-const STATS = [
-  { value: '4 200+', label: 'Sportowców' },
-  { value: '89', label: 'Miast' },
-  { value: '14 000+', label: 'Sesji' },
-  { value: '98%', label: 'Show Rate' },
-];
-
-const STEPS = [
-  {
-    n: '01',
-    title: 'Stwórz profil',
-    desc: 'Zarejestruj się i połącz konto Strava. System automatycznie buduje Twój profil sportowy na podstawie prawdziwej historii treningowej.',
-  },
-  {
-    n: '02',
-    title: 'Znajdź zawodników',
-    desc: 'Przeglądaj sportowców w Twojej okolicy. Filtruj po sporcie, tempie, poziomie i dostępności. Swipuj, dopasowuj, rozmawiaj.',
-  },
-  {
-    n: '03',
-    title: 'Trenuj razem',
-    desc: 'Stwórz sesję lub dołącz do istniejącej. Udostępnij trasę, określ punkt zbiórki, potwierdź uczestników i wyjedź.',
-  },
-];
+import { useLang } from '@/lib/lang';
 
 function useInView(threshold = 0.15) {
   const ref = useRef<HTMLDivElement>(null);
@@ -111,12 +23,70 @@ function useInView(threshold = 0.15) {
 export default function LandingPage({ userId }: { userId: string | null }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const { t } = useLang();
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 40);
     window.addEventListener('scroll', handler, { passive: true });
     return () => window.removeEventListener('scroll', handler);
   }, []);
+
+  const MARQUEE_ITEMS = [
+    t('landing_marquee_cycling'), t('landing_marquee_running'), t('landing_marquee_triathlon'),
+    t('landing_marquee_swimming'), t('landing_marquee_trail'), t('landing_marquee_gravel'),
+    t('landing_marquee_gym'), t('landing_marquee_mtb'), t('landing_marquee_duathlon'),
+    t('landing_marquee_crossfit'), t('landing_marquee_rowing'),
+    t('landing_marquee_cycling'), t('landing_marquee_running'), t('landing_marquee_triathlon'),
+    t('landing_marquee_swimming'), t('landing_marquee_trail'), t('landing_marquee_gravel'),
+    t('landing_marquee_gym'), t('landing_marquee_mtb'), t('landing_marquee_duathlon'),
+    t('landing_marquee_crossfit'), t('landing_marquee_rowing'),
+  ];
+
+  const PILLARS = [
+    {
+      num: '01',
+      title: t('landing_pillar1_title'),
+      subtitle: t('landing_pillar1_subtitle'),
+      desc: t('landing_pillar1_desc'),
+      tags: [t('landing_pillar1_tag1'), t('landing_pillar1_tag2'), t('landing_pillar1_tag3')],
+    },
+    {
+      num: '02',
+      title: t('landing_pillar2_title'),
+      subtitle: t('landing_pillar2_subtitle'),
+      desc: t('landing_pillar2_desc'),
+      tags: [t('landing_pillar2_tag1'), t('landing_pillar2_tag2'), t('landing_pillar2_tag3')],
+    },
+    {
+      num: '03',
+      title: t('landing_pillar3_title'),
+      subtitle: t('landing_pillar3_subtitle'),
+      desc: t('landing_pillar3_desc'),
+      tags: [t('landing_pillar3_tag1'), t('landing_pillar3_tag2'), t('landing_pillar3_tag3')],
+    },
+  ];
+
+  const FEATURES = [
+    { num: '01', title: t('landing_feat1_title'), desc: t('landing_feat1_desc') },
+    { num: '02', title: t('landing_feat2_title'), desc: t('landing_feat2_desc') },
+    { num: '03', title: t('landing_feat3_title'), desc: t('landing_feat3_desc') },
+    { num: '04', title: t('landing_feat4_title'), desc: t('landing_feat4_desc') },
+    { num: '05', title: t('landing_feat5_title'), desc: t('landing_feat5_desc') },
+    { num: '06', title: t('landing_feat6_title'), desc: t('landing_feat6_desc') },
+  ];
+
+  const STATS = [
+    { value: '4 200+', label: t('landing_stat_athletes') },
+    { value: '89', label: t('landing_stat_cities') },
+    { value: '14 000+', label: t('landing_stat_sessions') },
+    { value: '98%', label: t('landing_stat_show_rate') },
+  ];
+
+  const STEPS = [
+    { n: '01', title: t('landing_step1_title'), desc: t('landing_step1_desc') },
+    { n: '02', title: t('landing_step2_title'), desc: t('landing_step2_desc') },
+    { n: '03', title: t('landing_step3_title'), desc: t('landing_step3_desc') },
+  ];
 
   return (
     <>
@@ -511,7 +481,7 @@ export default function LandingPage({ userId }: { userId: string | null }) {
           background: #080808;
         }
         .lp-ecosystem-grid {
-          display: grid; grid-template-columns: 1fr 1fr; gap: 2px;
+          display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px;
           margin-top: 80px;
         }
         .lp-eco-card {
@@ -524,6 +494,12 @@ export default function LandingPage({ userId }: { userId: string | null }) {
           border-radius: 2px 0 0 2px;
         }
         .lp-eco-card-trainpilot {
+          background: #0f0f0f;
+          border: 1px solid rgba(255,255,255,0.06);
+          border-left: none;
+          border-radius: 0;
+        }
+        .lp-eco-card-trainhealth {
           background: #0f0f0f;
           border: 1px solid rgba(255,255,255,0.06);
           border-left: none;
@@ -706,7 +682,8 @@ export default function LandingPage({ userId }: { userId: string | null }) {
           .lp-ecosystem { padding: 80px 20px; }
           .lp-ecosystem-grid { grid-template-columns: 1fr; }
           .lp-eco-card-trainmate { border-radius: 2px 2px 0 0; }
-          .lp-eco-card-trainpilot { border-left: 1px solid rgba(255,255,255,0.06); border-top: none; border-radius: 0 0 2px 2px; }
+          .lp-eco-card-trainpilot { border-left: 1px solid rgba(255,255,255,0.06); border-top: none; border-radius: 0; }
+          .lp-eco-card-trainhealth { border-left: 1px solid rgba(255,255,255,0.06); border-top: none; border-radius: 0 0 2px 2px; }
           .lp-eco-card { padding: 48px 32px; }
           .lp-cta { padding: 100px 20px; }
           .lp-footer { padding: 48px 20px; }
@@ -722,32 +699,32 @@ export default function LandingPage({ userId }: { userId: string | null }) {
           onClick={() => setMenuOpen(false)}
           style={{ position: 'absolute', top: 24, right: 20, background: 'none', border: 'none', color: 'white', fontSize: 14, cursor: 'pointer', letterSpacing: '0.06em' }}
         >
-          ZAMKNIJ ✕
+          {t('landing_close')} ✕
         </button>
-        <a href="#how" onClick={() => setMenuOpen(false)}>Jak to działa</a>
-        <a href="#features" onClick={() => setMenuOpen(false)}>Funkcje</a>
-        <a href="#ecosystem" onClick={() => setMenuOpen(false)}>Ekosystem</a>
-        <Link href="/register" onClick={() => setMenuOpen(false)} style={{ marginTop: 32, fontSize: 14, fontWeight: 700, background: '#6366F1', color: 'white', padding: '16px 40px', borderRadius: 10, textDecoration: 'none' }}>
-          Dołącz za darmo
+        <a href="#how" onClick={() => setMenuOpen(false)}>{t('landing_how_it_works')}</a>
+        <a href="#features" onClick={() => setMenuOpen(false)}>{t('landing_features')}</a>
+        <a href="#ecosystem" onClick={() => setMenuOpen(false)}>{t('landing_ecosystem')}</a>
+        <Link href="/login" onClick={() => setMenuOpen(false)} style={{ marginTop: 32, fontSize: 14, fontWeight: 700, background: '#6366F1', color: 'white', padding: '16px 40px', borderRadius: 10, textDecoration: 'none' }}>
+          {t('landing_join')}
         </Link>
       </div>
 
       {/* ─── NAV ─── */}
       <nav className="lp-nav">
-        <Link href="/" className="lp-logo">Train<span>Mate</span></Link>
+        <Link href="/" className="lp-logo">Athlix <span>TrainMate</span></Link>
         <ul className="lp-nav-links">
-          <li><a href="#how">Jak to działa</a></li>
-          <li><a href="#features">Funkcje</a></li>
-          <li><a href="#ecosystem">Ekosystem</a></li>
+          <li><a href="#how">{t('landing_how_it_works')}</a></li>
+          <li><a href="#features">{t('landing_features')}</a></li>
+          <li><a href="#ecosystem">{t('landing_ecosystem')}</a></li>
         </ul>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           {!userId && (
             <Link href="/login" className="lp-btn-outline" style={{ padding: '9px 20px', borderRadius: 8, fontSize: 13 }}>
-              Zaloguj
+              {t('landing_login')}
             </Link>
           )}
-          <Link href={userId ? '/dashboard' : '/register'} className="lp-nav-cta">
-            {userId ? 'Dashboard' : 'Dołącz za darmo'}
+          <Link href={userId ? '/dashboard' : '/login'} className="lp-nav-cta">
+            {userId ? 'Dashboard' : t('landing_join')}
           </Link>
         </div>
         <button className="lp-hamburger" onClick={() => setMenuOpen(true)}>
@@ -761,28 +738,27 @@ export default function LandingPage({ userId }: { userId: string | null }) {
         <div className="lp-hero-glow" />
         <div className="lp-hero-eyebrow">
           <span className="lp-live-dot" />
-          Sesje treningowe trwają teraz w Twojej okolicy
+          {t('landing_hero_eyebrow')}
         </div>
         <h1 className="lp-hero-title">
-          TRENUJ<br />
-          <span className="lp-accent">RAZEM.</span><br />
-          <span className="lp-stroke">DALEJ.</span>
+          {t('landing_hero_line1')}<br />
+          <span className="lp-accent">{t('landing_hero_line2')}</span><br />
+          <span className="lp-stroke">{t('landing_hero_line3')}</span>
         </h1>
         <p className="lp-hero-sub">
-          Platforma społecznościowa dla sportowców, którzy traktują trening poważnie.
-          Znajdź partnerów o Twoim tempie, dołącz do sesji, buduj pack.
+          {t('landing_hero_sub')}
         </p>
         <div className="lp-hero-ctas">
-          <Link href={userId ? '/dashboard' : '/register'} className="lp-btn-primary">
-            {userId ? 'Przejdź do dashboardu →' : 'Zacznij za darmo →'}
+          <Link href={userId ? '/dashboard' : '/login'} className="lp-btn-primary">
+            {userId ? t('landing_hero_cta_dashboard') : t('landing_hero_cta_join')}
           </Link>
           <Link href={userId ? '/discover' : '/login'} className="lp-btn-outline">
-            {userId ? 'Odkryj sportowców' : 'Zaloguj się'}
+            {userId ? t('landing_hero_cta_discover') : t('landing_login')}
           </Link>
         </div>
         <div className="lp-hero-scroll">
           <span className="lp-scroll-line" />
-          Przewiń
+          {t('landing_hero_scroll')}
         </div>
       </section>
 
@@ -800,14 +776,14 @@ export default function LandingPage({ userId }: { userId: string | null }) {
 
       {/* ─── PILLARS ─── */}
       <section className="lp-pillars" id="features">
-        <div className="lp-section-eyebrow">Co oferuje TrainMate</div>
+        <div className="lp-section-eyebrow">{t('landing_pillars_eyebrow')}</div>
         <div className="lp-pillars-header">
           <h2 className="lp-pillars-title">
-            JEDNA PLATFORMA.<br />
-            TRZY FILARY.
+            {t('landing_pillars_title_line1')}<br />
+            {t('landing_pillars_title_line2')}
           </h2>
           <p className="lp-pillars-sub">
-            Odkrywanie partnerów, organizacja sesji i społeczność sportowa — razem w jednym miejscu.
+            {t('landing_pillars_sub')}
           </p>
         </div>
         <div className="lp-pillars-grid">
@@ -832,13 +808,13 @@ export default function LandingPage({ userId }: { userId: string | null }) {
       {/* ─── FEATURES ─── */}
       <section className="lp-features">
         <div className="lp-features-header">
-          <div className="lp-section-eyebrow">Wszystkie funkcje</div>
+          <div className="lp-section-eyebrow">{t('landing_features_eyebrow')}</div>
           <h2 className="lp-features-title">
-            ZBUDOWANE DLA<br />
-            <span style={{ color: '#6366F1' }}>SPORTOWCÓW.</span>
+            {t('landing_features_title_line1')}<br />
+            <span style={{ color: '#6366F1' }}>{t('landing_features_title_line2')}</span>
           </h2>
           <p className="lp-features-desc">
-            Żadnych zbędnych funkcji. Każde narzędzie rozwiązuje konkretny problem, z którym mierzą się aktywni sportowcy codziennie.
+            {t('landing_features_desc')}
           </p>
         </div>
         <div className="lp-features-grid">
@@ -850,10 +826,10 @@ export default function LandingPage({ userId }: { userId: string | null }) {
 
       {/* ─── HOW IT WORKS ─── */}
       <section className="lp-how" id="how">
-        <div className="lp-section-eyebrow">Jak to działa</div>
+        <div className="lp-section-eyebrow">{t('landing_how_eyebrow')}</div>
         <h2 className="lp-features-title" style={{ marginBottom: 0 }}>
-          TRZY KROKI<br />
-          DO <span style={{ color: '#6366F1' }}>SWOJEGO PACK&apos;U.</span>
+          {t('landing_how_title_line1')}<br />
+          {t('landing_how_title_line2')} <span style={{ color: '#6366F1' }}>{t('landing_how_title_line3')}</span>
         </h2>
         <div className="lp-how-grid">
           {STEPS.map((step) => (
@@ -869,50 +845,64 @@ export default function LandingPage({ userId }: { userId: string | null }) {
 
       {/* ─── ECOSYSTEM ─── */}
       <section className="lp-ecosystem" id="ecosystem">
-        <div className="lp-section-eyebrow">Ekosystem Athlix</div>
+        <div className="lp-section-eyebrow">{t('landing_eco_eyebrow')}</div>
         <h2 className="lp-features-title" style={{ marginBottom: 20 }}>
-          DWA NARZĘDZIA.<br />
-          JEDNO <span style={{ color: '#6366F1' }}>ŚRODOWISKO.</span>
+          {t('landing_eco_title_line1')}<br />
+          {t('landing_eco_title_line2')} <span style={{ color: '#6366F1' }}>{t('landing_eco_title_line3')}</span>
         </h2>
         <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.4)', maxWidth: 560, lineHeight: 1.7 }}>
-          TrainMate to platforma społeczna dla sportowców. TrainPilot to Twój prywatny panel analityczny.
-          Razem tworzą kompletny ekosystem dla aktywnej osoby.
+          {t('landing_eco_desc')}
         </p>
         <div className="lp-ecosystem-grid">
           <div className="lp-eco-card lp-eco-card-trainmate">
-            <div className="lp-eco-badge lp-eco-badge-primary">TrainMate · Teraz tutaj</div>
-            <h3 className="lp-eco-title">Platforma społeczna</h3>
+            <div className="lp-eco-badge lp-eco-badge-primary">{t('landing_eco_tm_badge')}</div>
+            <h3 className="lp-eco-title">{t('landing_eco_tm_title')}</h3>
             <p className="lp-eco-desc">
-              Znajdź partnerów treningowych, organizuj sesje grupowe, buduj społeczność wokół swojego sportu.
-              Forum, feed aktywności, leaderboard, rekordy — wszystko, co łączy sportowców.
+              {t('landing_eco_tm_desc')}
             </p>
             <ul className="lp-eco-features">
-              <li>Swipe discovery — znajdź sportowców w okolicy</li>
-              <li>Sesje grupowe z GPX, limitem i trackerem</li>
-              <li>Real-time chat przez Pusher</li>
-              <li>Forum, feed, znajomi, rankingi</li>
-              <li>Strava sync, gym tracker, rekordy PR</li>
+              <li>{t('landing_eco_tm_feat1')}</li>
+              <li>{t('landing_eco_tm_feat2')}</li>
+              <li>{t('landing_eco_tm_feat3')}</li>
+              <li>{t('landing_eco_tm_feat4')}</li>
+              <li>{t('landing_eco_tm_feat5')}</li>
             </ul>
-            <Link href={userId ? '/dashboard' : '/register'} className="lp-eco-link">
-              {userId ? 'Przejdź do dashboardu' : 'Dołącz do TrainMate'} →
+            <Link href={userId ? '/dashboard' : '/login'} className="lp-eco-link">
+              {userId ? t('landing_eco_tm_cta_dashboard') : t('landing_eco_tm_cta_join')} →
             </Link>
           </div>
           <div className="lp-eco-card lp-eco-card-trainpilot">
-            <div className="lp-eco-badge lp-eco-badge-secondary">TrainPilot · Analityka</div>
-            <h3 className="lp-eco-title" style={{ color: 'rgba(255,255,255,0.7)' }}>Prywatny panel wydajności</h3>
+            <div className="lp-eco-badge lp-eco-badge-secondary">{t('landing_eco_tp_badge')}</div>
+            <h3 className="lp-eco-title" style={{ color: 'rgba(255,255,255,0.7)' }}>{t('landing_eco_tp_title')}</h3>
             <p className="lp-eco-desc">
-              Jeśli TrainMate to Twoje życie społeczne sportowca, TrainPilot to Twoje laboratorium.
-              Garmin sync, HRV, sen, dieta, FTP, CTL/ATL, krzywa mocy, AI briefing — codziennie.
+              {t('landing_eco_tp_desc')}
             </p>
             <ul className="lp-eco-features" style={{ '--eco-line': 'rgba(255,255,255,0.2)' } as React.CSSProperties}>
-              <li style={{ '--before-bg': 'rgba(255,255,255,0.2)' } as React.CSSProperties}>Garmin — TSS, CTL/ATL/TSB, moc, NP</li>
-              <li>Sen, HRV, RHR — codziennie</li>
-              <li>Kalorie i makro dopasowane do obciążenia</li>
-              <li>Parametry ciała — waga, tkanka, pomiary</li>
-              <li>AI Briefing generowany przez Claude</li>
+              <li style={{ '--before-bg': 'rgba(255,255,255,0.2)' } as React.CSSProperties}>{t('landing_eco_tp_feat1')}</li>
+              <li>{t('landing_eco_tp_feat2')}</li>
+              <li>{t('landing_eco_tp_feat3')}</li>
+              <li>{t('landing_eco_tp_feat4')}</li>
+              <li>{t('landing_eco_tp_feat5')}</li>
             </ul>
             <a href="https://trainpilot.vercel.app" target="_blank" rel="noopener noreferrer" className="lp-eco-link-muted">
               trainpilot.vercel.app →
+            </a>
+          </div>
+          <div className="lp-eco-card lp-eco-card-trainhealth">
+            <div className="lp-eco-badge lp-eco-badge-secondary">Health & Recovery</div>
+            <h3 className="lp-eco-title" style={{ color: 'rgba(255,255,255,0.7)', whiteSpace: 'pre-line' }}>{'Health &\nRecovery Analytics'}</h3>
+            <p className="lp-eco-desc">
+              TrainHealth to bezpłatna alternatywa WHOOP. Monitoruj tętno przez Bluetooth, śledź recovery score, strain, sen i otrzymuj AI coaching — bez subskrypcji.
+            </p>
+            <ul className="lp-eco-features" style={{ '--eco-line': 'rgba(255,255,255,0.2)' } as React.CSSProperties}>
+              <li>BLE HR — Polar, Garmin, Wahoo, WHOOP</li>
+              <li>Recovery score (0-100) z predykcją</li>
+              <li>Strain & HR zones (TRIMP)</li>
+              <li>Sleep tracking & hypnogram</li>
+              <li>AI Health Coach</li>
+            </ul>
+            <a href="https://athlix-health.vercel.app" target="_blank" rel="noopener noreferrer" className="lp-eco-link-muted">
+              athlix-health.vercel.app →
             </a>
           </div>
         </div>
@@ -921,27 +911,26 @@ export default function LandingPage({ userId }: { userId: string | null }) {
       {/* ─── CTA ─── */}
       <section className="lp-cta">
         <div className="lp-cta-glow" />
-        <p className="lp-cta-label">Gotowy na zmianę</p>
+        <p className="lp-cta-label">{t('landing_cta_label')}</p>
         <h2 className="lp-cta-title">
-          PRZESTAŃ<br />
-          TRENOWAĆ<br />
-          <span>SAM.</span>
+          {t('landing_cta_line1')}<br />
+          {t('landing_cta_line2')}<br />
+          <span>{t('landing_cta_line3')}</span>
         </h2>
         <p className="lp-cta-sub">
-          Dołącz do 4 200 sportowców, którzy każdego dnia trenują razem w swojej okolicy.
-          Rejestracja zajmuje 60 sekund.
+          {t('landing_cta_sub')}
         </p>
         <div className="lp-cta-actions">
           <Link
-            href={userId ? '/dashboard' : '/register'}
+            href={userId ? '/dashboard' : '/login'}
             className="lp-btn-primary"
             style={{ fontSize: 15, padding: '18px 52px' }}
           >
-            {userId ? 'Przejdź do dashboardu →' : 'Dołącz za darmo →'}
+            {userId ? t('landing_hero_cta_dashboard') : t('landing_hero_cta_join')}
           </Link>
           {!userId && (
             <Link href="/login" className="lp-btn-outline" style={{ fontSize: 15, padding: '18px 36px' }}>
-              Już masz konto
+              {t('landing_login')}
             </Link>
           )}
         </div>
@@ -952,10 +941,11 @@ export default function LandingPage({ userId }: { userId: string | null }) {
         <div className="lp-footer-inner">
           <Link href="/" className="lp-footer-logo">Train<span>Mate</span></Link>
           <ul className="lp-footer-links">
-            <li><a href="#features">Funkcje</a></li>
-            <li><a href="#how">Jak to działa</a></li>
-            <li><a href="#ecosystem">TrainPilot</a></li>
-            <li><a href="/register">Rejestracja</a></li>
+            <li><a href="#features">{t('landing_footer_features')}</a></li>
+            <li><a href="#how">{t('landing_footer_how')}</a></li>
+            <li><a href="https://trainpilot.vercel.app" target="_blank" rel="noopener noreferrer">TrainPilot</a></li>
+            <li><a href="https://athlix-health.vercel.app" target="_blank" rel="noopener noreferrer">TrainHealth</a></li>
+            <li><a href="/login">{t('landing_footer_registration')}</a></li>
           </ul>
         </div>
         <div className="lp-footer-bottom">

@@ -17,7 +17,7 @@ const ChatWindow = nextDynamic(
 
 interface MatchResult {
   user: {
-    clerkId: string;
+    authEmail: string;
     username: string | null;
     avatarUrl: string | null;
     sportTypes: string[];
@@ -26,16 +26,17 @@ interface MatchResult {
 }
 
 interface ConversationPartner {
-  clerkId: string;
+  authEmail: string;
   username: string | null;
   avatarUrl: string | null;
   lastMessage?: string;
   lastMessageTime?: string;
+  unreadCount?: number;
 }
 
 function MessagesPageInner() {
   const user = useSafeUser();
-  const { lang } = useLang();
+  const { t } = useLang();
   const searchParams = useSearchParams();
   const partnerParam = searchParams.get('partner');
   const partnerName = searchParams.get('name');
@@ -45,36 +46,76 @@ function MessagesPageInner() {
   const [searchQ, setSearchQ] = useState('');
 
   useEffect(() => {
-    async function fetchMatches() {
+    async function fetchConversations() {
       try {
-        const res = await fetch('/api/matches?radius=500');
-        if (res.ok) {
-          const data: MatchResult[] = await res.json();
-          const ps: ConversationPartner[] = data.map((m) => ({
-            clerkId: m.user.clerkId,
+        // Fetch matches and conversation previews in parallel (single batch query, no N+1)
+        const [matchRes, convRes] = await Promise.all([
+          fetch('/api/matches?radius=500'),
+          fetch('/api/messages/conversations'),
+        ]);
+
+        const matchData: MatchResult[] = matchRes.ok ? await matchRes.json() : [];
+        const convData: { partnerId: string; content: string; createdAt: string }[] =
+          convRes.ok ? await convRes.json() : [];
+
+        // Build a lookup map for conversation previews
+        const convMap = new Map<string, { content: string; createdAt: string }>();
+        for (const c of convData) {
+          convMap.set(c.partnerId, { content: c.content, createdAt: c.createdAt });
+        }
+
+        // Build partner list from matches
+        const ps: ConversationPartner[] = matchData.map((m) => {
+          const conv = convMap.get(m.user.authEmail);
+          return {
+            authEmail: m.user.authEmail,
             username: m.user.username,
             avatarUrl: m.user.avatarUrl,
-          }));
-          setPartners(ps);
+            lastMessage: conv?.content?.slice(0, 50) || undefined,
+            lastMessageTime: conv?.createdAt || undefined,
+          };
+        });
 
-          // Auto-open a conversation if ?partner=clerkId is in URL
-          if (partnerParam) {
-            const found = ps.find((p) => p.clerkId === partnerParam);
-            if (found) {
-              setSelected(found);
-            } else {
-              // Partner not in matches yet — add stub to list and open chat
-              const stub: ConversationPartner = { clerkId: partnerParam, username: partnerName, avatarUrl: null };
-              setPartners([stub, ...ps]);
-              setSelected(stub);
-            }
+        // Add conversation partners who aren't in matches (e.g. past matches)
+        for (const c of convData) {
+          if (!ps.some((p) => p.authEmail === c.partnerId)) {
+            ps.push({
+              authEmail: c.partnerId,
+              username: null,
+              avatarUrl: null,
+              lastMessage: c.content?.slice(0, 50) || undefined,
+              lastMessageTime: c.createdAt || undefined,
+            });
+          }
+        }
+
+        // Sort by last message time (newest first)
+        ps.sort((a, b) => {
+          if (!a.lastMessageTime && !b.lastMessageTime) return 0;
+          if (!a.lastMessageTime) return 1;
+          if (!b.lastMessageTime) return -1;
+          return new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime();
+        });
+
+        setPartners(ps);
+
+        // Auto-open a conversation if ?partner=authEmail is in URL
+        if (partnerParam) {
+          const found = ps.find((p) => p.authEmail === partnerParam);
+          if (found) {
+            setSelected(found);
+          } else {
+            // Partner not in matches yet — add stub to list and open chat
+            const stub: ConversationPartner = { authEmail: partnerParam, username: partnerName, avatarUrl: null };
+            setPartners([stub, ...ps]);
+            setSelected(stub);
           }
         }
       } finally {
         setLoading(false);
       }
     }
-    fetchMatches();
+    fetchConversations();
   }, [partnerParam, partnerName]);
 
   const filtered = partners.filter((p) =>
@@ -83,28 +124,24 @@ function MessagesPageInner() {
 
   if (!user.isLoaded) return null;
 
-  const emptyLabel = lang === 'pl'
-    ? 'Brak rozmów. Swipuj i znajdź kogoś!'
-    : 'No conversations yet. Go swipe!';
-  const searchPlaceholder = lang === 'pl' ? 'Szukaj...' : 'Search...';
-  const title = lang === 'pl' ? 'Wiadomości' : 'Messages';
-  const selectLabel = lang === 'pl' ? 'Wybierz rozmowę' : 'Select a conversation';
-  const selectSub = lang === 'pl'
-    ? 'Kliknij kontakt po lewej, żeby napisać'
-    : 'Choose an athlete from the list to start chatting';
+  const emptyLabel = t('msg_empty');
+  const searchPlaceholder = t('msg_search');
+  const title = t('msg_title');
+  const selectLabel = t('msg_select');
+  const selectSub = t('msg_select_sub');
 
   // ─── Conversation list panel ─────────────────────────────────────────
   const ConversationList = (
     <div style={{
       display: 'flex', flexDirection: 'column',
       height: '100%',
-      background: '#080808',
+      background: 'var(--bg)',
     }}>
       {/* Header */}
       <div style={{
         padding: '16px 16px 12px',
         borderBottom: '1px solid rgba(255,255,255,0.07)',
-        background: 'rgba(10,10,10,0.97)',
+        background: 'var(--bg-card)',
         backdropFilter: 'blur(20px)',
         flexShrink: 0,
       }}>
@@ -115,13 +152,14 @@ function MessagesPageInner() {
         <div style={{ position: 'relative' }}>
           <Search style={{
             position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
-            width: 15, height: 15, color: '#444',
+            width: 15, height: 15, color: 'var(--text-dim)',
           }} />
           <input
             type="text"
             value={searchQ}
             onChange={(e) => setSearchQ(e.target.value)}
             placeholder={searchPlaceholder}
+            aria-label={searchPlaceholder}
             style={{
               width: '100%', boxSizing: 'border-box',
               background: 'rgba(255,255,255,0.05)',
@@ -174,18 +212,18 @@ function MessagesPageInner() {
               background: 'rgba(255,255,255,0.04)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <MessageSquare style={{ width: 28, height: 28, color: '#333' }} />
+              <MessageSquare style={{ width: 28, height: 28, color: 'var(--text-dim)' }} />
             </div>
-            <p style={{ color: '#444', fontSize: 13, textAlign: 'center', lineHeight: 1.5 }}>
+            <p style={{ color: 'var(--text-dim)', fontSize: 13, textAlign: 'center', lineHeight: 1.5 }}>
               {emptyLabel}
             </p>
           </div>
         ) : (
           filtered.map((partner) => {
-            const isActive = selected?.clerkId === partner.clerkId;
+            const isActive = selected?.authEmail === partner.authEmail;
             return (
               <button
-                key={partner.clerkId}
+                key={partner.authEmail}
                 onClick={() => setSelected(partner)}
                 style={{
                   width: '100%', textAlign: 'left',
@@ -209,25 +247,32 @@ function MessagesPageInner() {
                   <span style={{
                     position: 'absolute', bottom: 0, right: 0,
                     width: 10, height: 10, borderRadius: '50%',
-                    background: '#333', border: '2px solid #080808',
+                    background: 'var(--text-dim)', border: '2px solid var(--bg)',
                   }} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{
-                    color: 'white', fontWeight: 600, fontSize: 14,
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  }}>
-                    {partner.username ?? 'Sportowiec'}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                    <div style={{
+                      color: 'white', fontWeight: 600, fontSize: 14,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>
+                      {partner.username ?? t('gen_athlete')}
+                    </div>
+                    {partner.lastMessageTime && (
+                      <span style={{ color: 'var(--text-dim)', fontSize: 11, flexShrink: 0 }}>
+                        {new Date(partner.lastMessageTime).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                      </span>
+                    )}
                   </div>
                   <div style={{
-                    color: '#555', fontSize: 12,
+                    color: 'var(--text-muted)', fontSize: 14,
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     marginTop: 2,
                   }}>
-                    {partner.lastMessage ?? (lang === 'pl' ? 'Dotknij, żeby napisać' : 'Tap to message')}
+                    {partner.lastMessage ?? t('msg_tap')}
                   </div>
                 </div>
-                <ChevronRight style={{ width: 15, height: 15, color: '#333', flexShrink: 0 }} />
+                <ChevronRight style={{ width: 15, height: 15, color: 'var(--text-dim)', flexShrink: 0 }} />
               </button>
             );
           })
@@ -241,7 +286,7 @@ function MessagesPageInner() {
     <div style={{
       flex: 1, display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
-      background: '#080808', gap: 16,
+      background: 'var(--bg)', gap: 16,
     }}>
       <div style={{
         width: 80, height: 80, borderRadius: '50%',
@@ -255,7 +300,7 @@ function MessagesPageInner() {
         <div style={{ color: 'white', fontWeight: 700, fontSize: 16, textAlign: 'center', marginBottom: 6 }}>
           {selectLabel}
         </div>
-        <div style={{ color: '#444', fontSize: 13, textAlign: 'center' }}>{selectSub}</div>
+        <div style={{ color: 'var(--text-dim)', fontSize: 13, textAlign: 'center' }}>{selectSub}</div>
       </div>
     </div>
   );
@@ -263,7 +308,8 @@ function MessagesPageInner() {
   return (
     <>
       {/* ─── MOBILE ─── */}
-      <div className="md:hidden" style={{ height: 'calc(100dvh - 64px)', position: 'relative', overflow: 'hidden' }}>
+      {/* Full-screen mobile chat: subtract bottom nav height + safe area */}
+      <div className="md:hidden" style={{ height: 'calc(100dvh - var(--nav-h, 60px) - env(safe-area-inset-bottom, 0px))', position: 'relative', overflow: 'hidden' }}>
         {/* Contact list — always rendered, hidden when chat open */}
         <div style={{
           position: 'absolute', inset: 0,
@@ -283,7 +329,7 @@ function MessagesPageInner() {
           {selected && (
             <ChatWindow
               currentUserId={user.id || ''}
-              partnerId={selected.clerkId}
+              partnerId={selected.authEmail}
               partnerName={selected.username}
               partnerAvatar={selected.avatarUrl}
               onBack={() => setSelected(null)}
@@ -308,7 +354,7 @@ function MessagesPageInner() {
           {selected ? (
             <ChatWindow
               currentUserId={user.id || ''}
-              partnerId={selected.clerkId}
+              partnerId={selected.authEmail}
               partnerName={selected.username}
               partnerAvatar={selected.avatarUrl}
             />

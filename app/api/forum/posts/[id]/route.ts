@@ -3,17 +3,18 @@ import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { forumPosts, forumComments, forumLikes, users } from '@/lib/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
+import { unauthorized, forbidden, notFound, serverError, badRequest, ErrorCode } from '@/lib/api-errors';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   const { id } = await params;
   const postId = parseInt(id);
-  if (isNaN(postId)) return NextResponse.json({ error: 'Invalid post id' }, { status: 400 });
+  if (isNaN(postId)) return badRequest(ErrorCode.INVALID_INPUT, 'Invalid post id');
 
   try {
     const postRows = await db
@@ -23,7 +24,7 @@ export async function GET(
       .limit(1);
 
     if (!postRows.length) {
-      return NextResponse.json({ error: 'Post not found' }, { status: 404 });
+      return notFound('Post not found');
     }
 
     const post = postRows[0];
@@ -37,10 +38,10 @@ export async function GET(
     // Batch-fetch all needed users (post author + all comment authors) in one query
     const allUserIds = [...new Set([post.userId, ...comments.map((c) => c.userId)])];
     const allUserRows = await db
-      .select({ clerkId: users.clerkId, username: users.username, avatarUrl: users.avatarUrl })
+      .select({ authEmail: users.authEmail, username: users.username, avatarUrl: users.avatarUrl })
       .from(users)
-      .where(inArray(users.clerkId, allUserIds));
-    const userMap = Object.fromEntries(allUserRows.map((u) => [u.clerkId, u]));
+      .where(inArray(users.authEmail, allUserIds));
+    const userMap = Object.fromEntries(allUserRows.map((u) => [u.authEmail, u]));
 
     const enrichedComments = comments.map((comment) => ({
       ...comment,
@@ -59,7 +60,7 @@ export async function GET(
     });
   } catch (err) {
     console.error('GET /api/forum/posts/[id] error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }
 
@@ -68,11 +69,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   const { id } = await params;
   const postId = parseInt(id);
-  if (isNaN(postId)) return NextResponse.json({ error: 'Invalid post id' }, { status: 400 });
+  if (isNaN(postId)) return badRequest(ErrorCode.INVALID_INPUT, 'Invalid post id');
 
   try {
     const postRows = await db
@@ -82,11 +83,11 @@ export async function DELETE(
       .limit(1);
 
     if (!postRows.length) {
-      return NextResponse.json({ error: 'Post not found' }, { status: 404 });
+      return notFound('Post not found');
     }
 
     if (postRows[0].userId !== userId) {
-      return NextResponse.json({ error: 'Brak dostępu' }, { status: 403 });
+      return forbidden();
     }
 
     // Delete all related records before deleting the post
@@ -97,6 +98,6 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error('DELETE /api/forum/posts/[id] error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

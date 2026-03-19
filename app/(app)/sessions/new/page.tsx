@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input, Textarea } from '@/components/ui/input';
 import { SPORTS, getSportColor, GYM_SPORTS } from '@/lib/utils';
 import { SeriesForm, DEFAULT_SERIES_FORM, type SeriesFormData } from '@/components/sessions/series-form';
+import { useLang } from '@/lib/lang';
 
 const CYCLING_SPORTS = ['cycling', 'gravel', 'mtb', 'duathlon', 'triathlon'];
 const RUNNING_SPORTS = ['running', 'trail_running'];
@@ -44,21 +45,40 @@ interface FormData {
   terrain: string; // 'road' | 'trail' | 'track' | ''
 }
 
-const EQUIPMENT_OPTIONS = [
-  'Sztanga', 'Hantle', 'Kable', 'Klatka squat', 'Ławka',
-  'Drążek', 'Kettlebell', 'Gumy oporowe', 'Bez sprzętu',
+const EQUIPMENT_OPTIONS: { value: string; key: 'equip_barbell' | 'equip_dumbbells' | 'equip_cables' | 'equip_squat_rack' | 'equip_bench' | 'equip_pull_up_bar' | 'equip_kettlebell' | 'equip_resistance_bands' | 'equip_no_equipment' }[] = [
+  { value: 'barbell', key: 'equip_barbell' },
+  { value: 'dumbbells', key: 'equip_dumbbells' },
+  { value: 'cables', key: 'equip_cables' },
+  { value: 'squat_rack', key: 'equip_squat_rack' },
+  { value: 'bench', key: 'equip_bench' },
+  { value: 'pull_up_bar', key: 'equip_pull_up_bar' },
+  { value: 'kettlebell', key: 'equip_kettlebell' },
+  { value: 'resistance_bands', key: 'equip_resistance_bands' },
+  { value: 'no_equipment', key: 'equip_no_equipment' },
 ];
 
-const WORKOUT_TYPES = ['push', 'pull', 'nogi', 'full body', 'góra', 'dół', 'własny'];
-const STRENGTH_LEVELS_LABELS: Record<string, string> = {
-  beginner: 'Początkujący', intermediate: 'Średniozaaw.', advanced: 'Zaawansowany', elite: 'Elita',
-};
+const WORKOUT_TYPES: { value: string; key: 'wtype_push' | 'wtype_pull' | 'wtype_legs' | 'wtype_full_body' | 'wtype_upper' | 'wtype_lower' | 'wtype_custom' }[] = [
+  { value: 'push', key: 'wtype_push' },
+  { value: 'pull', key: 'wtype_pull' },
+  { value: 'legs', key: 'wtype_legs' },
+  { value: 'full_body', key: 'wtype_full_body' },
+  { value: 'upper', key: 'wtype_upper' },
+  { value: 'lower', key: 'wtype_lower' },
+  { value: 'custom', key: 'wtype_custom' },
+];
 const STRENGTH_LEVELS = ['beginner', 'intermediate', 'advanced', 'elite'];
 
 type SessionMode = 'one-time' | 'recurring';
 
 export default function NewSessionPage() {
   const router = useRouter();
+  const { t } = useLang();
+  const STRENGTH_LEVELS_LABELS: Record<string, string> = {
+    beginner: t('nsess_level_beginner'),
+    intermediate: t('nsess_level_intermediate'),
+    advanced: t('nsess_level_advanced'),
+    elite: t('nsess_level_elite'),
+  };
   const [mode, setMode] = useState<SessionMode>('one-time');
   const [form, setForm] = useState<FormData>({
     title: '',
@@ -134,7 +154,7 @@ export default function NewSessionPage() {
       const { url } = await res.json() as { url: string };
       handleChange('gpxUrl', url);
     } catch {
-      setError('Błąd wgrywania GPX');
+      setError(t('nsess_err_gpx'));
     } finally {
       setGpxUploading(false);
     }
@@ -143,7 +163,7 @@ export default function NewSessionPage() {
   async function handleSubmitOneTime(e: React.FormEvent) {
     e.preventDefault();
     if (!form.title || !form.sportType || !form.date || !form.time || !form.location) {
-      setError('Wypełnij wszystkie wymagane pola');
+      setError(t('nsess_err_required'));
       return;
     }
 
@@ -185,7 +205,7 @@ export default function NewSessionPage() {
       const session = await res.json() as { id: number };
       router.push(`/sessions/${session.id}`);
     } catch {
-      setError('Nie udało się utworzyć sesji. Spróbuj ponownie.');
+      setError(t('nsess_err_create'));
     } finally {
       setSubmitting(false);
     }
@@ -194,7 +214,7 @@ export default function NewSessionPage() {
   async function handleSubmitSeries(e: React.FormEvent) {
     e.preventDefault();
     if (!seriesForm.title || !seriesForm.sport || !seriesForm.location || !seriesForm.startDate || !seriesForm.time) {
-      setError('Wypełnij wymagane pola: tytuł, sport, lokalizacja, data, godzina');
+      setError(t('nsess_err_series_required'));
       return;
     }
 
@@ -225,7 +245,7 @@ export default function NewSessionPage() {
       if (!res.ok) throw new Error('Failed to create recurring series');
       router.push('/sessions/series');
     } catch {
-      setError('Nie udało się utworzyć serii. Spróbuj ponownie.');
+      setError(t('nsess_err_series_create'));
     } finally {
       setSubmitting(false);
     }
@@ -233,7 +253,7 @@ export default function NewSessionPage() {
 
   return (
     <div className="p-4 md:p-6 max-w-2xl mx-auto">
-      <h1 className="font-display text-2xl md:text-3xl tracking-wider mb-6" style={{ color: 'var(--text)' }}>NOWA SESJA</h1>
+      <h1 className="font-display text-2xl md:text-3xl tracking-wider mb-6" style={{ color: 'var(--text)' }}>{t('nsess_title')}</h1>
 
       {/* Mode toggle */}
       <div className="flex items-center border border-[var(--border)] mb-8 w-fit">
@@ -245,7 +265,7 @@ export default function NewSessionPage() {
           }`}
         >
           <Calendar className="w-3.5 h-3.5" />
-          Jednorazowa
+          {t('nsess_tab_onetime')}
         </button>
         <button
           type="button"
@@ -255,7 +275,7 @@ export default function NewSessionPage() {
           }`}
         >
           <Repeat className="w-3.5 h-3.5" />
-          Cykliczna
+          {t('nsess_tab_recurring')}
         </button>
       </div>
 
@@ -265,7 +285,7 @@ export default function NewSessionPage() {
           {/* Sport type */}
           <div>
             <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-3">
-              Typ sportu *
+              {t('nsess_sport_type')}
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
               {SPORTS.slice(0, 8).map((sport) => {
@@ -312,28 +332,28 @@ export default function NewSessionPage() {
           </div>
 
           <Input
-            label="Tytuł sesji *"
+            label={t('nsess_session_title')}
             value={form.title}
             onChange={(e) => handleChange('title', e.target.value)}
-            placeholder="np. Sobotnia jazda grupowa"
+            placeholder={t('nsess_session_title_ph')}
           />
 
           <Textarea
-            label="Opis"
+            label={t('nsess_description')}
             value={form.description}
             onChange={(e) => handleChange('description', e.target.value)}
-            placeholder="Opisz sesję, trasę, poziom trudności, co zabrać..."
+            placeholder={t('nsess_description_ph')}
           />
 
           <div className="grid grid-cols-2 gap-4">
             <Input
-              label="Data *"
+              label={t('nsess_date')}
               type="date"
               value={form.date}
               onChange={(e) => handleChange('date', e.target.value)}
             />
             <Input
-              label="Godzina startu *"
+              label={t('nsess_start_time')}
               type="time"
               value={form.time}
               onChange={(e) => handleChange('time', e.target.value)}
@@ -341,43 +361,43 @@ export default function NewSessionPage() {
           </div>
 
           <Input
-            label="Miejsce zbiórki *"
+            label={t('nsess_meeting_point')}
             value={form.location}
             onChange={(e) => handleChange('location', e.target.value)}
-            placeholder="np. Wejście do parku od południa"
+            placeholder={t('nsess_meeting_point_ph')}
           />
 
           {/* Gym-specific fields */}
           {isGymSport && (
             <div className="border-t border-[var(--border)] pt-4">
-              <p className="text-xs font-bold text-[#6366F1] uppercase tracking-wider mb-4">Ustawienia treningu siłowego</p>
+              <p className="text-xs font-bold text-[#6366F1] uppercase tracking-wider mb-4">{t('nsess_gym_settings')}</p>
 
               <div className="flex flex-col gap-4">
                 <Input
-                  label="Nazwa siłowni / adres"
+                  label={t('nsess_gym_name')}
                   value={form.gymName}
                   onChange={(e) => handleChange('gymName', e.target.value)}
-                  placeholder="np. Gold's Gym, ul. Przykładowa 1"
+                  placeholder={t('nsess_gym_name_ph')}
                 />
 
                 <div>
                   <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-2">
-                    Typ treningu
+                    {t('nsess_workout_type')}
                   </label>
                   <div className="grid grid-cols-4 gap-2">
-                    {WORKOUT_TYPES.map((type) => (
+                    {WORKOUT_TYPES.map((wt) => (
                       <button
-                        key={type}
+                        key={wt.value}
                         type="button"
-                        onClick={() => handleChange('workoutType', form.workoutType === type ? '' : type)}
+                        onClick={() => handleChange('workoutType', form.workoutType === wt.value ? '' : wt.value)}
                         className="p-2 border text-xs font-medium capitalize transition-all"
                         style={
-                          form.workoutType === type
+                          form.workoutType === wt.value
                             ? { borderColor: '#6366F1', background: 'rgba(99,102,241,0.1)', color: '#6366F1' }
                             : { borderColor: '#2A2A2A', background: 'transparent', color: '#888888' }
                         }
                       >
-                        {type}
+                        {t(wt.key)}
                       </button>
                     ))}
                   </div>
@@ -385,7 +405,7 @@ export default function NewSessionPage() {
 
                 <div>
                   <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-2">
-                    Min. poziom zaawansowania
+                    {t('nsess_min_level')}
                   </label>
                   <div className="grid grid-cols-4 gap-2">
                     {STRENGTH_LEVELS.map((level) => {
@@ -415,16 +435,16 @@ export default function NewSessionPage() {
 
                 <div>
                   <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-2">
-                    Potrzebny sprzęt
+                    {t('nsess_equipment')}
                   </label>
                   <div className="grid grid-cols-3 gap-2">
-                    {EQUIPMENT_OPTIONS.map((item) => {
-                      const isSelected = form.equipmentNeeded.includes(item);
+                    {EQUIPMENT_OPTIONS.map((eq) => {
+                      const isSelected = form.equipmentNeeded.includes(eq.value);
                       return (
                         <button
-                          key={item}
+                          key={eq.value}
                           type="button"
-                          onClick={() => toggleEquipment(item)}
+                          onClick={() => toggleEquipment(eq.value)}
                           className="p-2 border text-xs font-medium transition-all"
                           style={
                             isSelected
@@ -432,7 +452,7 @@ export default function NewSessionPage() {
                               : { borderColor: '#2A2A2A', background: 'transparent', color: '#888888' }
                           }
                         >
-                          {item}
+                          {t(eq.key)}
                         </button>
                       );
                     })}
@@ -445,11 +465,11 @@ export default function NewSessionPage() {
           {/* Cycling-specific fields */}
           {isCyclingSport && (
             <div className="border-t border-[var(--border)] pt-4">
-              <p className="text-xs font-bold text-[#6366F1] uppercase tracking-wider mb-4">🚴 Szczegóły trasy rowerowej</p>
+              <p className="text-xs font-bold text-[#6366F1] uppercase tracking-wider mb-4">🚴 {t('nsess_cycling_details')}</p>
               <div className="flex flex-col gap-4">
                 <div className="grid grid-cols-2 gap-4">
                   <Input
-                    label="Szacowany dystans (km)"
+                    label={t('nsess_est_distance')}
                     type="number"
                     step="0.1"
                     min="0"
@@ -458,7 +478,7 @@ export default function NewSessionPage() {
                     placeholder="np. 80"
                   />
                   <Input
-                    label="Szacowany czas (min)"
+                    label={t('nsess_est_duration')}
                     type="number"
                     min="0"
                     value={form.estimatedDurationMin}
@@ -468,7 +488,7 @@ export default function NewSessionPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <Input
-                    label="Śr. moc docelowa (W)"
+                    label={t('nsess_target_power')}
                     type="number"
                     min="0"
                     value={form.targetAvgPowerWatts}
@@ -476,7 +496,7 @@ export default function NewSessionPage() {
                     placeholder="np. 200"
                   />
                   <Input
-                    label="Przewyższenie (m)"
+                    label={t('nsess_elevation')}
                     type="number"
                     min="0"
                     value={form.elevationGainM}
@@ -488,7 +508,7 @@ export default function NewSessionPage() {
                 {/* Stops */}
                 <div>
                   <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-2">
-                    Postoje / punkty kontrolne
+                    {t('nsess_stops')}
                   </label>
                   <div className="flex flex-col gap-2 mb-2">
                     {form.stops.map((stop, i) => (
@@ -496,14 +516,14 @@ export default function NewSessionPage() {
                         <span className="text-xs text-[#6366F1] font-bold w-4 shrink-0">{i + 1}.</span>
                         <input
                           type="text"
-                          placeholder="Nazwa (np. Kawiarnia Górska)"
+                          placeholder={t('nsess_stop_name_ph')}
                           value={stop.name}
                           onChange={(e) => updateStop(i, 'name', e.target.value)}
                           className="flex-1 bg-[var(--bg-elevated)] border border-[var(--border)] text-[var(--text)] text-sm px-3 py-2 rounded-xl focus:outline-none focus:border-[#6366F1]"
                         />
                         <input
                           type="text"
-                          placeholder="Lokalizacja / km"
+                          placeholder={t('nsess_stop_location_ph')}
                           value={stop.location}
                           onChange={(e) => updateStop(i, 'location', e.target.value)}
                           className="flex-1 bg-[var(--bg-elevated)] border border-[var(--border)] text-[var(--text)] text-sm px-3 py-2 rounded-xl focus:outline-none focus:border-[#6366F1]"
@@ -520,7 +540,7 @@ export default function NewSessionPage() {
                     className="flex items-center gap-2 text-xs font-semibold text-[#6366F1] hover:text-[#818CF8] transition-colors"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    Dodaj postój
+                    {t('nsess_add_stop')}
                   </button>
                 </div>
               </div>
@@ -530,11 +550,11 @@ export default function NewSessionPage() {
           {/* Running-specific fields */}
           {isRunningSport && (
             <div className="border-t border-[var(--border)] pt-4">
-              <p className="text-xs font-bold text-[#6366F1] uppercase tracking-wider mb-4">🏃 Szczegóły biegu</p>
+              <p className="text-xs font-bold text-[#6366F1] uppercase tracking-wider mb-4">🏃 {t('nsess_running_details')}</p>
               <div className="flex flex-col gap-4">
                 <div className="grid grid-cols-2 gap-4">
                   <Input
-                    label="Dystans (km)"
+                    label={t('nsess_distance')}
                     type="number"
                     step="0.1"
                     min="0"
@@ -543,7 +563,7 @@ export default function NewSessionPage() {
                     placeholder="np. 10"
                   />
                   <Input
-                    label="Szac. czas (min)"
+                    label={t('nsess_est_time_short')}
                     type="number"
                     min="0"
                     value={form.estimatedDurationMin}
@@ -553,14 +573,14 @@ export default function NewSessionPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <Input
-                    label="Docelowe tempo (min/km)"
+                    label={t('nsess_target_pace')}
                     type="text"
                     value={form.targetPaceSecPerKm}
                     onChange={(e) => handleChange('targetPaceSecPerKm', e.target.value)}
                     placeholder="np. 5:30"
                   />
                   <Input
-                    label="Przewyższenie (m)"
+                    label={t('nsess_elevation')}
                     type="number"
                     min="0"
                     value={form.elevationGainM}
@@ -570,20 +590,20 @@ export default function NewSessionPage() {
                 </div>
                 <div>
                   <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-2">
-                    Nawierzchnia
+                    {t('nsess_terrain')}
                   </label>
                   <div className="grid grid-cols-3 gap-2">
                     {[
-                      { value: 'road', label: '🛣️ Asfalt' },
-                      { value: 'trail', label: '🌿 Trail' },
-                      { value: 'track', label: '🏟️ Bieżnia' },
-                    ].map((t) => {
-                      const isSelected = form.terrain === t.value;
+                      { value: 'road', label: `🛣️ ${t('nsess_terrain_road')}` },
+                      { value: 'trail', label: `🌿 ${t('nsess_terrain_trail')}` },
+                      { value: 'track', label: `🏟️ ${t('nsess_terrain_track')}` },
+                    ].map((ter) => {
+                      const isSelected = form.terrain === ter.value;
                       return (
                         <button
-                          key={t.value}
+                          key={ter.value}
                           type="button"
-                          onClick={() => handleChange('terrain', form.terrain === t.value ? '' : t.value)}
+                          onClick={() => handleChange('terrain', form.terrain === ter.value ? '' : ter.value)}
                           className="p-2.5 border text-sm font-medium transition-all rounded-xl"
                           style={
                             isSelected
@@ -591,7 +611,7 @@ export default function NewSessionPage() {
                               : { borderColor: 'var(--border)', background: 'transparent', color: 'var(--text-muted)' }
                           }
                         >
-                          {t.label}
+                          {ter.label}
                         </button>
                       );
                     })}
@@ -604,12 +624,12 @@ export default function NewSessionPage() {
           {/* Privacy */}
           <div>
             <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-2">
-              Prywatność sesji
+              {t('nsess_privacy')}
             </label>
             <div className="grid grid-cols-2 gap-2">
               {[
-                { value: 'public', label: 'Publiczna', sublabel: 'Wszyscy w pobliżu', icon: Globe },
-                { value: 'friends', label: 'Znajomi', sublabel: 'Tylko zaakceptowani znajomi', icon: Users },
+                { value: 'public', label: t('nsess_privacy_public'), sublabel: t('nsess_privacy_public_sub'), icon: Globe },
+                { value: 'friends', label: t('nsess_privacy_friends'), sublabel: t('nsess_privacy_friends_sub'), icon: Users },
               ].map(({ value, label, sublabel, icon: Icon }) => {
                 const isSelected = form.privacy === value;
                 return (
@@ -638,7 +658,7 @@ export default function NewSessionPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <Input
-              label="Szerokość geogr. (opcjonalnie)"
+              label={t('nsess_lat')}
               type="number"
               step="any"
               value={form.lat}
@@ -646,7 +666,7 @@ export default function NewSessionPage() {
               placeholder="52.2297"
             />
             <Input
-              label="Długość geogr. (opcjonalnie)"
+              label={t('nsess_lon')}
               type="number"
               step="any"
               value={form.lon}
@@ -656,7 +676,7 @@ export default function NewSessionPage() {
           </div>
 
           <Input
-            label="Maks. uczestników"
+            label={t('nsess_max_participants')}
             type="number"
             min="2"
             max="100"
@@ -667,18 +687,18 @@ export default function NewSessionPage() {
           {!isGymSport && (
             <div>
               <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-3">
-                Plik GPX trasy (opcjonalnie)
+                {t('nsess_gpx_label')}
               </label>
               {form.gpxUrl ? (
                 <div className="flex items-center gap-3 p-3 bg-[var(--bg-card)] border border-[#00CC44]">
                   <Upload className="w-4 h-4 text-[#00CC44]" />
-                  <span className="text-sm text-[#00CC44]">GPX wgrany</span>
+                  <span className="text-sm text-[#00CC44]">{t('nsess_gpx_uploaded')}</span>
                   <button
                     type="button"
                     onClick={() => handleChange('gpxUrl', '')}
                     className="ml-auto text-[#888888] hover:text-red-400 text-xs"
                   >
-                    Usuń
+                    {t('gen_remove')}
                   </button>
                 </div>
               ) : (
@@ -687,7 +707,7 @@ export default function NewSessionPage() {
                   <div className="flex items-center gap-3 p-3 border border-dashed border-[var(--border)] text-[#888888] hover:border-[#6366F1] hover:text-white transition-all">
                     <Upload className="w-4 h-4" />
                     <span className="text-sm">
-                      {gpxUploading ? 'Wgrywanie...' : 'Kliknij, aby wgrać plik .gpx trasy'}
+                      {gpxUploading ? t('nsess_gpx_uploading') : t('nsess_gpx_upload_cta')}
                     </span>
                   </div>
                 </label>
@@ -706,11 +726,11 @@ export default function NewSessionPage() {
               onClick={() => router.back()}
               disabled={submitting}
             >
-              Anuluj
+              {t('gen_cancel')}
             </Button>
             <Button type="submit" loading={submitting} className="flex-1">
               <Plus className="w-4 h-4" />
-              Utwórz Sesję
+              {t('nsess_create_session')}
             </Button>
           </div>
         </form>
@@ -721,7 +741,7 @@ export default function NewSessionPage() {
         <form onSubmit={handleSubmitSeries} className="flex flex-col gap-6">
           <div className="border border-[#6366F1]/20 bg-[#6366F1]/5 p-3">
             <p className="text-xs text-[#A78BFA]">
-              Seria cykliczna automatycznie pojawi się na liście serii. Sportowcy mogą dołączyć i uczestniczyć w każdym kolejnym treningu.
+              {t('nsess_series_info')}
             </p>
           </div>
 
@@ -738,11 +758,11 @@ export default function NewSessionPage() {
               onClick={() => router.back()}
               disabled={submitting}
             >
-              Anuluj
+              {t('gen_cancel')}
             </Button>
             <Button type="submit" loading={submitting} className="flex-1">
               <Repeat className="w-4 h-4" />
-              Utwórz serię cykliczną
+              {t('nsess_create_series')}
             </Button>
           </div>
         </form>

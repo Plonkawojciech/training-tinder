@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { Send, ArrowLeft, MoreVertical } from 'lucide-react';
-import Pusher from 'pusher-js';
+import { Send, ArrowLeft, MoreVertical, RefreshCw } from 'lucide-react';
+import Pusher, { Channel } from 'pusher-js';
 import { Avatar } from '@/components/ui/avatar';
 import { formatRelativeTime } from '@/lib/utils';
 import { useLang } from '@/lib/lang';
@@ -32,43 +32,20 @@ export function ChatWindow({
   partnerAvatar,
   onBack,
 }: ChatWindowProps) {
-  const { t, lang } = useLang();
+  const { t } = useLang();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [partnerTyping, setPartnerTyping] = useState(false);
+  const [pusherConnected, setPusherConnected] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const channelRef = useRef<Channel | null>(null);
+  const partnerTypingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    fetchMessages();
-
-    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY ?? '', {
-      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER ?? 'eu',
-      authEndpoint: '/api/pusher/auth',
-    });
-
-    const channel = pusher.subscribe(`private-chat-${currentUserId}`);
-    channel.bind('new-message', (data: Message) => {
-      // Skip messages sent by currentUser — they were added optimistically
-      if (data.senderId === currentUserId) return;
-      if (data.senderId === partnerId && data.receiverId === currentUserId) {
-        setMessages((prev) => [...prev, data]);
-      }
-    });
-
-    return () => {
-      pusher.unsubscribe(`private-chat-${currentUserId}`);
-      pusher.disconnect();
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUserId, partnerId]);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  async function fetchMessages() {
+  const fetchMessages = useCallback(async () => {
     try {
       const res = await fetch(`/api/messages?partnerId=${partnerId}`);
       if (res.ok) {
@@ -78,7 +55,83 @@ export function ChatWindow({
     } finally {
       setLoading(false);
     }
+  }, [partnerId]);
+
+  useEffect(() => {
+    fetchMessages();
+
+    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY ?? '', {
+      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER ?? 'eu',
+      authEndpoint: '/api/pusher/auth',
+    });
+
+    // Track Pusher connection state
+    pusher.connection.bind('connected', () => setPusherConnected(true));
+    pusher.connection.bind('disconnected', () => setPusherConnected(false));
+    pusher.connection.bind('unavailable', () => setPusherConnected(false));
+    pusher.connection.bind('failed', () => setPusherConnected(false));
+
+    const channel = pusher.subscribe(`private-chat-${currentUserId}`);
+    channelRef.current = channel;
+
+    channel.bind('new-message', (data: Message) => {
+      // Skip messages sent by currentUser — they were added optimistically
+      if (data.senderId === currentUserId) return;
+      if (data.senderId === partnerId && data.receiverId === currentUserId) {
+        setMessages((prev) => [...prev, data]);
+        // Clear typing indicator when a message arrives from partner
+        setPartnerTyping(false);
+      }
+    });
+
+    // Listen for partner typing events
+    channel.bind('client-typing', (data: { userId: string }) => {
+      if (data.userId === partnerId) {
+        setPartnerTyping(true);
+        // Clear any existing timeout
+        if (partnerTypingTimeoutRef.current) {
+          clearTimeout(partnerTypingTimeoutRef.current);
+        }
+        // Auto-hide typing indicator after 3 seconds
+        partnerTypingTimeoutRef.current = setTimeout(() => {
+          setPartnerTyping(false);
+        }, 3000);
+      }
+    });
+
+    return () => {
+      channelRef.current = null;
+      pusher.unsubscribe(`private-chat-${currentUserId}`);
+      pusher.disconnect();
+      if (partnerTypingTimeoutRef.current) {
+        clearTimeout(partnerTypingTimeoutRef.current);
+      }
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, [currentUserId, partnerId, fetchMessages]);
+
+  // Emit typing event when the user types
+  function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setInput(e.target.value);
+
+    // Throttle typing events — only send once per 2 seconds
+    if (!typingTimeoutRef.current && channelRef.current) {
+      try {
+        channelRef.current.trigger('client-typing', { userId: currentUserId });
+      } catch {
+        // client events may not be enabled — silently ignore
+      }
+      typingTimeoutRef.current = setTimeout(() => {
+        typingTimeoutRef.current = null;
+      }, 2000);
+    }
   }
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   async function sendMessage(e: React.FormEvent) {
     e.preventDefault();
@@ -121,8 +174,8 @@ export function ChatWindow({
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(today.getDate() - 1);
-    if (d.toDateString() === today.toDateString()) return lang === 'en' ? 'Today' : 'Dzisiaj';
-    if (d.toDateString() === yesterday.toDateString()) return lang === 'en' ? 'Yesterday' : 'Wczoraj';
+    if (d.toDateString() === today.toDateString()) return t('chat_today');
+    if (d.toDateString() === yesterday.toDateString()) return t('chat_yesterday');
     return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
   }
 
@@ -150,14 +203,15 @@ export function ChatWindow({
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
-        background: '#080808',
+        background: 'var(--bg)',
         position: 'relative',
       }}
     >
       {/* Subtle grid background */}
       <div style={{
         position: 'absolute', inset: 0, pointerEvents: 'none',
-        backgroundImage: 'radial-gradient(rgba(255,255,255,0.015) 1px, transparent 1px)',
+        backgroundImage: 'radial-gradient(var(--border) 1px, transparent 1px)',
+        opacity: 0.3,
         backgroundSize: '24px 24px',
       }} />
 
@@ -165,8 +219,8 @@ export function ChatWindow({
       <div style={{
         display: 'flex', alignItems: 'center', gap: 12,
         padding: '12px 16px',
-        background: 'rgba(12,12,12,0.97)',
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        background: 'var(--bg-card)',
+        borderBottom: '1px solid var(--border)',
         backdropFilter: 'blur(20px)',
         flexShrink: 0,
         zIndex: 2,
@@ -174,12 +228,13 @@ export function ChatWindow({
         {onBack && (
           <button
             onClick={onBack}
+            aria-label={t('chat_back_aria')}
             style={{
-              width: 36, height: 36, borderRadius: 99,
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              width: 44, height: 44, borderRadius: 99,
+              background: 'var(--bg-elevated)',
+              border: '1px solid var(--border)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer', flexShrink: 0, color: 'white',
+              cursor: 'pointer', flexShrink: 0, color: 'var(--text)',
             }}
           >
             <ArrowLeft style={{ width: 16, height: 16 }} />
@@ -187,28 +242,86 @@ export function ChatWindow({
         )}
 
         <Link href={`/profile/${partnerId}`} style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', flex: 1, minWidth: 0 }}>
-          <div style={{ flexShrink: 0 }}>
+          <div style={{ flexShrink: 0, position: 'relative' }}>
             <Avatar src={partnerAvatar} fallback={partnerName ?? '?'} size="sm" />
+            {/* Online status dot */}
+            <span style={{
+              position: 'absolute', bottom: 0, right: 0,
+              width: 10, height: 10, borderRadius: '50%',
+              background: '#22C55E',
+              border: '2px solid var(--bg-card)',
+              display: pusherConnected ? 'block' : 'none',
+            }} />
           </div>
           <div style={{ minWidth: 0 }}>
-            <div style={{ color: 'white', fontWeight: 700, fontSize: 15, lineHeight: 1.2 }}>
-              {partnerName ?? 'Sportowiec'}
+            <div style={{ color: 'var(--text)', fontWeight: 700, fontSize: 15, lineHeight: 1.2 }}>
+              {partnerName ?? t('gen_athlete')}
+            </div>
+            <div
+              aria-live="polite"
+              aria-atomic="true"
+              style={{ minHeight: 16 }}
+            >
+              {partnerTyping && (
+                <div style={{
+                  color: '#818CF8', fontSize: 12, fontWeight: 500, lineHeight: 1.2,
+                  animation: 'chatTypingFade 0.3s ease-in',
+                }}>
+                  {t('chat_typing')}
+                </div>
+              )}
             </div>
           </div>
         </Link>
 
-        <button style={{
-          width: 36, height: 36, borderRadius: 99,
+        <button
+          aria-label={t('chat_more_aria')}
+          style={{
+          width: 44, height: 44, borderRadius: 99,
           background: 'transparent', border: 'none',
-          color: '#555', cursor: 'pointer',
+          color: 'var(--text-dim)', cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
           <MoreVertical style={{ width: 18, height: 18 }} />
         </button>
       </div>
 
+      {/* Offline / disconnected banner */}
+      {!pusherConnected && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          padding: '8px 16px',
+          background: 'rgba(239,68,68,0.1)',
+          borderBottom: '1px solid rgba(239,68,68,0.2)',
+          fontSize: 13, color: '#EF4444', fontWeight: 500,
+          flexShrink: 0, zIndex: 2,
+        }}>
+          <span>{t('chat_offline_banner')}</span>
+          <button
+            type="button"
+            onClick={() => { setLoading(true); fetchMessages(); }}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              padding: '4px 10px', borderRadius: 6,
+              background: 'rgba(239,68,68,0.15)',
+              border: '1px solid rgba(239,68,68,0.3)',
+              color: '#EF4444', fontWeight: 600, fontSize: 12,
+              cursor: 'pointer',
+            }}
+          >
+            <RefreshCw style={{ width: 12, height: 12 }} />
+            {t('chat_refresh')}
+          </button>
+        </div>
+      )}
+
+      {/* Typing indicator animation */}
+      <style>{`@keyframes chatTypingFade{from{opacity:0}to{opacity:1}}`}</style>
+
       {/* Messages area */}
-      <div style={{
+      <div
+        aria-live="polite"
+        style={{
         flex: 1, overflowY: 'auto', padding: '16px 12px',
         display: 'flex', flexDirection: 'column', gap: 2,
         position: 'relative', zIndex: 1,
@@ -217,7 +330,7 @@ export function ChatWindow({
           <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
             <div style={{
               width: 24, height: 24, borderRadius: '50%',
-              border: '2px solid #6366F1', borderTopColor: 'transparent',
+              border: '2px solid var(--accent, #6366F1)', borderTopColor: 'transparent',
               animation: 'spin 0.8s linear infinite',
             }} />
             <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
@@ -236,9 +349,9 @@ export function ChatWindow({
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 24,
             }}>👋</div>
-            <p style={{ color: '#555', fontSize: 14, textAlign: 'center', lineHeight: 1.5 }}>
+            <p style={{ color: 'var(--text-dim)', fontSize: 14, textAlign: 'center', lineHeight: 1.5 }}>
               {t('chat_empty')}<br />
-              <span style={{ color: '#818CF8', fontWeight: 700 }}>{partnerName ?? 'Sportowiec'}</span>
+              <span style={{ color: '#818CF8', fontWeight: 700 }}>{partnerName ?? t('gen_athlete')}</span>
             </p>
           </div>
         )}
@@ -249,7 +362,7 @@ export function ChatWindow({
             <React.Fragment key={msg.id}>
               {dayLabel && (
                 <div style={{
-                  textAlign: 'center', color: '#444', fontSize: 11,
+                  textAlign: 'center', color: 'var(--text-dim)', fontSize: 11,
                   fontWeight: 600, letterSpacing: '0.04em',
                   margin: '12px 0 4px',
                 }}>
@@ -283,9 +396,9 @@ export function ChatWindow({
                     borderRadius: isSent ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
                     background: isSent
                       ? 'linear-gradient(135deg, #6366F1, #818CF8)'
-                      : 'rgba(30,30,30,1)',
-                    border: isSent ? 'none' : '1px solid rgba(255,255,255,0.07)',
-                    color: 'white',
+                      : 'var(--bg-elevated)',
+                    border: isSent ? 'none' : '1px solid var(--border)',
+                    color: isSent ? 'white' : 'var(--text)',
                     fontSize: 14,
                     lineHeight: 1.45,
                     boxShadow: isSent
@@ -296,7 +409,7 @@ export function ChatWindow({
                     {msg.content}
                   </div>
                   {showAvatar && (
-                    <span style={{ color: '#3A3A3A', fontSize: 10 }}>
+                    <span style={{ color: 'var(--text-dim)', fontSize: 10 }}>
                       {formatRelativeTime(msg.createdAt)}
                     </span>
                   )}
@@ -314,8 +427,8 @@ export function ChatWindow({
         style={{
           display: 'flex', alignItems: 'center', gap: 10,
           padding: '10px 12px',
-          background: 'rgba(10,10,10,0.97)',
-          borderTop: '1px solid rgba(255,255,255,0.06)',
+          background: 'var(--bg-card)',
+          borderTop: '1px solid var(--border)',
           backdropFilter: 'blur(20px)',
           flexShrink: 0, zIndex: 2,
         }}
@@ -324,30 +437,32 @@ export function ChatWindow({
           ref={inputRef}
           type="text"
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={handleInputChange}
           placeholder={t('chat_placeholder')}
+          aria-label={t('chat_placeholder')}
           style={{
             flex: 1,
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.1)',
+            background: 'var(--bg-elevated)',
+            border: '1px solid var(--border)',
             borderRadius: 32,
             padding: '11px 18px',
-            color: 'white',
+            color: 'var(--text)',
             fontSize: 14,
             outline: 'none',
             transition: 'border-color 0.2s',
           }}
           onFocus={(e) => { e.target.style.borderColor = 'rgba(99,102,241,0.5)'; }}
-          onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+          onBlur={(e) => { e.target.style.borderColor = 'var(--border)'; }}
         />
         <button
           type="submit"
           disabled={!input.trim() || sending}
+          aria-label={t('chat_send_aria')}
           style={{
             width: 44, height: 44, borderRadius: '50%',
             background: input.trim() && !sending
               ? 'linear-gradient(135deg, #6366F1, #818CF8)'
-              : 'rgba(255,255,255,0.06)',
+              : 'var(--bg-elevated)',
             border: 'none',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: input.trim() && !sending ? 'pointer' : 'not-allowed',
@@ -358,7 +473,7 @@ export function ChatWindow({
         >
           <Send style={{
             width: 16, height: 16,
-            color: input.trim() && !sending ? 'white' : '#444',
+            color: input.trim() && !sending ? 'white' : 'var(--text-dim)',
             transform: 'translateX(1px)',
           }} />
         </button>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useLang } from '@/lib/lang';
 import {
   ExternalLink,
   CheckCircle2,
@@ -77,6 +78,7 @@ interface GarminResult {
 }
 
 function GarminImportSection({ garminUrl, setGarminUrl }: { garminUrl: string; setGarminUrl: (v: string) => void }) {
+  const { t } = useLang();
   const [mode, setMode] = useState<GarminMode>('url');
   const [cookies, setCookies] = useState('');
   const [loading, setLoading] = useState(false);
@@ -100,7 +102,7 @@ function GarminImportSection({ garminUrl, setGarminUrl }: { garminUrl: string; s
       const data = await res.json() as GarminResult;
       setResult(data);
     } catch {
-      setResult({ message: 'Błąd połączenia.' });
+      setResult({ message: t('garmin_conn_error') });
     } finally {
       setLoading(false);
     }
@@ -114,8 +116,8 @@ function GarminImportSection({ garminUrl, setGarminUrl }: { garminUrl: string; s
           <GarminIcon className="w-5 h-5 text-white" />
         </div>
         <div>
-          <h3 className="text-white font-medium text-sm">Import z Garmin Connect</h3>
-          <p className="text-[10px] text-[#555555]">VO2max, tygodniowe km, tempa</p>
+          <h3 className="text-white font-medium text-sm">{t('garmin_import_title')}</h3>
+          <p className="text-[10px] text-[#555555]">{t('garmin_import_subtitle')}</p>
         </div>
       </div>
 
@@ -131,7 +133,7 @@ function GarminImportSection({ garminUrl, setGarminUrl }: { garminUrl: string; s
               ? { background: '#005AA9', color: 'white' }
               : { background: 'transparent', color: '#555' }}
           >
-            {m === 'url' ? 'Link profilu' : 'Cookies (pełne dane)'}
+            {m === 'url' ? t('garmin_tab_url') : t('garmin_tab_cookies')}
           </button>
         ))}
       </div>
@@ -140,7 +142,7 @@ function GarminImportSection({ garminUrl, setGarminUrl }: { garminUrl: string; s
         {mode === 'url' ? (
           <div>
             <label className="block text-xs text-[#888888] uppercase tracking-wider mb-1.5">
-              URL profilu Garmin Connect
+              {t('garmin_url_label')}
             </label>
             <div className="flex gap-2">
               <input
@@ -156,7 +158,7 @@ function GarminImportSection({ garminUrl, setGarminUrl }: { garminUrl: string; s
               </Button>
             </div>
             <p className="text-[10px] text-[#555555] mt-1.5">
-              Profil musi być publiczny. Jeśli Garmin blokuje — użyj trybu Cookies.
+              {t('garmin_url_public_note')}
             </p>
           </div>
         ) : (
@@ -165,17 +167,17 @@ function GarminImportSection({ garminUrl, setGarminUrl }: { garminUrl: string; s
               <label className="text-xs text-[#888888] uppercase tracking-wider">Session cookies</label>
               <button type="button" onClick={() => setShowCookieHelp(v => !v)}
                 className="text-[10px] text-[#005AA9] hover:text-blue-300 flex items-center gap-1">
-                <Info className="w-3 h-3" /> Jak to zrobić?
+                <Info className="w-3 h-3" /> {t('garmin_cookies_how')}
               </button>
             </div>
 
             {showCookieHelp && (
               <div className="mb-3 p-3 bg-[var(--bg)] border border-[var(--border)] text-xs text-[#888888] space-y-1">
-                <p className="font-semibold text-white mb-2">Krok po kroku:</p>
-                <p>1. Otwórz <span className="text-blue-400">connect.garmin.com</span> i zaloguj się</p>
-                <p>2. Otwórz DevTools (F12) → Application → Cookies → connect.garmin.com</p>
-                <p>3. Skopiuj wartości: <code className="text-[#6366F1]">GARMIN-SSO-GUID</code>, <code className="text-[#6366F1]">JWT_FG</code>, <code className="text-[#6366F1]">SESSIONID</code></p>
-                <p>4. Wklej jako: <code className="text-[#888888]">GARMIN-SSO-GUID=xxx; JWT_FG=yyy; SESSIONID=zzz</code></p>
+                <p className="font-semibold text-white mb-2">{t('garmin_cookies_step_title')}</p>
+                <p>1. {t('garmin_cookies_step1')}</p>
+                <p>2. {t('garmin_cookies_step2')}</p>
+                <p>3. {t('garmin_cookies_step3')}</p>
+                <p>4. {t('garmin_cookies_step4')}</p>
               </div>
             )}
 
@@ -188,7 +190,7 @@ function GarminImportSection({ garminUrl, setGarminUrl }: { garminUrl: string; s
             />
             <Button type="submit" size="sm" disabled={loading || !cookies.trim()} className="w-full"
               style={{ background: '#005AA9', borderColor: '#005AA9' }}>
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><GarminIcon className="w-4 h-4" /> Importuj dane</>}
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><GarminIcon className="w-4 h-4" /> {t('garmin_import_btn')}</>}
             </Button>
           </div>
         )}
@@ -200,12 +202,12 @@ function GarminImportSection({ garminUrl, setGarminUrl }: { garminUrl: string; s
           {result.success ? (
             <div className="flex flex-col gap-1 text-xs">
               <div className="flex items-center gap-2 text-green-400 font-semibold mb-1">
-                <CheckCircle2 className="w-4 h-4" /> Import zakończony!
+                <CheckCircle2 className="w-4 h-4" /> {t('garmin_import_done')}
               </div>
-              {result.displayName && <span className="text-[#888888]">Konto: <span className="text-white">{result.displayName}</span></span>}
-              {result.weeklyKm && <span className="text-[#888888]">Tygodniowo: <span className="text-white">{result.weeklyKm} km</span></span>}
+              {result.displayName && <span className="text-[#888888]">{t('garmin_import_account')} <span className="text-white">{result.displayName}</span></span>}
+              {result.weeklyKm && <span className="text-[#888888]">{t('garmin_import_weekly')} <span className="text-white">{result.weeklyKm} km</span></span>}
               {result.vo2max && <span className="text-[#888888]">VO2max: <span className="text-white">{result.vo2max}</span></span>}
-              {result.avgSpeedKmh && <span className="text-[#888888]">Śr. prędkość: <span className="text-white">{result.avgSpeedKmh} km/h</span></span>}
+              {result.avgSpeedKmh && <span className="text-[#888888]">{t('garmin_import_avg_speed')} <span className="text-white">{result.avgSpeedKmh} km/h</span></span>}
             </div>
           ) : (
             <div className="text-xs text-[#888888]">
@@ -220,6 +222,7 @@ function GarminImportSection({ garminUrl, setGarminUrl }: { garminUrl: string; s
 }
 
 function ImportResultCard({ result, onDismiss }: { result: ImportResult; onDismiss: () => void }) {
+  const { t } = useLang();
   return (
     <div
       className={`p-4 border mt-4 ${
@@ -244,7 +247,7 @@ function ImportResultCard({ result, onDismiss }: { result: ImportResult; onDismi
               <div className="grid grid-cols-2 gap-2 mb-2">
                 {result.athleteName && (
                   <div className="col-span-2 text-xs text-[#888888]">
-                    Sportowiec: <span className="text-white">{result.athleteName}</span>
+                    {t('gen_athlete')}: <span className="text-white">{result.athleteName}</span>
                     {result.city && <span className="text-[#555555]"> · {result.city}</span>}
                   </div>
                 )}
@@ -255,17 +258,17 @@ function ImportResultCard({ result, onDismiss }: { result: ImportResult; onDismi
                 )}
                 {result.stats.ytdRunKm > 0 && (
                   <div className="text-xs text-[#888888]">
-                    Bieg od pocz. roku: <span className="text-white">{result.stats.ytdRunKm}km</span>
+                    {t('strava_year_run')} <span className="text-white">{result.stats.ytdRunKm}km</span>
                   </div>
                 )}
                 {result.stats.ytdRideKm > 0 && (
                   <div className="text-xs text-[#888888]">
-                    Kolarstwo od pocz. roku: <span className="text-white">{result.stats.ytdRideKm}km</span>
+                    {t('strava_year_ride')} <span className="text-white">{result.stats.ytdRideKm}km</span>
                   </div>
                 )}
                 {result.stats.recentRunKm > 0 && (
                   <div className="text-xs text-[#888888]">
-                    Bieg (ostatnie 4 tyg.): <span className="text-white">{result.stats.recentRunKm}km</span>
+                    {t('strava_recent_run')} <span className="text-white">{result.stats.recentRunKm}km</span>
                   </div>
                 )}
               </div>
@@ -288,7 +291,7 @@ function ImportResultCard({ result, onDismiss }: { result: ImportResult; onDismi
                 className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-[#FC4C02] text-white text-xs font-semibold hover:opacity-90 transition-opacity"
               >
                 <StravaIcon className="w-3.5 h-3.5" />
-                Połącz Stravę
+                {t('strava_connect_strava')}
                 <ArrowRight className="w-3 h-3" />
               </a>
             )}
@@ -300,7 +303,7 @@ function ImportResultCard({ result, onDismiss }: { result: ImportResult; onDismi
                 rel="noopener noreferrer"
                 className="mt-2 inline-flex items-center gap-1 text-xs text-[#888888] hover:text-white transition-colors"
               >
-                Zobacz profil na Stravie
+                {t('strava_view_profile')}
                 <ExternalLink className="w-3 h-3" />
               </a>
             )}
@@ -317,7 +320,113 @@ function ImportResultCard({ result, onDismiss }: { result: ImportResult; onDismi
   );
 }
 
+function StravaSyncSection({ onSyncComplete }: { onSyncComplete: () => void }) {
+  const { t } = useLang();
+  const [syncing, setSyncing] = useState(false);
+  const [stage, setStage] = useState('');
+  const [result, setResult] = useState<{ synced: number; pagesChecked: number } | null>(null);
+  const [error, setError] = useState('');
+
+  async function handleSync() {
+    setSyncing(true);
+    setResult(null);
+    setError('');
+
+    // Show progressive stages to give feedback during long sync
+    setStage(t('strava_sync_stage1'));
+    const stageTimer1 = setTimeout(() => setStage(t('strava_sync_stage2')), 3000);
+    const stageTimer2 = setTimeout(() => setStage(t('strava_sync_stage3')), 6000);
+    const stageTimer3 = setTimeout(() => setStage(t('strava_sync_stage4')), 12000);
+
+    try {
+      const res = await fetch('/api/strava/sync', { method: 'POST' });
+      clearTimeout(stageTimer1);
+      clearTimeout(stageTimer2);
+      clearTimeout(stageTimer3);
+
+      if (res.ok) {
+        const data = await res.json() as { synced: number; pagesChecked: number };
+        setResult(data);
+        onSyncComplete();
+      } else {
+        const body = await res.json().catch(() => ({})) as { error?: string };
+        setError(body.error ?? t('strava_sync_error'));
+      }
+    } catch {
+      clearTimeout(stageTimer1);
+      clearTimeout(stageTimer2);
+      clearTimeout(stageTimer3);
+      setError(t('strava_sync_error_conn'));
+    } finally {
+      setSyncing(false);
+      setStage('');
+    }
+  }
+
+  return (
+    <div className="mt-4 pt-4 border-t border-[var(--border)]">
+      <button
+        onClick={handleSync}
+        disabled={syncing}
+        className="flex items-center justify-center gap-2 w-full py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
+        style={{ background: '#FC4C02' }}
+      >
+        {syncing ? (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin" />
+            {stage}
+          </>
+        ) : (
+          <>
+            <StravaIcon className="w-4 h-4" />
+            {t('strava_sync_title')}
+          </>
+        )}
+      </button>
+
+      {syncing && (
+        <div className="mt-3">
+          <div className="w-full h-1.5 bg-[var(--bg)] overflow-hidden">
+            <div
+              className="h-full transition-all"
+              style={{
+                background: '#FC4C02',
+                animation: 'syncProgress 15s ease-out forwards',
+              }}
+            />
+          </div>
+          <style>{`@keyframes syncProgress { 0% { width: 5%; } 20% { width: 25%; } 50% { width: 55%; } 80% { width: 80%; } 100% { width: 95%; } }`}</style>
+        </div>
+      )}
+
+      {result && (
+        <div className="mt-3 p-3 border border-green-500/30 bg-green-500/10 text-xs">
+          <div className="flex items-center gap-2 text-green-400 font-semibold">
+            <CheckCircle2 className="w-4 h-4" />
+            {t('strava_sync_done')}
+          </div>
+          <p className="text-[#888888] mt-1">
+            {t('strava_sync_count', {
+              count: String(result.synced),
+              pages: String(result.pagesChecked),
+              pagesLabel: result.pagesChecked === 1 ? t('strava_sync_page') : t('strava_sync_pages'),
+            })}
+          </p>
+        </div>
+      )}
+
+      {error && (
+        <div className="mt-3 p-3 border border-red-500/30 bg-red-500/10 text-xs">
+          <AlertCircle className="w-4 h-4 text-red-400 inline mr-1.5" />
+          <span className="text-[#888888]">{error}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ImportWidget() {
+  const { t } = useLang();
   const [stravaUrl, setStravaUrl] = useState('');
   const [garminUrl, setGarminUrl] = useState('');
   const [importing, setImporting] = useState(false);
@@ -373,20 +482,20 @@ export function ImportWidget() {
             <StravaIcon className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h3 className="text-white font-medium text-sm">Import ze Stravy</h3>
-            <p className="text-[10px] text-[#555555]">Synchronizuj aktywności, FTP i tygodniowy dystans</p>
+            <h3 className="text-white font-medium text-sm">{t('strava_import_title')}</h3>
+            <p className="text-[10px] text-[#555555]">{t('strava_import_subtitle')}</p>
           </div>
           {loadingStatus ? (
             <Loader2 className="w-4 h-4 text-[#555555] animate-spin ml-auto" />
           ) : stravaStatus?.connected ? (
             <div className="ml-auto flex items-center gap-1.5 px-2.5 py-1 border border-green-500/30 bg-green-500/10">
               <Link2 className="w-3 h-3 text-green-400" />
-              <span className="text-xs text-green-400 font-medium">Połączona</span>
+              <span className="text-xs text-green-400 font-medium">{t('strava_connected_badge')}</span>
             </div>
           ) : (
             <div className="ml-auto flex items-center gap-1.5 px-2.5 py-1 border border-[var(--border)] bg-[var(--bg)]">
               <Unlink className="w-3 h-3 text-[#555555]" />
-              <span className="text-xs text-[#555555]">Niepołączona</span>
+              <span className="text-xs text-[#555555]">{t('strava_not_connected_badge')}</span>
             </div>
           )}
         </div>
@@ -395,11 +504,11 @@ export function ImportWidget() {
         {stravaStatus?.connected && (
           <div className="mb-4 p-3 bg-[var(--bg)] border border-[var(--border)] flex items-center justify-between">
             <div className="text-xs text-[#888888]">
-              <span className="text-white font-medium">{stravaStatus.activityCount}</span> aktywności zsynchronizowanych
+              <span className="text-white font-medium">{stravaStatus.activityCount}</span> {t('strava_activities_synced')}
               {stravaStatus.stravaVerified && (
                 <span className="ml-3 flex items-center gap-1 text-green-400 inline-flex">
                   <CheckCircle2 className="w-3 h-3" />
-                  Tempo zweryfikowane
+                  {t('strava_tempo_verified')}
                 </span>
               )}
             </div>
@@ -407,7 +516,7 @@ export function ImportWidget() {
               href="/api/strava/connect"
               className="text-xs text-[#FC4C02] hover:underline"
             >
-              Połącz ponownie
+              {t('strava_reconnect')}
             </a>
           </div>
         )}
@@ -415,7 +524,7 @@ export function ImportWidget() {
         {/* Import by URL */}
         <form onSubmit={handleStravaImport}>
           <label className="block text-xs text-[#888888] uppercase tracking-wider mb-1.5">
-            URL profilu Strava
+            {t('strava_url_label')}
           </label>
           <div className="flex gap-2">
             <input
@@ -443,13 +552,18 @@ export function ImportWidget() {
             </Button>
           </div>
           <p className="text-[10px] text-[#555555] mt-1.5">
-            Wklej publiczny URL profilu Strava, aby zaimportować statystyki. Dla pełnego dostępu{' '}
+            {t('strava_url_note')}{' '}
             <a href="/api/strava/connect" className="text-[#FC4C02] hover:underline">
-              połącz konto Strava
+              {t('strava_connect_account')}
             </a>
             .
           </p>
         </form>
+
+        {/* Sync button for connected users */}
+        {stravaStatus?.connected && !loadingStatus && (
+          <StravaSyncSection onSyncComplete={fetchStravaStatus} />
+        )}
 
         {/* Connect OAuth button (if not connected) */}
         {!stravaStatus?.connected && !loadingStatus && (
@@ -460,11 +574,11 @@ export function ImportWidget() {
               style={{ background: '#FC4C02' }}
             >
               <StravaIcon className="w-4 h-4" />
-              Połącz Stravę (OAuth)
+              {t('strava_connect_oauth')}
               <ArrowRight className="w-4 h-4" />
             </a>
             <p className="text-[10px] text-[#555555] mt-2 text-center">
-              Pełna synchronizacja: aktywności, FTP, tygodniowy dystans, weryfikacja tempa
+              {t('strava_oauth_desc')}
             </p>
           </div>
         )}

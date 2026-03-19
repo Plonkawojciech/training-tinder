@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { DARK_MAP_STYLE } from '@/lib/maps';
 import { loadGoogleMapsAPI } from '@/lib/maps-loader';
+import { useLang } from '@/lib/lang';
 import { Search, MapPin, Loader } from 'lucide-react';
 
 interface SessionMapProps {
@@ -12,6 +13,7 @@ interface SessionMapProps {
 }
 
 export function SessionMap({ lat, lng, onChange }: SessionMapProps) {
+  const { t } = useLang();
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const markerRef = useRef<google.maps.Marker | null>(null);
@@ -130,7 +132,7 @@ export function SessionMap({ lat, lng, onChange }: SessionMapProps) {
       placeMarker(pos, mapInstanceRef.current);
       onChange(gLat, gLng, search);
     } catch {
-      setError('Nie znaleziono lokalizacji. Spróbuj inny adres.');
+      setError(t('map_location_not_found'));
     } finally {
       setSearching(false);
     }
@@ -145,7 +147,7 @@ export function SessionMap({ lat, lng, onChange }: SessionMapProps) {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Wyszukaj adres lub kliknij na mapę..."
+            placeholder={t('map_search_placeholder')}
             className="w-full bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] pl-9 pr-3 py-2.5 text-sm placeholder:text-[#444444]"
           />
         </div>
@@ -154,7 +156,7 @@ export function SessionMap({ lat, lng, onChange }: SessionMapProps) {
           disabled={searching}
           className="px-4 py-2.5 bg-[#6366F1] text-white text-xs font-semibold uppercase tracking-wider hover:shadow-[0_0_15px_rgba(99,102,241,0.4)] disabled:opacity-50"
         >
-          {searching ? <Loader className="w-4 h-4 animate-spin" /> : 'Szukaj'}
+          {searching ? <Loader className="w-4 h-4 animate-spin" /> : t('map_search')}
         </button>
       </form>
 
@@ -166,14 +168,14 @@ export function SessionMap({ lat, lng, onChange }: SessionMapProps) {
           <div className="absolute inset-0 bg-[var(--bg)] flex items-center justify-center border border-[var(--border)]">
             <div className="flex items-center gap-2 text-[#888888] text-sm">
               <MapPin className="w-4 h-4 animate-bounce text-[#6366F1]" />
-              Ładowanie mapy...
+              {t('gen_loading')}
             </div>
           </div>
         )}
       </div>
 
       <p className="text-xs text-[#555555]">
-        Kliknij na mapę, aby ustawić lokalizację sesji
+        {t('map_click_hint')}
       </p>
     </div>
   );

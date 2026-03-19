@@ -5,31 +5,32 @@ import { db } from '@/lib/db';
 import { authUsers } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { isRateLimited, getClientIp } from '@/lib/rate-limit';
+import { serverError, badRequest, rateLimited, apiError, ErrorCode } from '@/lib/api-errors';
 
 export async function POST(request: Request) {
   // Rate limit: 10 attempts per IP per 15 min
   const ip = getClientIp(request);
   if (isRateLimited(`login:${ip}`, 10, 15 * 60 * 1000)) {
-    return NextResponse.json({ error: 'Zbyt wiele prób. Spróbuj ponownie za 15 minut.' }, { status: 429 });
+    return rateLimited('Too many attempts. Try again in 15 minutes.');
   }
 
   try {
     const body = await request.json() as { email?: unknown; password?: unknown };
 
     if (typeof body.email !== 'string' || typeof body.password !== 'string') {
-      return NextResponse.json({ error: 'Podaj email i hasło' }, { status: 400 });
+      return badRequest(ErrorCode.MISSING_FIELDS, 'Email and password required');
     }
 
     const email = body.email.trim().toLowerCase();
     const password = body.password;
 
     if (!email || !password) {
-      return NextResponse.json({ error: 'Podaj email i hasło' }, { status: 400 });
+      return badRequest(ErrorCode.MISSING_FIELDS, 'Email and password required');
     }
 
     // Enforce reasonable lengths to prevent DoS
     if (email.length > 254 || password.length > 1024) {
-      return NextResponse.json({ error: 'Nieprawidłowe dane' }, { status: 400 });
+      return badRequest(ErrorCode.INVALID_INPUT, 'Invalid data');
     }
 
     const [user] = await db
@@ -43,7 +44,7 @@ export async function POST(request: Request) {
     const valid = await bcrypt.compare(password, hash);
 
     if (!user || !valid) {
-      return NextResponse.json({ error: 'Nieprawidłowy email lub hasło' }, { status: 401 });
+      return apiError(ErrorCode.INVALID_CREDENTIALS, 'Invalid email or password', 401);
     }
 
     const token = await signToken(user.email);
@@ -60,6 +61,6 @@ export async function POST(request: Request) {
     return res;
   } catch (err) {
     console.error('[auth/login]', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

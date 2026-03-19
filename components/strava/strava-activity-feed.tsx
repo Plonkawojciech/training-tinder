@@ -15,6 +15,7 @@ import {
   Timer,
   ArrowUp,
 } from 'lucide-react';
+import { useLang } from '@/lib/lang';
 
 interface StravaActivity {
   id: number;
@@ -97,26 +98,20 @@ function formatDistance(distanceM: number | null): string {
   return `${(distanceM / 1000).toFixed(2)} km`;
 }
 
-const SPORT_FILTER_LABELS: Record<string, string> = {
-  All: 'Wszystkie',
-  Run: 'Bieganie',
-  Ride: 'Kolarstwo',
-  Swim: 'Pływanie',
-  Walk: 'Marsz',
-  Hike: 'Wędrówka',
-};
-
-function formatDate(dateStr: string): string {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' });
-}
+// SPORT_FILTER_LABELS is now built inside the component using t() calls
 
 function ActivityCard({ activity }: { activity: StravaActivity }) {
+  const { t, lang } = useLang();
   const sport = getSportConfig(activity.sportType);
   const SportIcon = sport.icon;
   const isRun = (activity.sportType ?? '').toLowerCase().includes('run');
   const isRide = (activity.sportType ?? '').toLowerCase().includes('ride') ||
     (activity.sportType ?? '').toLowerCase().includes('cycling');
+
+  const formatDateLocalized = (dateStr: string): string => {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString(lang === 'pl' ? 'pl-PL' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
 
   return (
     <div
@@ -141,20 +136,20 @@ function ActivityCard({ activity }: { activity: StravaActivity }) {
               </span>
               {activity.isTrainer && (
                 <span className="text-[10px] text-[#888888] border border-[#3A3A3A] px-1.5 py-0.5 rounded-sm">
-                  W pomieszczeniu
+                  {t('strava_indoor')}
                 </span>
               )}
             </div>
           </div>
         </div>
-        <span className="text-xs text-[#888888] flex-shrink-0">{formatDate(activity.startDate)}</span>
+        <span className="text-xs text-[#888888] flex-shrink-0">{formatDateLocalized(activity.startDate)}</span>
       </div>
 
       {/* Stats grid */}
       <div className="grid grid-cols-3 gap-3">
         {/* Distance */}
         <div>
-          <p className="text-xs text-[#888888] uppercase tracking-wider mb-0.5">Dystans</p>
+          <p className="text-xs text-[#888888] uppercase tracking-wider mb-0.5">{t('strava_distance')}</p>
           <p className="text-white font-bold text-base">{formatDistance(activity.distanceM)}</p>
         </div>
 
@@ -162,7 +157,7 @@ function ActivityCard({ activity }: { activity: StravaActivity }) {
         <div>
           <div className="flex items-center gap-1 mb-0.5">
             <Timer className="w-3 h-3 text-[#888888]" />
-            <p className="text-xs text-[#888888] uppercase tracking-wider">Czas</p>
+            <p className="text-xs text-[#888888] uppercase tracking-wider">{t('strava_time')}</p>
           </div>
           <p className="text-white font-bold text-base">{formatDuration(activity.movingTimeSec)}</p>
         </div>
@@ -171,7 +166,7 @@ function ActivityCard({ activity }: { activity: StravaActivity }) {
         <div>
           <div className="flex items-center gap-1 mb-0.5">
             <TrendingUp className="w-3 h-3 text-[#888888]" />
-            <p className="text-xs text-[#888888] uppercase tracking-wider">{isRun ? 'Tempo' : 'Prędkość'}</p>
+            <p className="text-xs text-[#888888] uppercase tracking-wider">{isRun ? t('strava_pace') : t('strava_speed')}</p>
           </div>
           <p className="text-white font-bold text-base">
             {isRun ? formatPace(activity.averageSpeedMs) : formatSpeed(activity.averageSpeedMs)}
@@ -183,7 +178,7 @@ function ActivityCard({ activity }: { activity: StravaActivity }) {
           <div>
             <div className="flex items-center gap-1 mb-0.5">
               <ArrowUp className="w-3 h-3 text-[#888888]" />
-              <p className="text-xs text-[#888888] uppercase tracking-wider">Wznies.</p>
+              <p className="text-xs text-[#888888] uppercase tracking-wider">{t('strava_elevation')}</p>
             </div>
             <p className="text-white font-semibold text-sm">
               {Math.round(activity.elevationGainM!)}m
@@ -196,7 +191,7 @@ function ActivityCard({ activity }: { activity: StravaActivity }) {
           <div>
             <div className="flex items-center gap-1 mb-0.5">
               <Heart className="w-3 h-3 text-rose-400" />
-              <p className="text-xs text-[#888888] uppercase tracking-wider">Śr. tętno</p>
+              <p className="text-xs text-[#888888] uppercase tracking-wider">{t('strava_avg_hr')}</p>
             </div>
             <p className="text-white font-semibold text-sm">
               {Math.round(activity.averageHeartrate)} bpm
@@ -207,7 +202,7 @@ function ActivityCard({ activity }: { activity: StravaActivity }) {
         {/* Watts (cycling) */}
         {isRide && activity.averageWatts && (
           <div>
-            <p className="text-xs text-[#888888] uppercase tracking-wider mb-0.5">Moc</p>
+            <p className="text-xs text-[#888888] uppercase tracking-wider mb-0.5">{t('strava_power')}</p>
             <p className="text-white font-semibold text-sm">
               {Math.round(activity.averageWatts)}w
             </p>
@@ -217,7 +212,7 @@ function ActivityCard({ activity }: { activity: StravaActivity }) {
         {/* Cadence */}
         {activity.averageCadence && (
           <div>
-            <p className="text-xs text-[#888888] uppercase tracking-wider mb-0.5">Kadencja</p>
+            <p className="text-xs text-[#888888] uppercase tracking-wider mb-0.5">{t('strava_cadence')}</p>
             <p className="text-white font-semibold text-sm">
               {Math.round(activity.averageCadence)} rpm
             </p>
@@ -235,7 +230,7 @@ function ActivityCard({ activity }: { activity: StravaActivity }) {
           )}
           {(activity.achievementCount ?? 0) > 0 && (
             <span className="text-xs text-[#888888]">
-              <span className="text-yellow-400">★</span> {activity.achievementCount} osiągnięcia
+              <span className="text-yellow-400">★</span> {activity.achievementCount} {t('strava_achievements')}
             </span>
           )}
         </div>
@@ -250,6 +245,16 @@ interface StravaActivityFeedProps {
 }
 
 export function StravaActivityFeed({ className = '', defaultLimit = 10 }: StravaActivityFeedProps) {
+  const { t } = useLang();
+
+  const SPORT_FILTER_LABELS: Record<string, string> = {
+    All: t('strava_filter_all'),
+    Run: t('strava_filter_run'),
+    Ride: t('strava_filter_ride'),
+    Swim: t('strava_filter_swim'),
+    Walk: t('strava_filter_walk'),
+    Hike: t('strava_filter_hike'),
+  };
   const [activities, setActivities] = useState<StravaActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -328,9 +333,9 @@ export function StravaActivityFeed({ className = '', defaultLimit = 10 }: Strava
       ) : activities.length === 0 ? (
         <div className="text-center py-12">
           <Activity className="w-12 h-12 text-[#2A2A2A] mx-auto mb-3" />
-          <p className="text-[#888888] text-sm">Brak aktywności</p>
+          <p className="text-[#888888] text-sm">{t('strava_no_activities')}</p>
           <p className="text-[#555555] text-xs mt-1">
-            {activeFilter !== 'All' ? `Brak aktywności "${SPORT_FILTER_LABELS[activeFilter]}" do wyświetlenia.` : 'Połącz i zsynchronizuj swoje konto Strava.'}
+            {activeFilter !== 'All' ? t('strava_no_activities_sport', { sport: SPORT_FILTER_LABELS[activeFilter] ?? activeFilter }) : t('strava_connect_sync')}
           </p>
         </div>
       ) : (
@@ -353,7 +358,7 @@ export function StravaActivityFeed({ className = '', defaultLimit = 10 }: Strava
           ) : (
             <ChevronDown className="w-4 h-4" />
           )}
-          {loadingMore ? 'Ładowanie...' : 'Załaduj więcej'}
+          {loadingMore ? t('gen_loading') : t('gen_load_more')}
         </button>
       )}
     </div>

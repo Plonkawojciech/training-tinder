@@ -6,7 +6,7 @@ import { getSportLabel, formatPaceMin } from '@/lib/utils';
 import { useLang } from '@/lib/lang';
 
 export interface SwipeCardAthlete {
-  clerkId: string;
+  authEmail: string;
   username: string | null;
   avatarUrl: string | null;
   bio: string | null;
@@ -14,6 +14,7 @@ export interface SwipeCardAthlete {
   pacePerKm: number | null;
   weeklyKm: number | null;
   city: string | null;
+  age?: number | null;
   stravaVerified?: boolean;
   profileSongUrl?: string | null;
   ftpWatts?: number | null;
@@ -194,6 +195,7 @@ export function SwipeCard({
     <div
       ref={cardRef}
       className="absolute inset-0 select-none"
+      aria-label={`Profil: ${athlete.username ?? t('gen_athlete')}, ${athlete.sportTypes.map(s => getSportLabel(s)).join(', ')}`}
       style={{
         ...style,
         transform,
@@ -292,7 +294,7 @@ export function SwipeCard({
           const ytUrl = getYouTubeEmbedUrl(athlete.profileSongUrl);
           if (ytUrl) return (
             <iframe
-              key={athlete.clerkId}
+              key={athlete.authEmail}
               src={ytUrl}
               style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none', zIndex: -1 }}
               allow="autoplay"
@@ -302,7 +304,7 @@ export function SwipeCard({
           const spUrl = getSpotifyEmbedUrl(athlete.profileSongUrl ?? '');
           if (spUrl) return (
             <iframe
-              key={athlete.clerkId}
+              key={athlete.authEmail}
               src={spUrl}
               style={{ position: 'absolute', bottom: 0, right: 0, width: 300, height: 80, borderRadius: 20, zIndex: 3 }}
               allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
@@ -402,7 +404,7 @@ export function SwipeCard({
               letterSpacing: '0.03em',
             }}
           >
-            {score}% dopasowanie
+            {score}% {t('discover_match_pct')}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             {athlete.stravaVerified && (
@@ -437,7 +439,7 @@ export function SwipeCard({
                 fontSize: 11,
                 fontWeight: 700,
               }}>
-                🎵 muzyka
+                🎵 {t('discover_music')}
               </div>
             )}
           </div>
@@ -455,12 +457,12 @@ export function SwipeCard({
               letterSpacing: -0.3,
               textShadow: '0 2px 8px rgba(0,0,0,0.8)',
             }}>
-              {athlete.username ?? 'Sportowiec'}
+              {athlete.username ?? t('gen_athlete')}{athlete.age ? `, ${athlete.age}` : ''}
             </h2>
             {(athlete.city || distanceKm !== null) && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
                 <MapPin style={{ width: 13, height: 13, color: '#bbb' }} />
-                <span style={{ color: '#ccc', fontSize: 13 }}>
+                <span style={{ color: '#ccc', fontSize: 14 }}>
                   {athlete.city}
                   {distanceKm !== null && (
                     <span style={{ color: '#999' }}>
@@ -513,7 +515,7 @@ export function SwipeCard({
           {athlete.bio && (
             <p style={{
               color: 'rgba(255,255,255,0.65)',
-              fontSize: 12,
+              fontSize: 14,
               lineHeight: 1.5,
               display: '-webkit-box',
               WebkitLineClamp: 2,
@@ -544,7 +546,7 @@ export function SwipeCard({
                 {showFtp && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                     <Zap style={{ width: 13, height: 13, color: '#6366F1' }} />
-                    <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, fontWeight: 600 }}>
+                    <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 14, fontWeight: 600 }}>
                       {athlete.ftpWatts} W FTP
                     </span>
                   </div>
@@ -552,7 +554,7 @@ export function SwipeCard({
                 {showPace && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                     <Zap style={{ width: 13, height: 13, color: '#A78BFA' }} />
-                    <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, fontWeight: 600 }}>
+                    <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 14, fontWeight: 600 }}>
                       {formatPaceMin(athlete.pacePerKm!)}/km
                     </span>
                   </div>
@@ -560,7 +562,7 @@ export function SwipeCard({
                 {athlete.weeklyKm && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                     <Route style={{ width: 13, height: 13, color: '#A78BFA' }} />
-                    <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, fontWeight: 600 }}>
+                    <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 14, fontWeight: 600 }}>
                       {athlete.weeklyKm} km/wk
                     </span>
                   </div>

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Plus, X, ImagePlus, Loader2 } from 'lucide-react';
+import { X, ImagePlus, Loader2 } from 'lucide-react';
+import { useLang } from '@/lib/lang';
 
 interface PhotoGalleryProps {
   photos: string[];
@@ -9,6 +10,7 @@ interface PhotoGalleryProps {
 }
 
 export function PhotoGallery({ photos, onPhotosChange }: PhotoGalleryProps) {
+  const { t } = useLang();
   const [uploading, setUploading] = useState(false);
   const [deletingUrl, setDeletingUrl] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState<string | null>(null);
@@ -114,6 +116,7 @@ export function PhotoGallery({ photos, onPhotosChange }: PhotoGalleryProps) {
             <button
               onClick={() => handleDelete(url)}
               disabled={deletingUrl === url}
+              aria-label={t('gen_delete')}
               style={{
                 position: 'absolute', top: 4, right: 4,
                 width: 24, height: 24, borderRadius: '50%',
@@ -134,6 +137,7 @@ export function PhotoGallery({ photos, onPhotosChange }: PhotoGalleryProps) {
         {/* Add button */}
         {photos.length < 20 && (
           <label
+            aria-label={t('photo_add')}
             style={{
               aspectRatio: '1',
               borderRadius: 18,
@@ -165,7 +169,7 @@ export function PhotoGallery({ photos, onPhotosChange }: PhotoGalleryProps) {
             />
             {uploading
               ? <Loader2 style={{ width: 22, height: 22, animation: 'spin 1s linear infinite' }} />
-              : <><ImagePlus style={{ width: 22, height: 22 }} /><span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Dodaj</span></>
+              : <><ImagePlus style={{ width: 22, height: 22 }} /><span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{t('photo_add')}</span></>
             }
           </label>
         )}
@@ -173,7 +177,7 @@ export function PhotoGallery({ photos, onPhotosChange }: PhotoGalleryProps) {
 
       {photos.length > 0 && (
         <p style={{ color: '#444', fontSize: 11, marginTop: 8 }}>
-          {photos.length}/20 zdjęć · Kliknij zdjęcie, żeby powiększyć
+          {photos.length}/20 {t('photo_hint')}
         </p>
       )}
 
@@ -182,7 +186,7 @@ export function PhotoGallery({ photos, onPhotosChange }: PhotoGalleryProps) {
           textAlign: 'center', padding: '24px 0 8px',
           color: '#444', fontSize: 13,
         }}>
-          Brak zdjęć — dodaj swoje ulubione zdjęcia z treningów
+          {t('photo_empty')}
         </div>
       )}
 

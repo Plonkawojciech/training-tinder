@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { CheckCircle2, RefreshCw, Activity, AlertTriangle, User } from 'lucide-react';
+import { useLang } from '@/lib/lang';
 
 interface StravaStatus {
   connected: boolean;
@@ -32,6 +33,7 @@ function formatPace(seconds: number): string {
 }
 
 export function StravaConnect() {
+  const { t } = useLang();
   const [status, setStatus] = useState<StravaStatus | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -68,10 +70,10 @@ export function StravaConnect() {
       const res = await fetch('/api/strava/sync', { method: 'POST' });
       const data = await res.json() as SyncResult;
       if (res.ok) {
-        setSyncMessage(`Zsynchronizowano ${data.synced ?? 0} aktywności`);
+        setSyncMessage(t('strava_synced', { count: String(data.synced ?? 0) }));
         await fetchStatus();
       } else {
-        setSyncMessage(data.error ?? 'Błąd synchronizacji');
+        setSyncMessage(data.error ?? t('strava_sync_error'));
       }
     } finally {
       setSyncing(false);
@@ -86,12 +88,12 @@ export function StravaConnect() {
       const res = await fetch('/api/strava/sync', { method: 'POST' });
       const data = await res.json() as SyncResult;
       if (res.ok) {
-        setProfileMessage(`Profil zaktualizowany · ${data.synced ?? 0} aktywności`);
+        setProfileMessage(t('strava_profile_updated', { count: String(data.synced ?? 0) }));
         await fetchStatus();
         // Reload page so avatar/city changes are visible
         setTimeout(() => window.location.reload(), 800);
       } else {
-        setProfileMessage(data.error ?? 'Błąd odświeżania profilu');
+        setProfileMessage(data.error ?? t('strava_refresh_error'));
       }
     } finally {
       setRefreshingProfile(false);
@@ -115,7 +117,7 @@ export function StravaConnect() {
     return (
       <div className="flex items-center gap-2 py-4">
         <div className="w-4 h-4 border-2 border-[#FC4C02] border-t-transparent rounded-full animate-spin" />
-        <span className="text-sm text-[#888888]">Sprawdzanie połączenia Strava...</span>
+        <span className="text-sm text-[#888888]">{t('strava_checking')}</span>
       </div>
     );
   }
@@ -131,10 +133,10 @@ export function StravaConnect() {
           <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white" xmlns="http://www.w3.org/2000/svg">
             <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" />
           </svg>
-          Połącz ze Stravą
+          {t('strava_connect')}
         </button>
         <p className="text-xs text-[#888888]">
-          Synchronizuj aktywności, avatar i statystyki ze Stravą automatycznie
+          {t('strava_desc')}
         </p>
       </div>
     );
@@ -153,10 +155,10 @@ export function StravaConnect() {
           }}
         >
           <CheckCircle2 className="w-3.5 h-3.5" />
-          Strava połączona
+          {t('strava_connected')}
         </span>
         <span className="text-xs text-[#888888]">
-          {status.activityCount} aktywności
+          {status.activityCount} {t('strava_activities')}
         </span>
       </div>
 
@@ -174,7 +176,7 @@ export function StravaConnect() {
           ) : (
             <User className="w-4 h-4" />
           )}
-          {refreshingProfile ? 'Odświeżanie...' : 'Odśwież profil ze Stravy'}
+          {refreshingProfile ? t('strava_refreshing') : t('strava_refresh')}
         </button>
 
         {/* Sync activities */}
@@ -184,7 +186,7 @@ export function StravaConnect() {
           className="flex items-center justify-center gap-2 px-4 py-2.5 border border-[#FC4C02] text-[#FC4C02] text-sm font-semibold transition-all hover:bg-[rgba(252,76,2,0.1)] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-          {syncing ? 'Synchronizowanie...' : 'Synchronizuj aktywności'}
+          {syncing ? t('strava_syncing') : t('strava_sync')}
         </button>
       </div>
 
@@ -201,28 +203,28 @@ export function StravaConnect() {
 
       {/* What gets refreshed info */}
       <div className="text-[10px] text-[#555555] leading-5">
-        <span className="text-[#888888] font-semibold">Odśwież profil</span> — aktualizuje avatar, miasto, statystyki, sprzęt i aktywności<br />
-        <span className="text-[#888888] font-semibold">Synchronizuj aktywności</span> — importuje tylko nowe treningi
+        <span className="text-[#888888] font-semibold">{t('strava_refresh_info')}</span> — {t('strava_refresh_desc')}<br />
+        <span className="text-[#888888] font-semibold">{t('strava_sync')}</span> — {t('strava_sync_desc')}
       </div>
 
       {/* Pace verification */}
       <div className="border border-[var(--border)] p-4 bg-[var(--bg-card)]">
         <div className="flex items-center gap-2 mb-3">
           <Activity className="w-4 h-4 text-[#FC4C02]" />
-          <h4 className="text-sm font-semibold text-white">Weryfikacja tempa</h4>
+          <h4 className="text-sm font-semibold text-white">{t('strava_pace_verify')}</h4>
         </div>
 
         {status.stravaVerified && status.verifiedPacePerKm ? (
           <div className="flex items-center gap-2 mb-3">
             <CheckCircle2 className="w-4 h-4 text-green-400" />
             <span className="text-sm text-green-400">
-              Zweryfikowane tempo: {formatPace(status.verifiedPacePerKm)} min/km
+              {t('strava_pace_verified')} {formatPace(status.verifiedPacePerKm)} min/km
             </span>
           </div>
         ) : (
           <div className="flex items-center gap-2 mb-3">
             <AlertTriangle className="w-4 h-4 text-[#888888]" />
-            <span className="text-sm text-[#888888]">Tempo nie zweryfikowane</span>
+            <span className="text-sm text-[#888888]">{t('strava_pace_not_verified')}</span>
           </div>
         )}
 
@@ -237,7 +239,7 @@ export function StravaConnect() {
           ) : (
             <Activity className="w-3 h-3" />
           )}
-          {verifying ? 'Weryfikowanie...' : 'Zweryfikuj tempo'}
+          {verifying ? t('strava_verifying') : t('strava_verify')}
         </button>
 
         {verifyResult && (
@@ -249,27 +251,27 @@ export function StravaConnect() {
                 <AlertTriangle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
               )}
               <span className={verifyResult.verified ? 'text-green-400' : 'text-red-400'}>
-                {verifyResult.verified ? 'Tempo zweryfikowane' : 'Tempo nie zweryfikowane'}
+                {verifyResult.verified ? t('strava_verified_label') : t('strava_not_verified_label')}
               </span>
             </div>
             {verifyResult.actualPace && (
               <p className="text-[#888888]">
-                Rzeczywiste tempo: <span className="text-white">{formatPace(verifyResult.actualPace)} min/km</span>
+                {t('strava_actual_pace')} <span className="text-white">{formatPace(verifyResult.actualPace)} min/km</span>
               </p>
             )}
             {verifyResult.claimedPace && (
               <p className="text-[#888888]">
-                Zadeklarowane tempo: <span className="text-white">{formatPace(verifyResult.claimedPace)} min/km</span>
+                {t('strava_claimed_pace')} <span className="text-white">{formatPace(verifyResult.claimedPace)} min/km</span>
               </p>
             )}
             {verifyResult.diff !== null && (
               <p className="text-[#888888]">
-                Różnica: <span className="text-white">{verifyResult.diff}s/km</span>
+                {t('strava_diff')} <span className="text-white">{verifyResult.diff}s/km</span>
               </p>
             )}
             {verifyResult.runCount !== undefined && (
               <p className="text-[#666666]">
-                Na podstawie {verifyResult.runCount} biegów (ostatnie 90 dni)
+                {t('strava_based_on', { count: String(verifyResult.runCount) })}
               </p>
             )}
             <p className="text-[#666666] italic">{verifyResult.message}</p>

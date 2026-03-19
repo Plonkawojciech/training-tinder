@@ -5,17 +5,13 @@ import { useRouter } from 'next/navigation';
 import { ChevronRight, ChevronLeft, Check } from 'lucide-react';
 import {
   Step1SportsBio,
+  Step2Performance,
   Step2LocationAvailability,
   Step3PhotoOnly,
   type OnboardingData,
 } from '@/components/onboarding/steps';
 import { Button } from '@/components/ui/button';
-
-const STEPS = [
-  { title: 'Podstawowe info', subtitle: 'Wybierz sporty i opowiedz o sobie' },
-  { title: 'Twoja lokalizacja', subtitle: 'Gdzie i kiedy trenujesz' },
-  { title: 'Zdjęcie', subtitle: 'Dodaj zdjęcie profilowe' },
-];
+import { useLang } from '@/lib/lang';
 
 const initialData: OnboardingData = {
   username: '',
@@ -45,6 +41,15 @@ const initialData: OnboardingData = {
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const { t } = useLang();
+
+  const STEPS = [
+    { title: t('onboarding_basic_info'), subtitle: t('onboarding_basic_sub') },
+    { title: t('onboarding_level'), subtitle: t('onboarding_level_sub') },
+    { title: t('onboarding_location'), subtitle: t('onboarding_location_sub') },
+    { title: t('onboarding_photo'), subtitle: t('onboarding_photo_sub') },
+  ];
+
   const [step, setStep] = useState(0);
   const [data, setData] = useState<OnboardingData>(initialData);
   const [submitting, setSubmitting] = useState(false);
@@ -85,6 +90,8 @@ export default function OnboardingPage() {
         age: data.age ? parseInt(data.age) : null,
         gender: data.gender || null,
         weightKg: data.weightKg ? parseFloat(data.weightKg) : null,
+        athleteLevel: data.athleteLevel || null,
+        sportProfiles: Object.keys(data.sportProfiles).length > 0 ? data.sportProfiles : null,
       };
 
       const res = await fetch('/api/users/profile', {
@@ -97,7 +104,7 @@ export default function OnboardingPage() {
 
       router.push('/dashboard');
     } catch {
-      setError('Nie udało się zapisać profilu. Spróbuj ponownie.');
+      setError(t('onboarding_save_error'));
     } finally {
       setSubmitting(false);
     }
@@ -105,8 +112,9 @@ export default function OnboardingPage() {
 
   function getStepComponent() {
     if (step === 0) return <Step1SportsBio key={0} data={data} onChange={handleChange} />;
-    if (step === 1) return <Step2LocationAvailability key={1} data={data} onChange={handleChange} />;
-    return <Step3PhotoOnly key={2} data={data} onChange={handleChange} />;
+    if (step === 1) return <Step2Performance key={1} data={data} onChange={handleChange} />;
+    if (step === 2) return <Step2LocationAvailability key={2} data={data} onChange={handleChange} />;
+    return <Step3PhotoOnly key={3} data={data} onChange={handleChange} />;
   }
 
   const isLastStep = step === STEPS.length - 1;
@@ -115,7 +123,7 @@ export default function OnboardingPage() {
     <div
       style={{
         minHeight: '100vh',
-        background: '#080808',
+        background: 'var(--bg)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -126,11 +134,11 @@ export default function OnboardingPage() {
       <div style={{ width: '100%', maxWidth: '480px' }}>
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
-          <h1 className="font-display" style={{ fontSize: '1.75rem', color: '#FFFFFF' }}>
+          <h1 className="font-display" style={{ fontSize: '1.75rem', color: 'var(--text)' }}>
             TRAIN<span style={{ color: '#6366F1' }}>MATE</span>
           </h1>
-          <p style={{ color: '#666666', fontSize: '0.8rem', marginTop: '0.25rem' }}>
-            Krok {step + 1} z {STEPS.length}
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '0.25rem' }}>
+            {t('onboarding_step')} {step + 1} {t('onboarding_of')} {STEPS.length}
           </p>
         </div>
 
@@ -169,14 +177,14 @@ export default function OnboardingPage() {
             background: 'rgba(18,18,18,0.95)',
             borderRadius: '20px',
             padding: '28px',
-            border: '1px solid #1E1E1E',
+            border: '1px solid var(--border)',
           }}
         >
           <div style={{ marginBottom: '1.5rem' }}>
-            <h2 className="font-display" style={{ fontSize: '1.25rem', color: '#FFFFFF' }}>
+            <h2 className="font-display" style={{ fontSize: '1.25rem', color: 'var(--text)' }}>
               {STEPS[step].title.toUpperCase()}
             </h2>
-            <p style={{ color: '#666666', fontSize: '0.8rem', marginTop: '0.2rem' }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '0.2rem' }}>
               {STEPS[step].subtitle}
             </p>
           </div>
@@ -194,22 +202,22 @@ export default function OnboardingPage() {
               alignItems: 'center',
               marginTop: '1.75rem',
               paddingTop: '1.25rem',
-              borderTop: '1px solid #1E1E1E',
+              borderTop: '1px solid var(--border)',
             }}
           >
             <Button variant="ghost" onClick={back} disabled={step === 0}>
               <ChevronLeft className="w-4 h-4" />
-              Wstecz
+              {t('onboarding_back')}
             </Button>
 
             {!isLastStep ? (
               <Button onClick={next} disabled={!canProceed()}>
-                Dalej
+                {t('onboarding_next')}
                 <ChevronRight className="w-4 h-4" />
               </Button>
             ) : (
               <Button onClick={handleSubmit} loading={submitting}>
-                Gotowe
+                {t('onboarding_done')}
                 <Check className="w-4 h-4" />
               </Button>
             )}
@@ -219,12 +227,12 @@ export default function OnboardingPage() {
         <p
           style={{
             textAlign: 'center',
-            color: '#444444',
+            color: 'var(--text-dim)',
             fontSize: '0.7rem',
             marginTop: '1.25rem',
           }}
         >
-          Możesz to zawsze zaktualizować w ustawieniach profilu
+          {t('onboarding_update_later')}
         </p>
       </div>
     </div>

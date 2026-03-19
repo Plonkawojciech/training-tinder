@@ -3,17 +3,18 @@ import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { sessionReviews } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { unauthorized, serverError, badRequest, ErrorCode } from '@/lib/api-errors';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   const { id } = await params;
   const sessionId = parseInt(id);
-  if (isNaN(sessionId)) return NextResponse.json({ error: 'Invalid session id' }, { status: 400 });
+  if (isNaN(sessionId)) return badRequest(ErrorCode.INVALID_INPUT, 'Invalid session id');
 
   const { searchParams } = new URL(request.url);
   const check = searchParams.get('check') === 'true';
@@ -41,7 +42,7 @@ export async function GET(
     return NextResponse.json({ hasReviewed: false, reviews });
   } catch (err) {
     console.error('GET /api/sessions/[id]/review error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }
 
@@ -50,11 +51,11 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   const { id } = await params;
   const sessionId = parseInt(id);
-  if (isNaN(sessionId)) return NextResponse.json({ error: 'Invalid session id' }, { status: 400 });
+  if (isNaN(sessionId)) return badRequest(ErrorCode.INVALID_INPUT, 'Invalid session id');
 
   try {
     const body = await request.json() as {
@@ -63,7 +64,7 @@ export async function POST(
     };
 
     if (!Number.isInteger(body.rating) || body.rating < 1 || body.rating > 5) {
-      return NextResponse.json({ error: 'Rating must be an integer 1-5' }, { status: 400 });
+      return badRequest(ErrorCode.INVALID_RATING, 'Rating must be an integer 1-5');
     }
 
     // Check for existing review
@@ -105,6 +106,6 @@ export async function POST(
     return NextResponse.json(review);
   } catch (err) {
     console.error('POST /api/sessions/[id]/review error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

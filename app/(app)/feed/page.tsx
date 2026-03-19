@@ -1,19 +1,22 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { Users, Send } from 'lucide-react';
+import Image from 'next/image';
+import { Users, Send, Heart, Plus } from 'lucide-react';
 import { useLang } from '@/lib/lang';
 
+const PAGE_SIZE = 10;
+
 const TYPE_EMOJI: Record<string, string> = {
-  running: '🏃',
-  cycling: '🚴',
-  gym: '🏋️',
-  swimming: '🏊',
-  trail_running: '🧗',
-  crossfit: '⚡',
-  yoga: '🧘',
-  other: '💪',
+  running: '\u{1F3C3}',
+  cycling: '\u{1F6B4}',
+  gym: '\u{1F3CB}\uFE0F',
+  swimming: '\u{1F3CA}',
+  trail_running: '\u{1F9D7}',
+  crossfit: '\u26A1',
+  yoga: '\u{1F9D8}',
+  other: '\u{1F4AA}',
 };
 
 function formatDuration(min: number | null) {
@@ -25,7 +28,7 @@ function formatDuration(min: number | null) {
 function timeAgo(dateStr: string, lang: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return lang === 'pl' ? 'przed chwilą' : 'just now';
+  if (mins < 1) return lang === 'pl' ? 'przed chwil\u0105' : 'just now';
   if (mins < 60) return lang === 'pl' ? `${mins} min temu` : `${mins}m ago`;
   const hours = Math.floor(mins / 60);
   if (hours < 24) return lang === 'pl' ? `${hours}h temu` : `${hours}h ago`;
@@ -56,6 +59,8 @@ interface FeedLog {
   username: string | null;
   avatarUrl: string | null;
   comments: EnrichedComment[];
+  likeCount: number;
+  likedByMe: boolean;
 }
 
 function AvatarCircle({ src, fallback }: { src: string | null; fallback: string }) {
@@ -77,8 +82,7 @@ function AvatarCircle({ src, fallback }: { src: string | null; fallback: string 
       }}
     >
       {src ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt={fallback} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        <Image src={src} alt={fallback} width={38} height={38} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
       ) : (
         fallback.charAt(0).toUpperCase()
       )}
@@ -87,12 +91,13 @@ function AvatarCircle({ src, fallback }: { src: string | null; fallback: string 
 }
 
 function CommentRow({ c }: { c: EnrichedComment }) {
+  const { t } = useLang();
   return (
     <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginTop: 8 }}>
       <AvatarCircle src={c.authorAvatar} fallback={c.authorName ?? '?'} />
       <div style={{ flex: 1, background: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: '8px 12px' }}>
         <span style={{ color: '#6366F1', fontWeight: 700, fontSize: 12, marginRight: 6 }}>
-          {c.authorName ?? 'Sportowiec'}
+          {c.authorName ?? t('gen_athlete')}
         </span>
         <span style={{ color: 'var(--text)', fontSize: 13 }}>{c.content}</span>
       </div>
@@ -100,13 +105,22 @@ function CommentRow({ c }: { c: EnrichedComment }) {
   );
 }
 
-function WorkoutCard({ log, onCommentAdded }: { log: FeedLog; onCommentAdded: (logId: number, comment: EnrichedComment) => void }) {
+function WorkoutCard({
+  log,
+  onCommentAdded,
+  onLikeToggled,
+}: {
+  log: FeedLog;
+  onCommentAdded: (logId: number, comment: EnrichedComment) => void;
+  onLikeToggled: (logId: number, liked: boolean) => void;
+}) {
   const { lang, t } = useLang();
   const [commentText, setCommentText] = useState('');
   const [sending, setSending] = useState(false);
+  const [liking, setLiking] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const emoji = TYPE_EMOJI[log.type] ?? '💪';
+  const emoji = TYPE_EMOJI[log.type] ?? '\u{1F4AA}';
   const duration = formatDuration(log.durationMin);
 
   async function submitComment() {
@@ -126,6 +140,20 @@ function WorkoutCard({ log, onCommentAdded }: { log: FeedLog; onCommentAdded: (l
       }
     } finally {
       setSending(false);
+    }
+  }
+
+  async function toggleLike() {
+    if (liking) return;
+    setLiking(true);
+    try {
+      const res = await fetch(`/api/feed/${log.id}/like`, { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json() as { liked: boolean };
+        onLikeToggled(log.id, data.liked);
+      }
+    } finally {
+      setLiking(false);
     }
   }
 
@@ -150,7 +178,7 @@ function WorkoutCard({ log, onCommentAdded }: { log: FeedLog; onCommentAdded: (l
         <AvatarCircle src={log.avatarUrl} fallback={log.username ?? '?'} />
         <div style={{ flex: 1 }}>
           <div style={{ color: 'var(--text)', fontWeight: 700, fontSize: 14 }}>
-            {log.username ?? 'Sportowiec'}
+            {log.username ?? t('gen_athlete')}
           </div>
           <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>
             {timeAgo(log.createdAt, lang)}
@@ -194,6 +222,40 @@ function WorkoutCard({ log, onCommentAdded }: { log: FeedLog; onCommentAdded: (l
           }}>
             {log.notes}
           </p>
+        )}
+      </div>
+
+      {/* Like button */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+        <button
+          onClick={toggleLike}
+          disabled={liking}
+          aria-label="Like"
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: liking ? 'not-allowed' : 'pointer',
+            padding: 4,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5,
+            transition: 'transform 0.15s',
+          }}
+        >
+          <Heart
+            style={{
+              width: 20,
+              height: 20,
+              color: log.likedByMe ? '#EF4444' : 'var(--text-muted)',
+              fill: log.likedByMe ? '#EF4444' : 'none',
+              transition: 'color 0.2s, fill 0.2s',
+            }}
+          />
+        </button>
+        {log.likeCount > 0 && (
+          <span style={{ color: 'var(--text-muted)', fontSize: 13, fontWeight: 600 }}>
+            {log.likeCount}
+          </span>
         )}
       </div>
 
@@ -251,32 +313,82 @@ function WorkoutCard({ log, onCommentAdded }: { log: FeedLog; onCommentAdded: (l
 }
 
 export default function FriendsFeedPage() {
-  const { t, lang } = useLang();
+  const { t } = useLang();
   const [logs, setLogs] = useState<FeedLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    fetchFeed();
-  }, []);
-
-  async function fetchFeed() {
-    setLoading(true);
+  const fetchFeed = useCallback(async (offset: number, append: boolean) => {
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
     try {
-      const res = await fetch('/api/feed');
+      const res = await fetch(`/api/feed?limit=${PAGE_SIZE}&offset=${offset}`);
       if (res.ok) {
         const data = await res.json() as FeedLog[];
-        setLogs(data);
+        if (append) {
+          setLogs((prev) => [...prev, ...data]);
+        } else {
+          setLogs(data);
+        }
+        setHasMore(data.length >= PAGE_SIZE);
       }
     } finally {
-      setLoading(false);
+      if (append) {
+        setLoadingMore(false);
+      } else {
+        setLoading(false);
+      }
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    fetchFeed(0, false);
+  }, [fetchFeed]);
+
+  // Infinite scroll via IntersectionObserver
+  useEffect(() => {
+    if (loading || !hasMore) return;
+
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !loadingMore && hasMore) {
+          fetchFeed(logs.length, true);
+        }
+      },
+      { rootMargin: '200px' }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [loading, loadingMore, hasMore, logs.length, fetchFeed]);
 
   function handleCommentAdded(logId: number, comment: EnrichedComment) {
     setLogs((prev) =>
       prev.map((log) =>
         log.id === logId
           ? { ...log, comments: [...log.comments, comment] }
+          : log
+      )
+    );
+  }
+
+  function handleLikeToggled(logId: number, liked: boolean) {
+    setLogs((prev) =>
+      prev.map((log) =>
+        log.id === logId
+          ? {
+              ...log,
+              likedByMe: liked,
+              likeCount: liked ? log.likeCount + 1 : Math.max(0, log.likeCount - 1),
+            }
           : log
       )
     );
@@ -290,7 +402,7 @@ export default function FriendsFeedPage() {
           {t('feed_title')}
         </h1>
         <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-          {lang === 'pl' ? 'Aktywności twoich znajomych z ostatnich 30 dni' : 'Your friends\' activities from the last 30 days'}
+          {t('feed_subtitle')}
         </p>
       </div>
 
@@ -322,9 +434,7 @@ export default function FriendsFeedPage() {
             {t('feed_empty')}
           </div>
           <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 20 }}>
-            {lang === 'pl'
-              ? 'Zaakceptowane zaproszenia pojawią się tutaj.'
-              : 'Accepted friend requests will appear here.'}
+            {t('feed_no_activity')}
           </p>
           <Link
             href="/friends"
@@ -341,14 +451,74 @@ export default function FriendsFeedPage() {
               textDecoration: 'none',
             }}
           >
-            {lang === 'pl' ? 'Dodaj znajomych' : 'Add friends'}
+            {t('feed_add_friends')}
           </Link>
         </div>
       ) : (
-        logs.map((log) => (
-          <WorkoutCard key={log.id} log={log} onCommentAdded={handleCommentAdded} />
-        ))
+        <>
+          {logs.map((log) => (
+            <WorkoutCard
+              key={log.id}
+              log={log}
+              onCommentAdded={handleCommentAdded}
+              onLikeToggled={handleLikeToggled}
+            />
+          ))}
+
+          {/* Sentinel element for infinite scroll */}
+          <div ref={sentinelRef} style={{ height: 1 }} />
+
+          {loadingMore && (
+            <div style={{ textAlign: 'center', padding: '16px 0' }}>
+              <div
+                style={{
+                  display: 'inline-block',
+                  width: 24,
+                  height: 24,
+                  border: '3px solid var(--border)',
+                  borderTopColor: '#6366F1',
+                  borderRadius: '50%',
+                  animation: 'spin 0.8s linear infinite',
+                }}
+              />
+              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            </div>
+          )}
+
+          {!hasMore && logs.length > 0 && (
+            <div style={{ textAlign: 'center', padding: '16px 0', color: 'var(--text-muted)', fontSize: 13 }}>
+              {t('feed_no_more')}
+            </div>
+          )}
+        </>
       )}
+
+      {/* Floating action button - link to log a workout */}
+      <Link
+        href="/gym/log"
+        aria-label={t('feed_log_workout')}
+        style={{
+          position: 'fixed',
+          bottom: 'calc(env(safe-area-inset-bottom, 0px) + 80px)',
+          right: 20,
+          width: 56,
+          height: 56,
+          borderRadius: '50%',
+          background: '#6366F1',
+          border: 'none',
+          boxShadow: '0 4px 16px rgba(99,102,241,0.4)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          zIndex: 50,
+          textDecoration: 'none',
+          transition: 'transform 0.2s, box-shadow 0.2s',
+        }}
+        title={t('feed_log_workout')}
+      >
+        <Plus style={{ width: 28, height: 28, color: 'white' }} />
+      </Link>
     </div>
   );
 }

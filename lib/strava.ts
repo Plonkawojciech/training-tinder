@@ -2,8 +2,9 @@
  * Shared Strava integration utilities used by both callback and sync routes.
  */
 import { db } from '@/lib/db';
-import { stravaActivities, stravaGear, stravaBestEfforts, users, userSportProfiles } from '@/lib/db/schema';
+import { stravaActivities, stravaGear, stravaBestEfforts, stravaTokens, users, userSportProfiles } from '@/lib/db/schema';
 import { eq, sql } from 'drizzle-orm';
+import { encrypt, decrypt } from '@/lib/crypto';
 
 // ── Shared types ──
 
@@ -116,10 +117,87 @@ export const BEST_EFFORT_DISTANCES: Record<string, number> = {
   'Marathon': 42195,
 };
 
+// ── Token refresh ──
+
+/**
+ * Refresh a Strava access token if it's expired or about to expire (60s buffer).
+ * Returns the (possibly refreshed) access token.
+ * Throws on unrecoverable errors (revoked refresh token, missing config).
+ * Encrypts stored tokens when ENCRYPTION_KEY is set.
+ */
+export async function refreshStravaTokenIfNeeded(
+  tokenRow: {
+    userId: string;
+    accessToken: string;
+    refreshToken: string;
+    expiresAt: Date;
+  }
+): Promise<string> {
+  const hasEncKey = !!process.env.ENCRYPTION_KEY;
+  const plainAccessToken = hasEncKey ? decrypt(tokenRow.accessToken) : tokenRow.accessToken;
+  const plainRefreshToken = hasEncKey ? decrypt(tokenRow.refreshToken) : tokenRow.refreshToken;
+
+  // Not expired yet (with 60s buffer) → return current token
+  if (tokenRow.expiresAt.getTime() > Date.now() + 60_000) {
+    return plainAccessToken;
+  }
+
+  // Refresh
+  const clientId = process.env.STRAVA_CLIENT_ID;
+  const clientSecret = process.env.STRAVA_CLIENT_SECRET;
+  if (!clientId || !clientSecret) {
+    throw new Error('STRAVA_CLIENT_ID/SECRET not configured');
+  }
+
+  const res = await fetch('https://www.strava.com/oauth/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: plainRefreshToken,
+      grant_type: 'refresh_token',
+    }),
+  });
+
+  if (!res.ok) {
+    // If 401/400 — refresh token revoked/expired → disconnect
+    if (res.status === 401 || res.status === 400) {
+      await db.delete(stravaTokens).where(eq(stravaTokens.userId, tokenRow.userId));
+      throw new Error('STRAVA_TOKEN_REVOKED');
+    }
+    throw new Error(`Strava token refresh failed: ${res.status}`);
+  }
+
+  const data = await res.json() as {
+    access_token: string;
+    refresh_token: string;
+    expires_at: number;
+  };
+
+  const expiresAt = new Date(data.expires_at * 1000);
+
+  await db.update(stravaTokens).set({
+    accessToken: hasEncKey ? encrypt(data.access_token) : data.access_token,
+    refreshToken: hasEncKey ? encrypt(data.refresh_token) : data.refresh_token,
+    expiresAt,
+  }).where(eq(stravaTokens.userId, tokenRow.userId));
+
+  return data.access_token;
+}
+
 // ── API helper ──
 
+/**
+ * Fetch from Strava API with basic rate-limit awareness.
+ * Throws on non-200 responses. On 429 (rate limited), includes retry-after info.
+ */
 export async function fetchStravaApi<T>(url: string, accessToken: string): Promise<T> {
   const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (res.status === 429) {
+    const retryAfter = res.headers.get('Retry-After') ?? '900';
+    throw new Error(`Strava rate limited. Retry after ${retryAfter}s`);
+  }
   if (!res.ok) throw new Error(`Strava API ${url} returned ${res.status}`);
   return res.json() as Promise<T>;
 }
@@ -302,7 +380,7 @@ export async function updateUserLocation(userId: string, activities: StravaActiv
     await db.update(users).set({
       lat: locationActivity.start_latlng[0],
       lon: locationActivity.start_latlng[1],
-    }).where(eq(users.clerkId, userId));
+    }).where(eq(users.authEmail, userId));
   }
 }
 

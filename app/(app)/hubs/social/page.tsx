@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Users, MessageSquare, Rss, ChevronRight, Heart, Calendar, Trophy } from 'lucide-react';
+import { useLang } from '@/lib/lang';
 
 interface ForumPost {
   id: number;
@@ -23,17 +24,20 @@ interface FeedItem {
   isFollowing: boolean;
 }
 
-const FEED_TYPE_LABELS: Record<string, string> = {
-  workout_log: 'zapisał trening',
-  session_join: 'dołączył do sesji',
-  strava_activity: 'ukończył aktywność',
-  pr: 'ustanowił nowy rekord',
-};
-
 export default function SocialHubPage() {
+  const { t, lang } = useLang();
   const [posts, setPosts] = useState<ForumPost[]>([]);
   const [feed, setFeed] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const FEED_TYPE_LABELS: Record<string, string> = {
+    workout_log: t('hub_soc_feed_workout_log'),
+    session_join: t('hub_soc_feed_session_join'),
+    strava_activity: t('hub_soc_feed_strava'),
+    pr: t('hub_soc_feed_pr'),
+  };
+
+  const dateLocale = lang === 'pl' ? 'pl-PL' : 'en-US';
 
   useEffect(() => {
     async function load() {
@@ -61,8 +65,8 @@ export default function SocialHubPage() {
           <Users className="w-5 h-5 text-[#6366F1]" />
         </div>
         <div>
-          <h1 className="font-display text-3xl text-white tracking-wider">HUB SPOŁECZNY</h1>
-          <p className="text-[#888888] text-sm">Forum · Feed · Znajomi · Sesje</p>
+          <h1 className="font-display text-3xl text-white tracking-wider">{t('hub_social_title')}</h1>
+          <p className="text-[#888888] text-sm">{t('hub_social_subtitle')}</p>
         </div>
       </div>
 
@@ -70,9 +74,9 @@ export default function SocialHubPage() {
         {/* Forum Posts */}
         <div className="bg-[var(--bg-card)] border border-[var(--border)] p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display text-sm text-[#888888] tracking-wider">OSTATNIE POSTY FORUM</h2>
+            <h2 className="font-display text-sm text-[#888888] tracking-wider">{t('hub_soc_recent_posts')}</h2>
             <Link href="/forum" className="text-xs text-[#6366F1] hover:text-[#818CF8] flex items-center gap-1 transition-colors">
-              Wszystkie <ChevronRight className="w-3 h-3" />
+              {t('hub_soc_all')} <ChevronRight className="w-3 h-3" />
             </Link>
           </div>
 
@@ -83,23 +87,23 @@ export default function SocialHubPage() {
           ) : posts.length === 0 ? (
             <div className="text-center py-8">
               <Users className="w-10 h-10 text-[#2A2A2A] mx-auto mb-3" />
-              <p className="text-[#888888] text-sm mb-3">Brak postów na forum</p>
+              <p className="text-[#888888] text-sm mb-3">{t('hub_soc_no_posts')}</p>
               <Link
                 href="/forum"
                 className="inline-flex items-center gap-2 px-4 py-2 bg-[#6366F1] text-white text-xs font-semibold uppercase tracking-wider hover:shadow-[0_0_15px_rgba(99,102,241,0.3)] transition-all"
               >
-                Przejdź do forum
+                {t('hub_soc_go_forum')}
               </Link>
             </div>
           ) : (
             <div className="flex flex-col gap-2">
               {posts.map((post) => (
                 <Link key={post.id} href={`/forum/${post.id}`}>
-                  <div className="p-3 bg-[var(--bg-card)] border border-[var(--border)] hover:border-[var(--border)] transition-colors">
+                  <div className="p-3 bg-[var(--bg-card)] border border-[var(--border)] hover:border-[#6366F1] transition-colors">
                     <p className="text-sm text-white font-medium truncate">{post.title}</p>
                     <div className="flex items-center gap-3 mt-1 text-xs text-[#555555]">
                       <span className="text-[#6366F1]">{post.category}</span>
-                      <span>{post.author?.username ?? 'Anonimowy'}</span>
+                      <span>{post.author?.username ?? t('hub_soc_anonymous')}</span>
                       <span className="flex items-center gap-1">
                         <MessageSquare className="w-3 h-3" />
                         {post.replyCount}
@@ -115,9 +119,9 @@ export default function SocialHubPage() {
         {/* Activity Feed */}
         <div className="bg-[var(--bg-card)] border border-[var(--border)] p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display text-sm text-[#888888] tracking-wider">AKTYWNOŚĆ</h2>
+            <h2 className="font-display text-sm text-[#888888] tracking-wider">{t('hub_soc_activity')}</h2>
             <Link href="/feed" className="text-xs text-[#6366F1] hover:text-[#818CF8] flex items-center gap-1 transition-colors">
-              Pełny feed <ChevronRight className="w-3 h-3" />
+              {t('hub_soc_full_feed')} <ChevronRight className="w-3 h-3" />
             </Link>
           </div>
 
@@ -128,7 +132,7 @@ export default function SocialHubPage() {
           ) : feed.length === 0 ? (
             <div className="text-center py-8">
               <Rss className="w-10 h-10 text-[#2A2A2A] mx-auto mb-3" />
-              <p className="text-[#888888] text-sm">Brak aktywności. Obserwuj sportowców!</p>
+              <p className="text-[#888888] text-sm">{t('hub_soc_no_activity')}</p>
             </div>
           ) : (
             <div className="flex flex-col gap-2">
@@ -139,12 +143,12 @@ export default function SocialHubPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-white">
-                      <span className="font-medium">{item.creator?.username ?? 'Ktoś'}</span>
+                      <span className="font-medium">{item.creator?.username ?? t('hub_soc_someone')}</span>
                       {' '}
                       <span className="text-[#555555]">{FEED_TYPE_LABELS[item.type] ?? item.type}</span>
                     </p>
                     <p className="text-[10px] text-[#444444] mt-0.5">
-                      {new Date(item.createdAt).toLocaleDateString()}
+                      {new Date(item.createdAt).toLocaleDateString(dateLocale)}
                     </p>
                   </div>
                 </div>
@@ -156,13 +160,13 @@ export default function SocialHubPage() {
 
       {/* Quick links */}
       <div className="bg-[var(--bg-card)] border border-[var(--border)] p-5 mt-6">
-        <h2 className="font-display text-sm text-[#888888] tracking-wider mb-4">SZYBKIE AKCJE</h2>
+        <h2 className="font-display text-sm text-[#888888] tracking-wider mb-4">{t('hub_soc_quick_actions')}</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { href: '/forum', label: 'Forum', icon: Users },
-            { href: '/messages', label: 'Wiadomości', icon: MessageSquare },
-            { href: '/discover', label: 'Odkryj', icon: Heart },
-            { href: '/leaderboard', label: 'Ranking', icon: Trophy },
+            { href: '/forum', label: t('hub_soc_forum'), icon: Users },
+            { href: '/messages', label: t('hub_soc_messages'), icon: MessageSquare },
+            { href: '/discover', label: t('hub_soc_discover'), icon: Heart },
+            { href: '/leaderboard', label: t('hub_soc_ranking'), icon: Trophy },
           ].map((link) => {
             const Icon = link.icon;
             return (
@@ -183,16 +187,16 @@ export default function SocialHubPage() {
       {/* Upcoming sessions */}
       <div className="bg-[var(--bg-card)] border border-[var(--border)] p-5 mt-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display text-sm text-[#888888] tracking-wider">NADCHODZĄCE SESJE</h2>
+          <h2 className="font-display text-sm text-[#888888] tracking-wider">{t('hub_soc_upcoming_sessions')}</h2>
           <Link href="/sessions" className="text-xs text-[#6366F1] hover:text-[#818CF8] flex items-center gap-1 transition-colors">
-            Wszystkie <ChevronRight className="w-3 h-3" />
+            {t('hub_soc_all')} <ChevronRight className="w-3 h-3" />
           </Link>
         </div>
         <div className="flex items-center gap-3 p-4 bg-[var(--bg-card)] border border-[var(--border)]">
           <Calendar className="w-8 h-8 text-[#2A2A2A]" />
           <div>
-            <p className="text-sm text-[#888888]">Przeglądaj nadchodzące sesje grupowe</p>
-            <Link href="/sessions" className="text-xs text-[#6366F1] hover:underline">Zobacz sesje →</Link>
+            <p className="text-sm text-[#888888]">{t('hub_soc_browse_sessions')}</p>
+            <Link href="/sessions" className="text-xs text-[#6366F1] hover:underline">{t('hub_soc_see_sessions')}</Link>
           </div>
         </div>
       </div>

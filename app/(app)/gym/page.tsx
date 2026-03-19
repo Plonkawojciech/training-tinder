@@ -10,6 +10,7 @@ import { Big4Display } from '@/components/gym/big4-display';
 import { CheckinWidget } from '@/components/gym/checkin-widget';
 import { SpotterRequest } from '@/components/gym/spotter-request';
 import { Button } from '@/components/ui/button';
+import { useLang } from '@/lib/lang';
 
 interface StatsSummary {
   totalWorkouts: number;
@@ -49,7 +50,7 @@ interface Plan {
 
 interface UserProfile {
   gymName: string | null;
-  clerkId: string;
+  authEmail: string;
 }
 
 interface ActiveCheckin {
@@ -61,7 +62,7 @@ interface ActiveCheckin {
     workoutType: string | null;
     checkedInAt: string | null;
   };
-  user: { clerkId: string; username: string | null; avatarUrl: string | null; sportTypes: string[] } | null;
+  user: { authEmail: string; username: string | null; avatarUrl: string | null; sportTypes: string[] } | null;
 }
 
 interface SpotterEntry {
@@ -75,12 +76,36 @@ interface SpotterEntry {
     createdAt: string | null;
     expiresAt: string | null;
   };
-  requester: { clerkId: string; username: string | null; avatarUrl: string | null } | null;
+  requester: { authEmail: string; username: string | null; avatarUrl: string | null } | null;
+}
+
+function calculateStreak(workouts: WorkoutLog[]): number {
+  if (workouts.length === 0) return 0;
+  const dates = [...new Set(workouts.map(w => new Date(w.date).toDateString()))].sort(
+    (a, b) => new Date(b).getTime() - new Date(a).getTime()
+  );
+  let streak = 0;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  for (let i = 0; i < dates.length; i++) {
+    const expected = new Date(today);
+    expected.setDate(expected.getDate() - i);
+    if (new Date(dates[i]).toDateString() === expected.toDateString()) {
+      streak++;
+    } else if (i === 0 && new Date(dates[i]).toDateString() === new Date(today.getTime() - 86400000).toDateString()) {
+      // Allow yesterday as start of streak
+      streak++;
+    } else {
+      break;
+    }
+  }
+  return streak;
 }
 
 export default function GymHubPage() {
   const router = useRouter();
   const pathname = usePathname();
+  const { t } = useLang();
   const [stats, setStats] = useState<StatsSummary | null>(null);
   const [recentWorkouts, setRecentWorkouts] = useState<WorkoutLog[]>([]);
   const [prs, setPrs] = useState<PRRecord[]>([]);
@@ -141,19 +166,19 @@ export default function GymHubPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="font-display text-3xl text-white tracking-wider">HUB SIŁOWNI</h1>
-          <p className="text-[#888888] text-sm mt-1">Centrum treningu siłowego</p>
+          <h1 className="font-display text-3xl text-white tracking-wider">{t('gym_title')}</h1>
+          <p className="text-[#888888] text-sm mt-1">{t('gym_subtitle')}</p>
         </div>
         <Link href="/gym/log">
           <Button>
             <Plus className="w-4 h-4" />
-            Zaloguj Trening
+            {t('gym_log_workout')}
           </Button>
         </Link>
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         <div className="bg-[var(--bg-card)] border border-[var(--border)] p-4 text-center">
           <div className="w-8 h-8 bg-[rgba(99,102,241,0.1)] border border-[rgba(99,102,241,0.2)] flex items-center justify-center mx-auto mb-2">
             <Dumbbell className="w-4 h-4 text-[#6366F1]" />
@@ -163,7 +188,7 @@ export default function GymHubPage() {
           ) : (
             <p className="font-display text-2xl text-white">{stats?.weekWorkouts ?? 0}</p>
           )}
-          <p className="text-[10px] text-[#888888] uppercase tracking-wider">Treningi w tygodniu</p>
+          <p className="text-[10px] text-[#888888] uppercase tracking-wider">{t('gym_workouts_week')}</p>
         </div>
         <div className="bg-[var(--bg-card)] border border-[var(--border)] p-4 text-center">
           <div className="w-8 h-8 bg-[rgba(255,215,0,0.1)] border border-[rgba(255,215,0,0.2)] flex items-center justify-center mx-auto mb-2">
@@ -174,7 +199,7 @@ export default function GymHubPage() {
           ) : (
             <p className="font-display text-2xl text-white">{stats?.monthPRs ?? 0}</p>
           )}
-          <p className="text-[10px] text-[#888888] uppercase tracking-wider">Rekordy w miesiącu</p>
+          <p className="text-[10px] text-[#888888] uppercase tracking-wider">{t('gym_records_month')}</p>
         </div>
         <div className="bg-[var(--bg-card)] border border-[var(--border)] p-4 text-center">
           <div className="w-8 h-8 bg-[rgba(167,139,250,0.1)] border border-[rgba(167,139,250,0.2)] flex items-center justify-center mx-auto mb-2">
@@ -185,7 +210,18 @@ export default function GymHubPage() {
           ) : (
             <p className="font-display text-2xl text-white">{stats?.totalSets ?? 0}</p>
           )}
-          <p className="text-[10px] text-[#888888] uppercase tracking-wider">Serie w miesiącu</p>
+          <p className="text-[10px] text-[#888888] uppercase tracking-wider">{t('gym_sets_month')}</p>
+        </div>
+        <div className="bg-[var(--bg-card)] border border-[var(--border)] p-4 text-center">
+          <div className="w-8 h-8 bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.2)] flex items-center justify-center mx-auto mb-2">
+            <Flame className="w-4 h-4 text-[#EF4444]" />
+          </div>
+          {loading ? (
+            <div className="h-7 skeleton mb-1" />
+          ) : (
+            <p className="font-display text-2xl text-white">{calculateStreak(recentWorkouts)}</p>
+          )}
+          <p className="text-[10px] text-[#888888] uppercase tracking-wider">{t('gym_streak')} 🔥</p>
         </div>
       </div>
 
@@ -195,9 +231,9 @@ export default function GymHubPage() {
           {/* Recent Workouts */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-display text-sm text-[#888888] tracking-wider">OSTATNIE TRENINGI</h2>
+              <h2 className="font-display text-sm text-[#888888] tracking-wider">{t('gym_recent')}</h2>
               <Link href="/gym/log" className="text-xs text-[#6366F1] hover:text-[#818CF8] flex items-center gap-1">
-                Zobacz wszystkie <ChevronRight className="w-3 h-3" />
+                {t('gym_see_all')} <ChevronRight className="w-3 h-3" />
               </Link>
             </div>
             {loading ? (
@@ -209,11 +245,11 @@ export default function GymHubPage() {
             ) : recentWorkouts.length === 0 ? (
               <div className="bg-[var(--bg-card)] border border-[var(--border)] p-8 text-center">
                 <Dumbbell className="w-10 h-10 text-[#2A2A2A] mx-auto mb-3" />
-                <p className="text-[#888888] text-sm mb-3">Brak zalogowanych treningów</p>
+                <p className="text-[#888888] text-sm mb-3">{t('gym_no_workouts')}</p>
                 <Link href="/gym/log">
                   <Button size="sm">
                     <Plus className="w-4 h-4" />
-                    Zaloguj pierwszy trening
+                    {t('gym_log_first')}
                   </Button>
                 </Link>
               </div>
@@ -240,9 +276,9 @@ export default function GymHubPage() {
           {/* Featured Plans */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-display text-sm text-[#888888] tracking-wider">WYRÓŻNIONE PLANY</h2>
+              <h2 className="font-display text-sm text-[#888888] tracking-wider">{t('gym_featured_plans')}</h2>
               <Link href="/gym/plans" className="text-xs text-[#6366F1] hover:text-[#818CF8] flex items-center gap-1">
-                Przeglądaj wszystkie <ChevronRight className="w-3 h-3" />
+                {t('gym_browse_all')} <ChevronRight className="w-3 h-3" />
               </Link>
             </div>
             {loading ? (
@@ -253,7 +289,7 @@ export default function GymHubPage() {
               </div>
             ) : plans.length === 0 ? (
               <div className="bg-[var(--bg-card)] border border-[var(--border)] p-6 text-center">
-                <p className="text-[#888888] text-sm">Brak publicznych planów</p>
+                <p className="text-[#888888] text-sm">{t('gym_no_plans')}</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -270,10 +306,10 @@ export default function GymHubPage() {
               <div className="flex items-center justify-between mb-3">
                 <h2 className="font-display text-sm text-[#888888] tracking-wider flex items-center gap-2">
                   <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse inline-block" />
-                  KTO TRENUJE TERAZ
+                  {t('gym_who_training')}
                 </h2>
                 <Link href="/gym/live" className="text-xs text-[#6366F1] hover:text-[#818CF8] flex items-center gap-1">
-                  Zobacz wszystkie <ChevronRight className="w-3 h-3" />
+                  {t('gym_see_all')} <ChevronRight className="w-3 h-3" />
                 </Link>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -283,7 +319,7 @@ export default function GymHubPage() {
                       {(item.user?.username ?? 'U')[0].toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-white truncate">{item.user?.username ?? 'Nieznany'}</p>
+                      <p className="text-sm text-white truncate">{item.user?.username ?? t('gen_athlete')}</p>
                       {item.checkin.workoutType && (
                         <span className="text-[10px] text-[#6366F1] border border-[#6366F1]/30 px-1">{item.checkin.workoutType}</span>
                       )}
@@ -301,10 +337,10 @@ export default function GymHubPage() {
               <div className="flex items-center justify-between mb-3">
                 <h2 className="font-display text-sm text-[#888888] tracking-wider flex items-center gap-2">
                   <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse inline-block" />
-                  PROŚBY O ASEKURACJĘ
+                  {t('gym_spotter_requests')}
                 </h2>
                 <Link href="/gym/live" className="text-xs text-[#6366F1] hover:text-[#818CF8] flex items-center gap-1">
-                  Zobacz wszystkie <ChevronRight className="w-3 h-3" />
+                  {t('gym_see_all')} <ChevronRight className="w-3 h-3" />
                 </Link>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -316,7 +352,7 @@ export default function GymHubPage() {
                         <span className="text-xs text-[#6366F1] border border-[#6366F1]/30 px-1.5 py-0.5">{s.request.weightKg}kg</span>
                       )}
                     </div>
-                    <p className="text-xs text-[#888888]">{s.requester?.username ?? 'Nieznany'}</p>
+                    <p className="text-xs text-[#888888]">{s.requester?.username ?? t('gen_athlete')}</p>
                     {s.request.message && <p className="text-xs text-[#555555] mt-1 italic">&ldquo;{s.request.message}&rdquo;</p>}
                   </div>
                 ))}
@@ -333,7 +369,7 @@ export default function GymHubPage() {
           {/* Spotter Request */}
           {profile?.gymName && (
             <div className="bg-[var(--bg-card)] border border-[var(--border)] p-4">
-              <h3 className="font-display text-sm text-[#888888] tracking-wider mb-3">POTRZEBUJESZ POMOCY?</h3>
+              <h3 className="font-display text-sm text-[#888888] tracking-wider mb-3">{t('gym_need_help')}</h3>
               <SpotterRequest gymName={profile.gymName} />
             </div>
           )}
@@ -345,7 +381,7 @@ export default function GymHubPage() {
           <div className="bg-[var(--bg-card)] border border-[var(--border)] p-4">
             <div className="flex items-center gap-2 mb-3">
               <TrendingUp className="w-4 h-4 text-[#6366F1]" />
-              <h3 className="font-display text-sm text-[#888888] tracking-wider">TOP REKORDY</h3>
+              <h3 className="font-display text-sm text-[#888888] tracking-wider">{t('gym_top_records')}</h3>
             </div>
             {loading ? (
               <div className="flex flex-col gap-2">
@@ -354,7 +390,7 @@ export default function GymHubPage() {
                 ))}
               </div>
             ) : prs.length === 0 ? (
-              <p className="text-xs text-[#555555]">Brak rekordów</p>
+              <p className="text-xs text-[#555555]">{t('gym_no_records')}</p>
             ) : (
               <div className="flex flex-col gap-2">
                 {prs.slice(0, 6).map((pr) => (
@@ -366,40 +402,40 @@ export default function GymHubPage() {
               </div>
             )}
             <Link href="/gym/records" className="flex items-center gap-1 text-xs text-[#6366F1] mt-3 hover:text-[#818CF8]">
-              Wszystkie rekordy <ChevronRight className="w-3 h-3" />
+              {t('gym_all_records')} <ChevronRight className="w-3 h-3" />
             </Link>
           </div>
 
           {/* Quick actions */}
           <div className="bg-[var(--bg-card)] border border-[var(--border)] p-4">
-            <h3 className="font-display text-sm text-[#888888] tracking-wider mb-3">SZYBKIE AKCJE</h3>
+            <h3 className="font-display text-sm text-[#888888] tracking-wider mb-3">{t('gym_quick_actions')}</h3>
             <div className="flex flex-col gap-2">
               <Link href="/gym/log" className="flex items-center justify-between p-2.5 border border-[var(--border)] hover:border-[#6366F1] transition-all text-sm text-[#888888] hover:text-white">
-                <span>Zaloguj Trening</span>
+                <span>{t('gym_log_workout')}</span>
                 <Dumbbell className="w-4 h-4" />
               </Link>
               <Link href="/gym/records" className="flex items-center justify-between p-2.5 border border-[var(--border)] hover:border-[#6366F1] transition-all text-sm text-[#888888] hover:text-white">
-                <span>Rekordy Osobiste</span>
+                <span>{t('gym_personal_records')}</span>
                 <Trophy className="w-4 h-4" />
               </Link>
               <Link href="/gym/finder" className="flex items-center justify-between p-2.5 border border-[var(--border)] hover:border-[#6366F1] transition-all text-sm text-[#888888] hover:text-white">
-                <span>Znajdź siłownię</span>
+                <span>{t('gym_find_gym')}</span>
                 <MapPin className="w-4 h-4" />
               </Link>
               <Link href="/gym/live" className="flex items-center justify-between p-2.5 border border-[var(--border)] hover:border-[#6366F1] transition-all text-sm text-[#888888] hover:text-white">
-                <span>Partnerzy siłowni</span>
+                <span>{t('gym_gym_partners')}</span>
                 <Radio className="w-4 h-4" />
               </Link>
               <Link href="/discover" className="flex items-center justify-between p-2.5 border border-[var(--border)] hover:border-[#6366F1] transition-all text-sm text-[#888888] hover:text-white">
-                <span>Znajdź sportowców</span>
+                <span>{t('gym_find_athletes')}</span>
                 <Users className="w-4 h-4" />
               </Link>
               <Link href="/gym/plans" className="flex items-center justify-between p-2.5 border border-[var(--border)] hover:border-[#6366F1] transition-all text-sm text-[#888888] hover:text-white">
-                <span>Plany treningowe</span>
+                <span>{t('gym_training_plans')}</span>
                 <ChevronRight className="w-4 h-4" />
               </Link>
               <Link href="/stats" className="flex items-center justify-between p-2.5 border border-[var(--border)] hover:border-[#6366F1] transition-all text-sm text-[#888888] hover:text-white">
-                <span>Postępy i statystyki</span>
+                <span>{t('gym_progress_stats')}</span>
                 <TrendingUp className="w-4 h-4" />
               </Link>
             </div>

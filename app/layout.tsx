@@ -58,9 +58,17 @@ export default function RootLayout({
         <meta name="application-name" content="TrainMate" />
       </head>
       <body className="antialiased">
+        <a
+          href="#main-content"
+          className="skip-to-content"
+        >
+          Skip to content
+        </a>
         <ThemeProvider>
           <LangProvider>
-            {children}
+            <main id="main-content">
+              {children}
+            </main>
           </LangProvider>
         </ThemeProvider>
         <script dangerouslySetInnerHTML={{ __html: `

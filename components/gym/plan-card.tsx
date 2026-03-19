@@ -3,6 +3,7 @@
 import { Calendar, ChevronRight } from 'lucide-react';
 import { getSportLabel, getSportColor } from '@/lib/utils';
 import Link from 'next/link';
+import { useLang } from '@/lib/lang';
 
 interface PlanCardProps {
   id: number;
@@ -22,12 +23,7 @@ const DIFFICULTY_COLORS: Record<string, string> = {
   elite: '#6366F1',
 };
 
-const DIFFICULTY_LABELS: Record<string, string> = {
-  beginner: 'Początkujący',
-  intermediate: 'Średniozaaw.',
-  advanced: 'Zaawansowany',
-  elite: 'Elita',
-};
+// DIFFICULTY_LABELS replaced by t() calls below
 
 export function PlanCard({
   id,
@@ -37,8 +33,15 @@ export function PlanCard({
   difficulty,
   durationWeeks,
   creator,
-  isOwn,
+  isOwn: _isOwn,
 }: PlanCardProps) {
+  const { t } = useLang();
+  const DIFFICULTY_LABELS: Record<string, string> = {
+    beginner: t('nsess_level_beginner'),
+    intermediate: t('nsess_level_intermediate'),
+    advanced: t('nsess_level_advanced'),
+    elite: t('nsess_level_elite'),
+  };
   const sportColor = getSportColor(sportType);
   const diffColor = DIFFICULTY_COLORS[difficulty] ?? '#888888';
 
@@ -75,7 +78,7 @@ export function PlanCard({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1 text-xs text-[#888888]">
             <Calendar className="w-3 h-3" />
-            <span>{durationWeeks} {durationWeeks === 1 ? 'tydzień' : 'tygodni'}</span>
+            <span>{durationWeeks} {durationWeeks === 1 ? t('gym_week_short') : t('gym_weeks')}</span>
           </div>
           {creator && (
             <div className="flex items-center gap-1.5">

@@ -4,10 +4,11 @@ import { db } from '@/lib/db';
 import { users, matches } from '@/lib/db/schema';
 import { eq, and, or, sql } from 'drizzle-orm';
 import { rankMatches, filterByLocation, filterBySport, type UserForMatching } from '@/lib/matching';
+import { unauthorized, serverError } from '@/lib/api-errors';
 
 export async function GET(request: Request) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   const { searchParams } = new URL(request.url);
   const sport = searchParams.get('sport') ?? 'all';
@@ -17,7 +18,7 @@ export async function GET(request: Request) {
     const currentUserRows = await db
       .select()
       .from(users)
-      .where(eq(users.clerkId, userId))
+      .where(eq(users.authEmail, userId))
       .limit(1);
 
     if (currentUserRows.length === 0) {
@@ -43,12 +44,12 @@ export async function GET(request: Request) {
     const allUsers = await db
       .select()
       .from(users)
-      .where(sql`${users.clerkId} != ${userId} AND ${locationCondition}`)
+      .where(sql`${users.authEmail} != ${userId} AND ${locationCondition}`)
       .limit(500);
 
     const currentForMatch: UserForMatching = {
       id: String(currentUser.id),
-      clerkId: currentUser.clerkId,
+      authEmail: currentUser.authEmail,
       username: currentUser.username,
       avatarUrl: currentUser.avatarUrl,
       bio: currentUser.bio,
@@ -67,7 +68,7 @@ export async function GET(request: Request) {
     const candidates: UserForMatching[] = allUsers
       .map((u) => ({
         id: String(u.id),
-        clerkId: u.clerkId,
+        authEmail: u.authEmail,
         username: u.username,
         avatarUrl: u.avatarUrl,
         bio: u.bio,
@@ -90,13 +91,13 @@ export async function GET(request: Request) {
     return NextResponse.json(ranked);
   } catch (err) {
     console.error('GET /api/matches error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }
 
 export async function POST(request: Request) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   try {
     const { targetClerkId, score } = await request.json() as { targetClerkId: string; score: number };
@@ -124,6 +125,6 @@ export async function POST(request: Request) {
     return NextResponse.json(match);
   } catch (err) {
     console.error('POST /api/matches error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

@@ -3,10 +3,11 @@ import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { userEvents, users } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
+import { unauthorized, serverError, badRequest, ErrorCode } from '@/lib/api-errors';
 
 export async function GET(request: Request) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   const { searchParams } = new URL(request.url);
   const includePublic = searchParams.get('public') !== 'false';
@@ -32,7 +33,7 @@ export async function GET(request: Request) {
         avatarUrl: users.avatarUrl,
       })
       .from(userEvents)
-      .leftJoin(users, eq(users.clerkId, userEvents.userId))
+      .leftJoin(users, eq(users.authEmail, userEvents.userId))
       .where(
         eq(userEvents.isPublic, true)
       )
@@ -51,13 +52,13 @@ export async function GET(request: Request) {
     return NextResponse.json({ myEvents, publicEvents });
   } catch (err) {
     console.error('GET /api/events error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }
 
 export async function POST(request: Request) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   try {
     const body = await request.json() as {
@@ -73,10 +74,7 @@ export async function POST(request: Request) {
     };
 
     if (!body.eventName || !body.eventType || !body.sport || !body.eventDate) {
-      return NextResponse.json(
-        { error: 'eventName, eventType, sport, and eventDate are required' },
-        { status: 400 }
-      );
+      return badRequest(ErrorCode.MISSING_FIELDS, 'eventName, eventType, sport, and eventDate are required');
     }
 
     const [created] = await db
@@ -98,6 +96,6 @@ export async function POST(request: Request) {
     return NextResponse.json(created, { status: 201 });
   } catch (err) {
     console.error('POST /api/events error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { DARK_MAP_STYLE } from '@/lib/maps';
 import { loadGoogleMapsAPI } from '@/lib/maps-loader';
+import { useLang } from '@/lib/lang';
 import type { PlaceResult } from '@/lib/maps';
 
-export interface GymPlace extends PlaceResult {}
+export type GymPlace = PlaceResult;
 
 interface GymMapProps {
   gyms: GymPlace[];
@@ -19,6 +20,7 @@ interface InfoCard {
 }
 
 export function GymMap({ gyms, userLat, userLng, onSelectGym }: GymMapProps) {
+  const { t } = useLang();
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
@@ -62,7 +64,7 @@ export function GymMap({ gyms, userLat, userLng, onSelectGym }: GymMapProps) {
             strokeColor: '#0A0A0A',
             strokeWeight: 3,
           },
-          title: 'Twoja lokalizacja',
+          title: t('gym_your_location'),
           zIndex: 1000,
         });
         userMarkerRef.current = uMarker;
@@ -102,12 +104,11 @@ export function GymMap({ gyms, userLat, userLng, onSelectGym }: GymMapProps) {
         setReady(true);
       } catch (err) {
         console.error('Maps init error:', err);
-        setMapError('Nie udało się załadować mapy. Sprawdź połączenie z internetem.');
+        setMapError(t('map_load_error'));
       }
     }
 
     initMap();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gyms, userLat, userLng]);
 
   async function handleSetGym(gym: GymPlace) {
@@ -130,10 +131,10 @@ export function GymMap({ gyms, userLat, userLng, onSelectGym }: GymMapProps) {
 
   return (
     <div className="relative w-full h-full">
-      <div ref={mapRef} className="w-full h-full" />
+      <div ref={mapRef} className="w-full h-full" role="application" aria-label={t('gym_map_aria')} />
       {!ready && !mapError && (
         <div className="absolute inset-0 bg-[var(--bg)] flex items-center justify-center">
-          <div className="text-[#888888] text-sm">Ładowanie mapy...</div>
+          <div className="text-[var(--text-dim)] text-sm">{t('gen_loading')}</div>
         </div>
       )}
       {mapError && (
@@ -147,11 +148,11 @@ export function GymMap({ gyms, userLat, userLng, onSelectGym }: GymMapProps) {
           <div className="flex items-start justify-between mb-2">
             <div>
               <h3 className="font-display text-white text-sm tracking-wider">{selectedCard.gym.name}</h3>
-              <p className="text-xs text-[#888888] mt-0.5">{selectedCard.gym.address}</p>
+              <p className="text-xs text-[var(--text-dim)] mt-0.5">{selectedCard.gym.address}</p>
             </div>
             <button
               onClick={() => setSelectedCard(null)}
-              className="text-[#888888] hover:text-white ml-2 shrink-0 text-lg leading-none"
+              className="text-[var(--text-dim)] hover:text-white ml-2 shrink-0 text-lg leading-none"
             >
               ×
             </button>
@@ -172,22 +173,22 @@ export function GymMap({ gyms, userLat, userLng, onSelectGym }: GymMapProps) {
               }`}
             >
               {selectedCard.gym.open_now === undefined
-                ? 'Godziny N/D'
+                ? t('gym_hours_na')
                 : selectedCard.gym.open_now
-                ? 'Otwarte'
-                : 'Zamknięte'}
+                ? t('gym_open')
+                : t('gym_closed')}
             </span>
           </div>
 
           {setSuccess === selectedCard.gym.place_id ? (
-            <div className="text-center py-2 text-xs text-green-400">Ustawiono jako Twoja siłownia!</div>
+            <div className="text-center py-2 text-xs text-green-400">{t('gym_set_success')}</div>
           ) : (
             <button
               onClick={() => handleSetGym(selectedCard.gym)}
               disabled={settingGym === selectedCard.gym.place_id}
               className="w-full py-2 bg-[#6366F1] text-white text-xs font-semibold uppercase tracking-wider hover:shadow-[0_0_15px_rgba(99,102,241,0.4)] disabled:opacity-50 transition-all"
             >
-              {settingGym === selectedCard.gym.place_id ? 'Ustawianie...' : 'Ustaw jako moją siłownię'}
+              {settingGym === selectedCard.gym.place_id ? t('gym_setting') : t('gym_set_as_mine')}
             </button>
           )}
         </div>

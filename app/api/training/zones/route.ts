@@ -3,6 +3,7 @@ import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { users, userSportProfiles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { unauthorized, serverError } from '@/lib/api-errors';
 
 export interface PowerZone {
   zone: number;
@@ -97,10 +98,10 @@ function calcPaceZones(thresholdPaceSec: number): PaceZone[] {
 
 export async function GET() {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   try {
-    const [userRow] = await db.select().from(users).where(eq(users.clerkId, userId)).limit(1);
+    const [userRow] = await db.select().from(users).where(eq(users.authEmail, userId)).limit(1);
     const sportProfiles = await db
       .select()
       .from(userSportProfiles)
@@ -128,6 +129,6 @@ export async function GET() {
     });
   } catch (err) {
     console.error('GET /api/training/zones error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

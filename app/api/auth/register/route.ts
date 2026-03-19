@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import { authUsers } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { isRateLimited, getClientIp } from '@/lib/rate-limit';
+import { serverError, badRequest, rateLimited, ErrorCode } from '@/lib/api-errors';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -12,14 +13,14 @@ export async function POST(request: Request) {
   // Rate limit: 5 registrations per IP per hour
   const ip = getClientIp(request);
   if (isRateLimited(`register:${ip}`, 5, 60 * 60 * 1000)) {
-    return NextResponse.json({ error: 'Zbyt wiele rejestracji. Spróbuj ponownie za godzinę.' }, { status: 429 });
+    return rateLimited('Too many registrations. Try again in an hour.');
   }
 
   try {
     const body = await request.json() as { email?: unknown; password?: unknown; displayName?: unknown };
 
     if (typeof body.email !== 'string' || typeof body.password !== 'string') {
-      return NextResponse.json({ error: 'Podaj email i hasło' }, { status: 400 });
+      return badRequest(ErrorCode.MISSING_FIELDS, 'Email and password required');
     }
 
     const email = body.email.trim().toLowerCase();
@@ -27,17 +28,20 @@ export async function POST(request: Request) {
     const displayName = typeof body.displayName === 'string' ? body.displayName.trim().slice(0, 60) : null;
 
     if (!email || !password) {
-      return NextResponse.json({ error: 'Podaj email i hasło' }, { status: 400 });
+      return badRequest(ErrorCode.MISSING_FIELDS, 'Email and password required');
     }
     if (email.length > 254 || !EMAIL_RE.test(email)) {
-      return NextResponse.json({ error: 'Nieprawidłowy adres email' }, { status: 400 });
+      return badRequest(ErrorCode.INVALID_EMAIL_FORMAT, 'Invalid email format');
     }
     if (password.length < 8) {
-      return NextResponse.json({ error: 'Hasło musi mieć min. 8 znaków' }, { status: 400 });
+      return badRequest(ErrorCode.WEAK_PASSWORD, 'Password must be at least 8 characters');
     }
     if (password.length > 1024) {
-      return NextResponse.json({ error: 'Hasło jest za długie' }, { status: 400 });
+      return badRequest(ErrorCode.INVALID_INPUT, 'Password is too long');
     }
+
+    // Always hash password first (timing-safe: prevents email enumeration via response timing)
+    const passwordHash = await bcrypt.hash(password, 12);
 
     const [existing] = await db
       .select({ id: authUsers.id })
@@ -46,10 +50,8 @@ export async function POST(request: Request) {
       .limit(1);
 
     if (existing) {
-      return NextResponse.json({ error: 'Konto z tym emailem już istnieje' }, { status: 409 });
+      return badRequest(ErrorCode.INVALID_REGISTRATION_DATA, 'Invalid registration data');
     }
-
-    const passwordHash = await bcrypt.hash(password, 12);
 
     await db.insert(authUsers).values({
       email,
@@ -71,6 +73,6 @@ export async function POST(request: Request) {
     return res;
   } catch (err) {
     console.error('[auth/register]', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

@@ -3,9 +3,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   Activity, Dumbbell, Users, TrendingUp, Plus,
   Compass, Calendar, ChevronRight, Zap, BarChart2,
+  MessageSquare, Heart, MapPin,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ActivityCard } from '@/components/feed/activity-card';
@@ -18,40 +20,62 @@ interface FeedItem {
   type: string;
   dataJson: Record<string, unknown>;
   createdAt: string;
-  creator: { username: string | null; avatarUrl: string | null; clerkId: string } | null;
+  creator: { username: string | null; avatarUrl: string | null; authEmail: string } | null;
   isOwn: boolean;
   isFollowing: boolean;
+}
+
+interface DashStats {
+  matchesCount: number;
+  upcomingSessions: number;
+  unreadMessages: number;
+}
+
+interface UpcomingSession {
+  id: number;
+  title: string;
+  sport: string;
+  date: string;
+  time: string;
+  location: string | null;
+}
+
+interface RecentMatch {
+  authEmail: string;
+  username: string | null;
+  avatarUrl: string | null;
+  sportTypes: string | null;
 }
 
 const HUBS = [
   {
     href: '/hubs/endurance',
-    label: 'Wytrzymałość',
-    subtitle: 'Bieganie · Kolarstwo · Pływanie',
+    labelKey: 'dash_hub_end' as const,
+    subtitleKey: 'dash_hub_end_sub' as const,
     icon: Activity,
     gradient: 'linear-gradient(135deg, #6366F1 0%, #6D28D9 100%)',
     emoji: '🏃',
   },
   {
     href: '/hubs/strength',
-    label: 'Siłownia',
-    subtitle: 'Gym · Powerlifting · Rekordy',
+    labelKey: 'dash_hub_str' as const,
+    subtitleKey: 'dash_hub_str_sub' as const,
     icon: Dumbbell,
     gradient: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
     emoji: '🏋️',
   },
   {
     href: '/hubs/social',
-    label: 'Społeczność',
-    subtitle: 'Forum · Feed · Znajomi',
+    labelKey: 'dash_hub_soc' as const,
+    subtitleKey: 'dash_hub_soc_sub' as const,
     icon: Users,
     gradient: 'linear-gradient(135deg, #D97706 0%, #B45309 100%)',
     emoji: '🤝',
   },
   {
     href: '/hubs/analytics',
-    label: 'Statystyki',
-    subtitle: 'Wykresy · Rekordy · Postęp',
+    labelKey: 'dash_hub_ana' as const,
+    subtitleKey: 'dash_hub_ana_sub' as const,
     icon: TrendingUp,
     gradient: 'linear-gradient(135deg, #6366F1 0%, #A78BFA 100%)',
     emoji: '📊',
@@ -59,10 +83,10 @@ const HUBS = [
 ];
 
 const QUICK_ACTIONS = [
-  { href: '/discover', label: 'Odkryj', icon: Compass, color: '#6366F1' },
-  { href: '/gym/log', label: 'Trening', icon: Dumbbell, color: '#059669' },
-  { href: '/sessions/new', label: 'Sesja', icon: Calendar, color: '#D97706' },
-  { href: '/forum', label: 'Forum', icon: Users, color: '#DB2777' },
+  { href: '/discover', labelKey: 'dash_discover' as const, icon: Compass, color: '#6366F1' },
+  { href: '/gym/log', labelKey: 'dash_workout' as const, icon: Dumbbell, color: '#059669' },
+  { href: '/sessions/new', labelKey: 'dash_new_sess' as const, icon: Calendar, color: '#D97706' },
+  { href: '/messages', labelKey: 'dash_messages' as const, icon: MessageSquare, color: '#DB2777' },
 ];
 
 export default function DashboardPage() {
@@ -72,6 +96,31 @@ export default function DashboardPage() {
   const [feed, setFeed] = useState<FeedItem[]>([]);
   const [hasProfile, setHasProfile] = useState<boolean | null>(null);
   const [username, setUsername] = useState<string | null>(null);
+  const [stats, setStats] = useState<DashStats>({ matchesCount: 0, upcomingSessions: 0, unreadMessages: 0 });
+  const [upcomingSessions, setUpcomingSessions] = useState<UpcomingSession[]>([]);
+  const [recentMatches, setRecentMatches] = useState<RecentMatch[]>([]);
+
+  const fetchDashData = useCallback(async () => {
+    try {
+      const [matchesRes, sessionsRes, messagesRes] = await Promise.all([
+        fetch('/api/matches').then(r => r.ok ? r.json() : []),
+        fetch('/api/sessions?upcoming=true&limit=3').then(r => r.ok ? r.json() : []),
+        fetch('/api/messages').then(r => r.ok ? r.json() : []),
+      ]);
+      const matchesArr = Array.isArray(matchesRes) ? matchesRes : [];
+      const sessionsArr = Array.isArray(sessionsRes) ? sessionsRes : [];
+      const messagesArr = Array.isArray(messagesRes) ? messagesRes : [];
+      setStats({
+        matchesCount: matchesArr.length,
+        upcomingSessions: sessionsArr.length,
+        unreadMessages: messagesArr.filter((m: { unread?: boolean }) => m.unread).length,
+      });
+      setUpcomingSessions(sessionsArr.slice(0, 3));
+      setRecentMatches(matchesArr.slice(0, 3).map((m: { otherUser?: RecentMatch }) => m.otherUser).filter((u): u is RecentMatch => !!u));
+    } catch (err) {
+      console.error('fetchDashData error:', err);
+    }
+  }, []);
 
   const fetchFeed = useCallback(async () => {
     try {
@@ -95,17 +144,18 @@ export default function DashboardPage() {
         setUsername(data.username);
         setHasProfile(true);
         fetchFeed();
+        fetchDashData();
       } catch (err) {
         console.error('checkProfile error:', err);
       }
     }
     checkProfile();
-  }, [router, fetchFeed, pathname]);
+  }, [router, fetchFeed, fetchDashData, pathname]);
 
   function handleFeedFollowToggle(targetId: string, following: boolean) {
     setFeed((prev) =>
       prev.map((item) =>
-        item.creator?.clerkId === targetId ? { ...item, isFollowing: following } : item
+        item.creator?.authEmail === targetId ? { ...item, isFollowing: following } : item
       )
     );
   }
@@ -152,7 +202,7 @@ export default function DashboardPage() {
                   {t('dash_ready')}
                 </p>
                 <h1 style={{ color: 'white', fontWeight: 800, fontSize: 22, letterSpacing: -0.5, lineHeight: 1.2 }}>
-                  {username ? `Cześć, ${username}! 👋` : 'TrainMate'}
+                  {username ? `${t('dash_hello')}, ${username}!` : 'TrainMate'}
                 </h1>
               </div>
               <div style={{
@@ -167,9 +217,9 @@ export default function DashboardPage() {
             {/* Quick sport pills */}
             <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
               {[
-                { sport: 'cycling', emoji: '🚴', label: 'Kolarstwo' },
-                { sport: 'running', emoji: '🏃', label: 'Bieganie' },
-                { sport: 'gym', emoji: '🏋️', label: 'Siłownia' },
+                { sport: 'cycling', emoji: '🚴', label: t('dash_cycling') },
+                { sport: 'running', emoji: '🏃', label: t('dash_running') },
+                { sport: 'gym', emoji: '🏋️', label: t('dash_gym') },
               ].map((s) => (
                 <Link
                   key={s.sport}
@@ -207,8 +257,8 @@ export default function DashboardPage() {
                   <Compass style={{ width: 20, height: 20, color: '#6366F1' }} />
                 </div>
                 <div>
-                  <p style={{ color: 'var(--text)', fontWeight: 700, fontSize: 14 }}>Odkryj</p>
-                  <p style={{ color: 'var(--text-muted)', fontSize: 11 }}>Sportowcy</p>
+                  <p style={{ color: 'var(--text)', fontWeight: 700, fontSize: 14 }}>{t('dash_discover')}</p>
+                  <p style={{ color: 'var(--text-muted)', fontSize: 11 }}>{t('dash_athletes')}</p>
                 </div>
               </div>
             </Link>
@@ -227,8 +277,8 @@ export default function DashboardPage() {
                   <Plus style={{ width: 20, height: 20, color: '#059669' }} />
                 </div>
                 <div>
-                  <p style={{ color: 'var(--text)', fontWeight: 700, fontSize: 14 }}>Nowa Sesja</p>
-                  <p style={{ color: 'var(--text-muted)', fontSize: 11 }}>Zaplanuj</p>
+                  <p style={{ color: 'var(--text)', fontWeight: 700, fontSize: 14 }}>{t('dash_new_sess')}</p>
+                  <p style={{ color: 'var(--text-muted)', fontSize: 11 }}>{t('dash_plan')}</p>
                 </div>
               </div>
             </Link>
@@ -247,13 +297,13 @@ export default function DashboardPage() {
                   <Calendar style={{ width: 20, height: 20, color: '#D97706' }} />
                 </div>
                 <div>
-                  <p style={{ color: 'var(--text)', fontWeight: 700, fontSize: 14 }}>Sesje</p>
-                  <p style={{ color: 'var(--text-muted)', fontSize: 11 }}>Treningi</p>
+                  <p style={{ color: 'var(--text)', fontWeight: 700, fontSize: 14 }}>{t('dash_sessions')}</p>
+                  <p style={{ color: 'var(--text-muted)', fontSize: 11 }}>{t('dash_trainings')}</p>
                 </div>
               </div>
             </Link>
 
-            <Link href="/gym/log" style={{ textDecoration: 'none' }}>
+            <Link href="/messages" style={{ textDecoration: 'none' }}>
               <div style={{
                 background: 'var(--bg-card)', borderRadius: 20, padding: '16px',
                 boxShadow: 'var(--shadow-card)',
@@ -264,16 +314,128 @@ export default function DashboardPage() {
                   background: 'rgba(219,39,119,0.12)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  <Dumbbell style={{ width: 20, height: 20, color: '#DB2777' }} />
+                  <MessageSquare style={{ width: 20, height: 20, color: '#DB2777' }} />
                 </div>
                 <div>
-                  <p style={{ color: 'var(--text)', fontWeight: 700, fontSize: 14 }}>Trening</p>
-                  <p style={{ color: 'var(--text-muted)', fontSize: 11 }}>Zaloguj</p>
+                  <p style={{ color: 'var(--text)', fontWeight: 700, fontSize: 14 }}>{t('dash_messages')}</p>
+                  <p style={{ color: 'var(--text-muted)', fontSize: 11 }}>{t('dash_chat')}</p>
                 </div>
               </div>
             </Link>
           </div>
         </div>
+
+        {/* Quick stats */}
+        <div style={{ padding: '0 16px 16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+            <Link href="/discover" style={{ textDecoration: 'none' }}>
+              <div style={{
+                background: 'var(--bg-card)', borderRadius: 16, padding: '14px 12px',
+                boxShadow: 'var(--shadow-card)', textAlign: 'center',
+              }}>
+                <Heart style={{ width: 18, height: 18, color: '#EC4899', margin: '0 auto 6px' }} />
+                <p style={{ color: 'var(--text)', fontWeight: 800, fontSize: 20 }}>{stats.matchesCount}</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: 11 }}>{t('dash_matches')}</p>
+              </div>
+            </Link>
+            <Link href="/sessions" style={{ textDecoration: 'none' }}>
+              <div style={{
+                background: 'var(--bg-card)', borderRadius: 16, padding: '14px 12px',
+                boxShadow: 'var(--shadow-card)', textAlign: 'center',
+              }}>
+                <Calendar style={{ width: 18, height: 18, color: '#6366F1', margin: '0 auto 6px' }} />
+                <p style={{ color: 'var(--text)', fontWeight: 800, fontSize: 20 }}>{stats.upcomingSessions}</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: 11 }}>{t('dash_upcoming')}</p>
+              </div>
+            </Link>
+            <Link href="/messages" style={{ textDecoration: 'none' }}>
+              <div style={{
+                background: 'var(--bg-card)', borderRadius: 16, padding: '14px 12px',
+                boxShadow: 'var(--shadow-card)', textAlign: 'center',
+              }}>
+                <MessageSquare style={{ width: 18, height: 18, color: '#059669', margin: '0 auto 6px' }} />
+                <p style={{ color: 'var(--text)', fontWeight: 800, fontSize: 20 }}>{stats.unreadMessages}</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: 11 }}>{t('dash_unread')}</p>
+              </div>
+            </Link>
+          </div>
+        </div>
+
+        {/* Upcoming sessions */}
+        {upcomingSessions.length > 0 && (
+          <div style={{ padding: '0 16px 16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <p style={{ color: 'var(--text)', fontWeight: 700, fontSize: 15 }}>{t('dash_upcoming_title')}</p>
+              <Link href="/sessions" style={{ color: '#6366F1', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
+                {t('dash_view_all')}
+              </Link>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {upcomingSessions.map((s) => (
+                <Link key={s.id} href={`/sessions/${s.id}`} style={{ textDecoration: 'none' }}>
+                  <div style={{
+                    background: 'var(--bg-card)', borderRadius: 14, padding: '12px 14px',
+                    boxShadow: 'var(--shadow-card)', display: 'flex', alignItems: 'center', gap: 12,
+                  }}>
+                    <div style={{
+                      width: 40, height: 40, borderRadius: 12,
+                      background: 'rgba(99,102,241,0.12)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                    }}>
+                      <Calendar style={{ width: 18, height: 18, color: '#6366F1' }} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ color: 'var(--text)', fontWeight: 600, fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.title}</p>
+                      <p style={{ color: 'var(--text-muted)', fontSize: 12 }}>
+                        {s.sport} · {s.date} {s.time}
+                        {s.location && <> · <MapPin style={{ width: 11, height: 11, display: 'inline' }} /> {s.location}</>}
+                      </p>
+                    </div>
+                    <ChevronRight style={{ width: 16, height: 16, color: 'var(--text-dim)', flexShrink: 0 }} />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Recent matches */}
+        {recentMatches.length > 0 && (
+          <div style={{ padding: '0 16px 16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <p style={{ color: 'var(--text)', fontWeight: 700, fontSize: 15 }}>{t('dash_recent_matches')}</p>
+              <Link href="/discover" style={{ color: '#6366F1', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
+                {t('dash_view_all')}
+              </Link>
+            </div>
+            <div style={{ display: 'flex', gap: 10, overflowX: 'auto' }}>
+              {recentMatches.map((m) => (
+                <Link key={m.authEmail} href={`/profile/${m.authEmail}`} style={{ textDecoration: 'none', flexShrink: 0 }}>
+                  <div style={{
+                    background: 'var(--bg-card)', borderRadius: 16, padding: '14px',
+                    boxShadow: 'var(--shadow-card)', textAlign: 'center', width: 100,
+                  }}>
+                    <div style={{
+                      width: 48, height: 48, borderRadius: '50%', margin: '0 auto 8px',
+                      background: 'linear-gradient(135deg, #6366F1, #A78BFA)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      overflow: 'hidden',
+                    }}>
+                      {m.avatarUrl ? (
+                        <Image src={m.avatarUrl} alt="" width={48} height={48} style={{ objectFit: 'cover' }} />
+                      ) : (
+                        <Users style={{ width: 20, height: 20, color: 'white' }} />
+                      )}
+                    </div>
+                    <p style={{ color: 'var(--text)', fontWeight: 600, fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {m.username || t('gen_athlete')}
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* TrainPilot integration banner */}
         <div style={{ padding: '0 16px 16px' }}>
@@ -298,7 +460,7 @@ export default function DashboardPage() {
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ fontFamily: 'Syne, Inter, sans-serif', fontWeight: 800, fontSize: 14, color: 'var(--text)', letterSpacing: '-0.01em' }}>
-                TrainPilot <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontFamily: 'Inter, sans-serif', fontSize: 12, letterSpacing: 0 }}>— analityka osobista</span>
+                TrainPilot <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontFamily: 'Inter, sans-serif', fontSize: 12, letterSpacing: 0 }}>— {t('dash_personal_analytics')}</span>
               </p>
               <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>FTP · CTL/ATL · Dieta · Sen · AI</p>
             </div>
@@ -317,7 +479,7 @@ export default function DashboardPage() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <p style={{ color: 'var(--text)', fontWeight: 700, fontSize: 16 }}>{t('dash_recent')}</p>
               <Link href="/feed" style={{ color: '#6366F1', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
-                Zobacz więcej
+                {t('dash_see_more')}
               </Link>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -373,6 +535,31 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Quick stats */}
+        <div className="grid grid-cols-3 gap-4 mb-8">
+          <Link href="/discover" className="no-underline">
+            <div className="p-5 rounded-[18px] text-center transition-all hover:scale-[1.02]" style={{ background: 'var(--bg-card)', boxShadow: 'var(--shadow-card)' }}>
+              <Heart className="w-5 h-5 mx-auto mb-2" style={{ color: '#EC4899' }} />
+              <p className="text-2xl font-extrabold" style={{ color: 'var(--text)' }}>{stats.matchesCount}</p>
+              <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{t('dash_matches')}</p>
+            </div>
+          </Link>
+          <Link href="/sessions" className="no-underline">
+            <div className="p-5 rounded-[18px] text-center transition-all hover:scale-[1.02]" style={{ background: 'var(--bg-card)', boxShadow: 'var(--shadow-card)' }}>
+              <Calendar className="w-5 h-5 mx-auto mb-2" style={{ color: '#6366F1' }} />
+              <p className="text-2xl font-extrabold" style={{ color: 'var(--text)' }}>{stats.upcomingSessions}</p>
+              <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{t('dash_upcoming')}</p>
+            </div>
+          </Link>
+          <Link href="/messages" className="no-underline">
+            <div className="p-5 rounded-[18px] text-center transition-all hover:scale-[1.02]" style={{ background: 'var(--bg-card)', boxShadow: 'var(--shadow-card)' }}>
+              <MessageSquare className="w-5 h-5 mx-auto mb-2" style={{ color: '#059669' }} />
+              <p className="text-2xl font-extrabold" style={{ color: 'var(--text)' }}>{stats.unreadMessages}</p>
+              <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{t('dash_unread')}</p>
+            </div>
+          </Link>
+        </div>
+
         {/* Hub cards */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
@@ -393,10 +580,10 @@ export default function DashboardPage() {
                       </div>
                       <span className="text-2xl">{hub.emoji}</span>
                     </div>
-                    <h3 className="font-bold text-white text-base mb-1">{hub.label}</h3>
-                    <p className="text-white/60 text-xs mb-3">{hub.subtitle}</p>
+                    <h3 className="font-bold text-white text-base mb-1">{t(hub.labelKey)}</h3>
+                    <p className="text-white/60 text-xs mb-3">{t(hub.subtitleKey)}</p>
                     <div className="mt-auto flex items-center gap-1 text-white/80 text-xs font-semibold">
-                      Wejdź <ChevronRight className="w-3 h-3" />
+                      {t('dash_enter')} <ChevronRight className="w-3 h-3" />
                     </div>
                   </div>
                 </Link>
@@ -424,7 +611,7 @@ export default function DashboardPage() {
                       <Icon className="w-5 h-5" style={{ color: action.color }} />
                     </div>
                     <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
-                      {action.label}
+                      {t(action.labelKey)}
                     </span>
                   </div>
                 </Link>
@@ -451,14 +638,14 @@ export default function DashboardPage() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-bold text-base" style={{ color: 'var(--text)', fontFamily: 'Syne, Inter, sans-serif', letterSpacing: '-0.01em' }}>
-                TrainPilot — analityka osobista ↗
+                TrainPilot — {t('dash_personal_analytics')} ↗
               </p>
               <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
                 FTP · CTL/ATL · Garmin · Sen · HRV · Dieta · AI Briefing
               </p>
             </div>
             <div className="text-sm font-semibold px-4 py-2 rounded-[12px]" style={{ background: 'rgba(99,102,241,0.15)', color: '#6366F1' }}>
-              Otwórz
+              {t('dash_open')}
             </div>
           </a>
         </div>
@@ -474,7 +661,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-bold text-base" style={{ color: 'var(--text)' }}>{t('dash_recent')}</h2>
             <Link href="/feed" className="text-sm font-semibold flex items-center gap-1" style={{ color: '#6366F1', textDecoration: 'none' }}>
-              Pełny feed <ChevronRight className="w-3.5 h-3.5" />
+              {t('dash_full_feed')} <ChevronRight className="w-3.5 h-3.5" />
             </Link>
           </div>
           {feed.length === 0 ? (
@@ -484,11 +671,11 @@ export default function DashboardPage() {
             >
               <BarChart2 className="w-10 h-10 mx-auto mb-3" style={{ color: 'var(--text-dim)' }} />
               <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>
-                Brak aktywności. Obserwuj sportowców, by widzieć ich postępy!
+                {t('dash_no_activity')}
               </p>
               <Link href="/discover">
                 <Button size="sm">
-                  <Compass className="w-4 h-4" />Odkryj Sportowców
+                  <Compass className="w-4 h-4" />{t('dash_discover_athletes')}
                 </Button>
               </Link>
             </div>

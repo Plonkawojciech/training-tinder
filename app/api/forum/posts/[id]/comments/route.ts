@@ -3,17 +3,19 @@ import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { forumComments, forumPosts, users } from '@/lib/db/schema';
 import { eq, sql, inArray, asc } from 'drizzle-orm';
+import { sanitizeText } from '@/lib/utils';
+import { unauthorized, notFound, serverError, badRequest, ErrorCode } from '@/lib/api-errors';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   const { id } = await params;
   const postId = parseInt(id);
-  if (isNaN(postId)) return NextResponse.json({ error: 'Invalid post id' }, { status: 400 });
+  if (isNaN(postId)) return badRequest(ErrorCode.INVALID_INPUT, 'Invalid post id');
 
   const { searchParams } = new URL(request.url);
   const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') ?? '50') || 50));
@@ -33,10 +35,10 @@ export async function GET(
     // Batch-fetch all authors in one query — no N+1
     const authorIds = [...new Set(comments.map((c) => c.userId))];
     const authorRows = await db
-      .select({ clerkId: users.clerkId, username: users.username, avatarUrl: users.avatarUrl })
+      .select({ authEmail: users.authEmail, username: users.username, avatarUrl: users.avatarUrl })
       .from(users)
-      .where(inArray(users.clerkId, authorIds));
-    const authorMap = Object.fromEntries(authorRows.map((u) => [u.clerkId, u]));
+      .where(inArray(users.authEmail, authorIds));
+    const authorMap = Object.fromEntries(authorRows.map((u) => [u.authEmail, u]));
 
     const enriched = comments.map((comment) => ({
       ...comment,
@@ -47,7 +49,7 @@ export async function GET(
     return NextResponse.json(enriched);
   } catch (err) {
     console.error('GET /api/forum/posts/[id]/comments error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }
 
@@ -56,21 +58,21 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   const { id } = await params;
   const postId = parseInt(id);
-  if (isNaN(postId)) return NextResponse.json({ error: 'Invalid post id' }, { status: 400 });
+  if (isNaN(postId)) return badRequest(ErrorCode.INVALID_INPUT, 'Invalid post id');
 
   try {
     const body = await request.json() as { content?: unknown };
-    const raw = typeof body.content === 'string' ? body.content.trim() : '';
+    const raw = typeof body.content === 'string' ? sanitizeText(body.content) : '';
 
     if (raw.length < 1) {
-      return NextResponse.json({ error: 'Treść komentarza jest wymagana' }, { status: 400 });
+      return badRequest(ErrorCode.MISSING_FIELDS, 'Comment content is required');
     }
     if (raw.length > 2000) {
-      return NextResponse.json({ error: 'Komentarz może mieć max. 2000 znaków' }, { status: 400 });
+      return badRequest(ErrorCode.CONTENT_TOO_LONG, 'Comment must be at most 2000 characters');
     }
 
     const postRows = await db
@@ -80,7 +82,7 @@ export async function POST(
       .limit(1);
 
     if (!postRows.length) {
-      return NextResponse.json({ error: 'Post not found' }, { status: 404 });
+      return notFound('Post not found');
     }
 
     const [comment] = await db
@@ -96,7 +98,7 @@ export async function POST(
     const author = await db
       .select({ username: users.username, avatarUrl: users.avatarUrl })
       .from(users)
-      .where(eq(users.clerkId, userId))
+      .where(eq(users.authEmail, userId))
       .limit(1);
 
     return NextResponse.json(
@@ -105,6 +107,6 @@ export async function POST(
     );
   } catch (err) {
     console.error('POST /api/forum/posts/[id]/comments error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

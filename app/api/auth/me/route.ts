@@ -3,10 +3,11 @@ import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { authUsers } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { unauthorized } from '@/lib/api-errors';
 
 export async function GET() {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ userId: null }, { status: 401 });
+  if (!userId) return unauthorized();
 
   try {
     const [row] = await db

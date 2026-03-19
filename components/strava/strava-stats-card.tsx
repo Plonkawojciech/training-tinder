@@ -6,6 +6,7 @@ import {
   Footprints, ChevronRight, Loader2, Zap, Heart, Activity,
   TrendingUp, Mountain,
 } from 'lucide-react';
+import { useLang } from '@/lib/lang';
 
 interface StravaTotals {
   count: number;
@@ -151,6 +152,7 @@ interface StravaStatsCardProps {
 }
 
 export function StravaStatsCard({ onSync, showSyncButton = false }: StravaStatsCardProps) {
+  const { t } = useLang();
   const [data, setData] = useState<StravaStatsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -200,7 +202,7 @@ export function StravaStatsCard({ onSync, showSyncButton = false }: StravaStatsC
             <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" />
           </svg>
         </div>
-        <p className="text-[#888888] text-sm">Brak statystyk Strava.</p>
+        <p className="text-[#888888] text-sm">{t('strava_no_stats')}</p>
         <p className="text-[#555555] text-xs mt-1">Połącz Stravę i synchronizuj aby zobaczyć statystyki.</p>
       </div>
     );

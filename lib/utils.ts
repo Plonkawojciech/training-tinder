@@ -203,3 +203,7 @@ export function minKmToPaceSec(minStr: string): number {
   const parts = minStr.split(':');
   return parseInt(parts[0]) * 60 + parseInt(parts[1] ?? '0');
 }
+
+export function sanitizeText(input: string): string {
+  return input.replace(/<[^>]*>/g, '').trim();
+}

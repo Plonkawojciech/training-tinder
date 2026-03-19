@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { DARK_MAP_STYLE } from '@/lib/maps';
 import { loadGoogleMapsAPI } from '@/lib/maps-loader';
 import { getSportColor, getSportLabel } from '@/lib/utils';
+import { useLang } from '@/lib/lang';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -25,6 +26,7 @@ interface ProfilePopup {
 }
 
 export function AthletesMap({ athletes }: AthletesMapProps) {
+  const { t } = useLang();
   const mapRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
   const circlesRef = useRef<google.maps.Circle[]>([]);
@@ -88,16 +90,15 @@ export function AthletesMap({ athletes }: AthletesMapProps) {
     }
 
     init().catch(console.error);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [athletes]);
 
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full h-full" role="application" aria-label="Athletes map">
       <div ref={mapRef} className="w-full h-full" />
 
       {!ready && (
         <div className="absolute inset-0 bg-[var(--bg)] flex items-center justify-center">
-          <div className="text-[#888888] text-sm">Ładowanie mapy sportowców...</div>
+          <div className="text-[#888888] text-sm">{t('gen_loading')}</div>
         </div>
       )}
 
@@ -107,7 +108,7 @@ export function AthletesMap({ athletes }: AthletesMapProps) {
             {popup.athlete.avatarUrl ? (
               <Image
                 src={popup.athlete.avatarUrl}
-                alt={popup.athlete.username ?? 'Sportowiec'}
+                alt={popup.athlete.username ?? t('gen_athlete')}
                 width={40}
                 height={40}
                 className="w-10 h-10 object-cover"
@@ -122,7 +123,7 @@ export function AthletesMap({ athletes }: AthletesMapProps) {
             )}
             <div>
               <p className="text-white text-sm font-semibold">
-                {popup.athlete.username ?? 'Sportowiec'}
+                {popup.athlete.username ?? t('gen_athlete')}
               </p>
               <span
                 className="text-xs px-1.5 py-0.5"

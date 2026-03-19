@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { MapPin, Clock, LogOut, Users } from 'lucide-react';
 import { getSportLabel } from '@/lib/utils';
 import Image from 'next/image';
+import { useLang } from '@/lib/lang';
 
 interface CheckinData {
   id: number;
@@ -17,7 +18,7 @@ interface CheckinData {
 interface OtherUser {
   checkin: CheckinData;
   user: {
-    clerkId: string;
+    authEmail: string;
     username: string | null;
     avatarUrl: string | null;
     sportTypes: string[];
@@ -29,36 +30,42 @@ interface CheckinResponse {
   checkins: OtherUser[];
 }
 
-const WORKOUT_TYPES = ['Push', 'Pull', 'Nogi', 'Góra ciała', 'Dół ciała', 'Całe ciało', 'Kardio', 'Inne'];
-
 export function CheckinWidget({ gymName, gymPlaceId }: { gymName?: string | null; gymPlaceId?: string | null }) {
+  const { t } = useLang();
+
+  const WORKOUT_TYPES = [
+    'Push', 'Pull',
+    t('workout_type_legs'), t('workout_type_upper'), t('workout_type_lower'),
+    t('workout_type_full'), t('workout_type_cardio'), t('workout_type_other'),
+  ];
   const [myCheckin, setMyCheckin] = useState<CheckinData | null>(null);
   const [others, setOthers] = useState<OtherUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [checking, setChecking] = useState(false);
   const [elapsed, setElapsed] = useState('');
-  const [workoutType, setWorkoutType] = useState('');
+  const [workoutType] = useState('');
   const [showTypeSelect, setShowTypeSelect] = useState(false);
 
-  const load = useCallback(async () => {
-    const params = new URLSearchParams();
-    if (gymPlaceId) params.set('gymPlaceId', gymPlaceId);
-    else if (gymName) params.set('gymName', gymName);
-
-    const res = await fetch(`/api/checkin?${params}`);
-    if (res.ok) {
-      const data: CheckinResponse = await res.json();
-      setMyCheckin(data.myCheckin);
-      setOthers(data.checkins.filter((o) => o.checkin.userId !== data.myCheckin?.userId));
-    }
-    setLoading(false);
-  }, [gymName, gymPlaceId]);
-
   useEffect(() => {
+    function load() {
+      const params = new URLSearchParams();
+      if (gymPlaceId) params.set('gymPlaceId', gymPlaceId);
+      else if (gymName) params.set('gymName', gymName);
+
+      fetch(`/api/checkin?${params}`)
+        .then((res) => res.ok ? res.json() as Promise<CheckinResponse> : null)
+        .then((data) => {
+          if (data) {
+            setMyCheckin(data.myCheckin);
+            setOthers(data.checkins.filter((o) => o.checkin.userId !== data.myCheckin?.userId));
+          }
+          setLoading(false);
+        });
+    }
     load();
     const interval = setInterval(load, 30000);
     return () => clearInterval(interval);
-  }, [load]);
+  }, [gymName, gymPlaceId]);
 
   useEffect(() => {
     if (!myCheckin?.checkedInAt) return;
@@ -84,7 +91,15 @@ export function CheckinWidget({ gymName, gymPlaceId }: { gymName?: string | null
       }),
     });
     if (res.ok) {
-      await load();
+      const params = new URLSearchParams();
+      if (gymPlaceId) params.set('gymPlaceId', gymPlaceId);
+      else if (gymName) params.set('gymName', gymName);
+      const refreshRes = await fetch(`/api/checkin?${params}`);
+      if (refreshRes.ok) {
+        const data: CheckinResponse = await refreshRes.json();
+        setMyCheckin(data.myCheckin);
+        setOthers(data.checkins.filter((o) => o.checkin.userId !== data.myCheckin?.userId));
+      }
     }
     setChecking(false);
     setShowTypeSelect(false);
@@ -103,9 +118,9 @@ export function CheckinWidget({ gymName, gymPlaceId }: { gymName?: string | null
       <div className="bg-[var(--bg-card)] border border-[var(--border)] p-4">
         <div className="flex items-center gap-2 mb-2">
           <MapPin className="w-4 h-4 text-[#888888]" />
-          <h3 className="font-display text-sm text-[#888888] tracking-wider">ZAMELDUJ SIĘ</h3>
+          <h3 className="font-display text-sm text-[#888888] tracking-wider">{t('checkin_heading')}</h3>
         </div>
-        <p className="text-xs text-[#555555]">Ustaw swoją siłownię w profilu, aby się zameldować</p>
+        <p className="text-xs text-[#555555]">{t('checkin_set_gym_hint')}</p>
       </div>
     );
   }
@@ -114,7 +129,7 @@ export function CheckinWidget({ gymName, gymPlaceId }: { gymName?: string | null
     <div className="bg-[var(--bg-card)] border border-[var(--border)] p-4">
       <div className="flex items-center gap-2 mb-3">
         <MapPin className="w-4 h-4 text-[#6366F1]" />
-        <h3 className="font-display text-sm text-[#888888] tracking-wider">ZAMELDUJ SIĘ</h3>
+        <h3 className="font-display text-sm text-[#888888] tracking-wider">{t('checkin_heading')}</h3>
       </div>
 
       {loading ? (
@@ -123,7 +138,7 @@ export function CheckinWidget({ gymName, gymPlaceId }: { gymName?: string | null
         <div>
           <div className="flex items-center justify-between mb-3">
             <div>
-              <p className="text-sm text-white font-semibold">W: {myCheckin.gymName}</p>
+              <p className="text-sm text-white font-semibold">{t('checkin_at')} {myCheckin.gymName}</p>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <Clock className="w-3 h-3 text-[#888888]" />
                 <span className="text-xs text-[#888888]">{elapsed || '0m'}</span>
@@ -140,7 +155,7 @@ export function CheckinWidget({ gymName, gymPlaceId }: { gymName?: string | null
               className="flex items-center gap-1.5 px-3 py-1.5 border border-[var(--border)] text-[#888888] hover:text-red-400 hover:border-red-800 text-xs font-semibold uppercase tracking-wider transition-all disabled:opacity-50"
             >
               <LogOut className="w-3 h-3" />
-              Wymelduj
+              {t('checkin_checkout')}
             </button>
           </div>
 
@@ -148,7 +163,7 @@ export function CheckinWidget({ gymName, gymPlaceId }: { gymName?: string | null
             <div className="border-t border-[var(--border)] pt-3">
               <div className="flex items-center gap-1.5 mb-2">
                 <Users className="w-3 h-3 text-[#888888]" />
-                <span className="text-xs text-[#888888]">{others.length} {others.length === 1 ? 'osoba' : 'osoby'} tu teraz</span>
+                <span className="text-xs text-[#888888]">{others.length === 1 ? t('checkin_person_here', { count: String(others.length) }) : t('checkin_people_here', { count: String(others.length) })}</span>
               </div>
               <div className="flex flex-col gap-2">
                 {others.slice(0, 5).map((o) => (
@@ -166,7 +181,7 @@ export function CheckinWidget({ gymName, gymPlaceId }: { gymName?: string | null
                         {(o.user?.username ?? 'U')[0].toUpperCase()}
                       </div>
                     )}
-                    <span className="text-xs text-white flex-1 truncate">{o.user?.username ?? 'Nieznany'}</span>
+                    <span className="text-xs text-white flex-1 truncate">{o.user?.username ?? t('checkin_unknown_user')}</span>
                     {o.user?.sportTypes?.[0] && (
                       <span className="text-[10px] text-[#888888]">{getSportLabel(o.user.sportTypes[0])}</span>
                     )}
@@ -183,7 +198,7 @@ export function CheckinWidget({ gymName, gymPlaceId }: { gymName?: string | null
         </div>
       ) : showTypeSelect ? (
         <div>
-          <p className="text-xs text-[#888888] mb-2">Jaki masz dzisiaj trening?</p>
+          <p className="text-xs text-[#888888] mb-2">{t('checkin_what_workout')}</p>
           <div className="grid grid-cols-2 gap-1.5 mb-3">
             {WORKOUT_TYPES.map((type) => (
               <button
@@ -200,13 +215,13 @@ export function CheckinWidget({ gymName, gymPlaceId }: { gymName?: string | null
             onClick={() => setShowTypeSelect(false)}
             className="text-xs text-[#555555] hover:text-[#888888]"
           >
-            Anuluj
+            {t('checkin_cancel')}
           </button>
         </div>
       ) : (
         <div>
           <p className="text-xs text-[#888888] mb-3">
-            Zamelduj się w {gymName}, aby zobaczyć kto trenuje obok Ciebie
+            {t('checkin_prompt', { gym: gymName })}
           </p>
           <button
             onClick={() => setShowTypeSelect(true)}
@@ -214,7 +229,7 @@ export function CheckinWidget({ gymName, gymPlaceId }: { gymName?: string | null
             className="w-full py-2.5 bg-[#6366F1] text-white text-xs font-semibold uppercase tracking-wider hover:shadow-[0_0_15px_rgba(99,102,241,0.4)] disabled:opacity-50 transition-all flex items-center justify-center gap-2"
           >
             <MapPin className="w-4 h-4" />
-            Zamelduj się
+            {t('checkin_button')}
           </button>
         </div>
       )}

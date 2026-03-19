@@ -3,10 +3,11 @@ import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { personalRecords, activityFeed } from '@/lib/db/schema';
 import { eq, desc, and, sql } from 'drizzle-orm';
+import { unauthorized, serverError } from '@/lib/api-errors';
 
 export async function GET(request: Request) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   const { searchParams } = new URL(request.url);
   const exercise = searchParams.get('exercise');
@@ -37,13 +38,13 @@ export async function GET(request: Request) {
     });
   } catch (err) {
     console.error('GET /api/records error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }
 
 export async function POST(request: Request) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   try {
     const body = await request.json() as {
@@ -79,6 +80,6 @@ export async function POST(request: Request) {
     return NextResponse.json(pr);
   } catch (err) {
     console.error('POST /api/records error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

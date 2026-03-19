@@ -8,15 +8,16 @@ import { Input, Textarea } from '@/components/ui/input';
 import { ExerciseAutocomplete } from '@/components/gym/exercise-autocomplete';
 import { SetTable } from '@/components/gym/set-table';
 import { RestTimer } from '@/components/gym/rest-timer';
+import { useLang } from '@/lib/lang';
 
-const WORKOUT_TYPES = [
-  { value: 'push', label: 'Push', desc: 'Klatka, ramiona, triceps' },
-  { value: 'pull', label: 'Pull', desc: 'Plecy, biceps' },
-  { value: 'legs', label: 'Nogi', desc: 'Czwórgłowe, dwugłowe, pośladki' },
-  { value: 'fullbody', label: 'Całe ciało', desc: 'Wszystkie partie' },
-  { value: 'upper', label: 'Góra ciała', desc: 'Partie górne' },
-  { value: 'lower', label: 'Dół ciała', desc: 'Partie dolne' },
-  { value: 'custom', label: 'Własny', desc: 'Twój własny split' },
+const WORKOUT_TYPES_BASE = [
+  { value: 'push', label: 'Push', descKey: 'log_type_push' as const },
+  { value: 'pull', label: 'Pull', descKey: 'log_type_pull' as const },
+  { value: 'legs', labelKey: 'log_type_legs_label' as const, descKey: 'log_type_legs' as const },
+  { value: 'fullbody', labelKey: 'log_type_fullbody_label' as const, descKey: 'log_type_fullbody' as const },
+  { value: 'upper', labelKey: 'log_type_upper_label' as const, descKey: 'log_type_upper' as const },
+  { value: 'lower', labelKey: 'log_type_lower_label' as const, descKey: 'log_type_lower' as const },
+  { value: 'custom', labelKey: 'log_type_custom_label' as const, descKey: 'log_type_custom' as const },
 ];
 
 const TYPE_COLORS: Record<string, string> = {
@@ -47,7 +48,15 @@ function generateId() {
 }
 
 export default function WorkoutLogPage() {
+  const { t, lang } = useLang();
   const router = useRouter();
+
+  const WORKOUT_TYPES = WORKOUT_TYPES_BASE.map((wt) => ({
+    value: wt.value,
+    label: 'labelKey' in wt && wt.labelKey ? t(wt.labelKey) : (wt as { label: string }).label,
+    desc: t(wt.descKey),
+  }));
+
   const [workoutType, setWorkoutType] = useState('');
   const [workoutName, setWorkoutName] = useState('');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
@@ -87,11 +96,11 @@ export default function WorkoutLogPage() {
 
   async function handleSave() {
     if (!workoutType) {
-      setError('Wybierz typ treningu');
+      setError(t('log_err_type'));
       return;
     }
     if (!workoutName.trim()) {
-      setError('Podaj nazwę treningu');
+      setError(t('log_err_name'));
       return;
     }
 
@@ -128,7 +137,7 @@ export default function WorkoutLogPage() {
 
       router.push('/gym');
     } catch {
-      setError('Nie udało się zapisać treningu. Spróbuj ponownie.');
+      setError(t('log_err_save'));
     } finally {
       setSaving(false);
     }
@@ -139,7 +148,7 @@ export default function WorkoutLogPage() {
     setWorkoutType(type);
     if (!workoutName) {
       const label = WORKOUT_TYPES.find((t) => t.value === type)?.label ?? '';
-      const today = new Date().toLocaleDateString('pl-PL', { weekday: 'long' });
+      const today = new Date().toLocaleDateString(lang === 'pl' ? 'pl-PL' : 'en-US', { weekday: 'long' });
       const todayCapitalized = today.charAt(0).toUpperCase() + today.slice(1);
       setWorkoutName(`${todayCapitalized} ${label}`);
     }
@@ -148,16 +157,16 @@ export default function WorkoutLogPage() {
   return (
     <div className="p-4 md:p-6 max-w-3xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="font-display text-3xl text-white tracking-wider">ZAPISZ TRENING</h1>
+        <h1 className="font-display text-3xl text-white tracking-wider">{t('log_title')}</h1>
         <Button variant="ghost" size="sm" onClick={() => router.back()}>
-          Anuluj
+          {t('gen_cancel')}
         </Button>
       </div>
 
       {/* Workout Type */}
       <div className="mb-6">
         <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-3">
-          Typ treningu *
+          {t('log_type_label')}
         </label>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
           {WORKOUT_TYPES.slice(0, 4).map((type) => {
@@ -208,13 +217,13 @@ export default function WorkoutLogPage() {
       {/* Basic Info */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         <Input
-          label="Nazwa treningu *"
+          label={t('log_name')}
           value={workoutName}
           onChange={(e) => setWorkoutName(e.target.value)}
-          placeholder="np. Poniedziałek Push"
+          placeholder={t('log_name_ph')}
         />
         <Input
-          label="Data"
+          label={t('log_date')}
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
@@ -223,7 +232,7 @@ export default function WorkoutLogPage() {
 
       <div className="grid grid-cols-2 gap-4 mb-6">
         <Input
-          label="Czas trwania (minuty)"
+          label={t('log_duration')}
           type="number"
           min="1"
           value={duration}
@@ -232,7 +241,7 @@ export default function WorkoutLogPage() {
         />
         <div className="flex flex-col">
           <label className="text-xs font-semibold uppercase tracking-wider text-[#888888] block mb-2">
-            Widoczność
+            {t('log_visibility')}
           </label>
           <button
             type="button"
@@ -245,7 +254,7 @@ export default function WorkoutLogPage() {
             }
           >
             {isPublic ? <Globe className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-            <span className="text-sm font-medium">{isPublic ? 'Publiczny' : 'Prywatny'}</span>
+            <span className="text-sm font-medium">{isPublic ? t('log_public') : t('log_private')}</span>
           </button>
         </div>
       </div>
@@ -259,7 +268,7 @@ export default function WorkoutLogPage() {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
           <label className="text-xs font-semibold uppercase tracking-wider text-[#888888]">
-            Ćwiczenia ({exercises.length})
+            {t('log_exercises')} ({exercises.length})
           </label>
           <button
             type="button"
@@ -267,7 +276,7 @@ export default function WorkoutLogPage() {
             className="flex items-center gap-1.5 text-xs text-[#6366F1] hover:text-[#818CF8] transition-colors"
           >
             <Plus className="w-4 h-4" />
-            Dodaj ćwiczenie
+            {t('log_add_exercise')}
           </button>
         </div>
 
@@ -277,7 +286,7 @@ export default function WorkoutLogPage() {
             onClick={addExercise}
           >
             <Plus className="w-8 h-8 text-[#2A2A2A] mx-auto mb-2" />
-            <p className="text-sm text-[#888888]">Kliknij, aby dodać pierwsze ćwiczenie</p>
+            <p className="text-sm text-[#888888]">{t('log_click_add')}</p>
           </div>
         )}
 
@@ -294,7 +303,7 @@ export default function WorkoutLogPage() {
                   <ExerciseAutocomplete
                     value={exercise.name}
                     onChange={(name) => updateExercise(exercise.id, { name })}
-                    placeholder="Nazwa ćwiczenia..."
+                    placeholder={t('log_exercise_ph')}
                   />
                 </div>
                 <div className="flex items-center gap-1">
@@ -332,7 +341,7 @@ export default function WorkoutLogPage() {
                       type="text"
                       value={exercise.notes}
                       onChange={(e) => updateExercise(exercise.id, { notes: e.target.value })}
-                      placeholder="Notatki do ćwiczenia (opcjonalnie)..."
+                      placeholder={t('log_exercise_notes')}
                       className="w-full bg-[var(--bg)] border border-[var(--border)] text-[#888888] px-3 py-2 text-xs focus:border-[#6366F1] focus:outline-none placeholder:text-[#333333]"
                     />
                   </div>
@@ -341,7 +350,7 @@ export default function WorkoutLogPage() {
 
               {exercise.collapsed && (
                 <div className="px-3 py-2 text-xs text-[#555555]">
-                  {exercise.sets.length} serii · kliknij, aby rozwinąć
+                  {exercise.sets.length} {t('log_sets_expand')}
                 </div>
               )}
             </div>
@@ -352,10 +361,10 @@ export default function WorkoutLogPage() {
       {/* Notes */}
       <div className="mb-6">
         <Textarea
-          label="Notatki do treningu"
+          label={t('log_workout_notes')}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          placeholder="Jak poszedł trening? Jakieś spostrzeżenia..."
+          placeholder={t('log_workout_notes_ph')}
         />
       </div>
 
@@ -372,11 +381,11 @@ export default function WorkoutLogPage() {
           disabled={saving}
           className="flex-1"
         >
-          Anuluj
+          {t('gen_cancel')}
         </Button>
         <Button onClick={handleSave} loading={saving} className="flex-1">
           <Save className="w-4 h-4" />
-          Zapisz trening
+          {t('log_save')}
         </Button>
       </div>
     </div>

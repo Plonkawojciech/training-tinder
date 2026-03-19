@@ -4,11 +4,12 @@ import { db } from '@/lib/db';
 import { authUsers } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { encrypt } from '@/lib/crypto';
+import { unauthorized, serverError, badRequest, ErrorCode } from '@/lib/api-errors';
 
 // GET: check if user has Garmin connected
 export async function GET() {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   try {
     const [row] = await db
@@ -19,14 +20,14 @@ export async function GET() {
     return NextResponse.json({ connected: !!row?.garminEmail });
   } catch (err) {
     console.error('GET /api/integrations/garmin error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }
 
 // POST: save Garmin credentials
 export async function POST(request: Request) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   try {
     const { garminEmail, garminPassword } = await request.json() as {
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
     };
 
     if (!garminEmail || !garminPassword) {
-      return NextResponse.json({ error: 'Podaj email i hasło Garmin' }, { status: 400 });
+      return badRequest(ErrorCode.GARMIN_CREDENTIALS_REQUIRED, 'Garmin email and password are required');
     }
 
     // Verify credentials work before saving
@@ -43,7 +44,7 @@ export async function POST(request: Request) {
       const gc = new GarminConnect({ username: garminEmail, password: garminPassword });
       await gc.login();
     } catch {
-      return NextResponse.json({ error: 'Nieprawidłowe dane logowania Garmin' }, { status: 400 });
+      return badRequest(ErrorCode.INVALID_CREDENTIALS, 'Invalid Garmin credentials');
     }
 
     await db
@@ -54,14 +55,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error('POST /api/integrations/garmin error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }
 
 // DELETE: disconnect Garmin
 export async function DELETE() {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   try {
     await db
@@ -71,6 +72,6 @@ export async function DELETE() {
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error('DELETE /api/integrations/garmin error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

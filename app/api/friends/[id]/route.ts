@@ -3,14 +3,15 @@ import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { friends } from '@/lib/db/schema';
 import { eq, and, or } from 'drizzle-orm';
+import { unauthorized, notFound, serverError, badRequest, ErrorCode } from '@/lib/api-errors';
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   const { id } = await params;
   const friendId = parseInt(id);
-  if (isNaN(friendId)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
+  if (isNaN(friendId)) return badRequest(ErrorCode.INVALID_INPUT, 'Invalid id');
   const { action } = await request.json() as { action: 'accept' | 'reject' };
 
   try {
@@ -19,29 +20,29 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       .where(and(eq(friends.id, friendId), eq(friends.receiverId, userId)))
       .returning();
 
-    if (!updated) return NextResponse.json({ error: 'Not found or not authorized' }, { status: 404 });
+    if (!updated) return notFound('Not found or not authorized');
     return NextResponse.json({ ok: true, friend: updated });
   } catch (err) {
     console.error('PATCH /api/friends/[id] error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }
 
 export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   const { id } = await params;
   const friendId = parseInt(id);
-  if (isNaN(friendId)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
+  if (isNaN(friendId)) return badRequest(ErrorCode.INVALID_INPUT, 'Invalid id');
   try {
     const [deleted] = await db.delete(friends)
       .where(and(eq(friends.id, friendId), or(eq(friends.requesterId, userId), eq(friends.receiverId, userId))))
       .returning();
-    if (!deleted) return NextResponse.json({ error: 'Not found or not authorized' }, { status: 404 });
+    if (!deleted) return notFound('Not found or not authorized');
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error('DELETE /api/friends/[id] error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

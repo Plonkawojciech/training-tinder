@@ -15,6 +15,8 @@ import {
   X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useLang } from '@/lib/lang';
+import type { TKey } from '@/lib/lang';
 
 interface UserEvent {
   id: number;
@@ -51,46 +53,26 @@ const EVENT_TYPES = [
   'gran_fondo',
 ];
 
-const EVENT_TYPE_LABELS: Record<string, string> = {
-  race: 'Wyścig', competition: 'Zawody', training: 'Trening',
-  sportive: 'Sportive', fun_run: 'Bieg rekreacyjny', triathlon: 'Triathlon',
-  marathon: 'Maraton', gran_fondo: 'Gran Fondo',
+const EVENT_TYPE_KEYS: Record<string, TKey> = {
+  race: 'events_type_race', competition: 'events_type_competition', training: 'events_type_training',
+  sportive: 'events_type_sportive', fun_run: 'events_type_fun_run', triathlon: 'events_type_triathlon',
+  marathon: 'events_type_marathon', gran_fondo: 'events_type_gran_fondo',
 };
 
 const SPORTS = ['running', 'cycling', 'swimming', 'triathlon', 'crossfit', 'strength', 'rowing', 'other'];
 
-const SPORT_LABELS: Record<string, string> = {
-  running: 'Bieganie', cycling: 'Kolarstwo', swimming: 'Pływanie',
-  triathlon: 'Triathlon', crossfit: 'CrossFit', strength: 'Siłownia',
-  rowing: 'Wioślarstwo', other: 'Inne',
+const SPORT_KEYS: Record<string, TKey> = {
+  running: 'events_sport_running', cycling: 'events_sport_cycling', swimming: 'events_sport_swimming',
+  triathlon: 'events_sport_triathlon', crossfit: 'events_sport_crossfit', strength: 'events_sport_strength',
+  rowing: 'events_sport_rowing', other: 'events_sport_other',
 };
 
 const STATUS_OPTIONS = ['registered', 'considering', 'completed', 'dnf'];
 
-const STATUS_LABELS: Record<string, string> = {
-  registered: 'Zapisany', considering: 'Rozważam', completed: 'Ukończono', dnf: 'DNF',
+const STATUS_KEYS: Record<string, TKey> = {
+  registered: 'events_status_registered', considering: 'events_status_considering',
+  completed: 'events_status_completed', dnf: 'events_status_dnf',
 };
-
-function formatDate(dateStr: string): string {
-  const d = new Date(dateStr + 'T00:00:00');
-  return d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' });
-}
-
-function getCountdown(dateStr: string): { label: string; urgent: boolean } {
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  const event = new Date(dateStr + 'T00:00:00');
-  const diffMs = event.getTime() - now.getTime();
-  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffDays < 0) return { label: `${Math.abs(diffDays)}d temu`, urgent: false };
-  if (diffDays === 0) return { label: 'DZIŚ', urgent: true };
-  if (diffDays === 1) return { label: 'JUTRO', urgent: true };
-  if (diffDays <= 7) return { label: `${diffDays}d`, urgent: true };
-  if (diffDays <= 30) return { label: `${diffDays}d`, urgent: false };
-  const weeks = Math.round(diffDays / 7);
-  return { label: `${weeks}tyg.`, urgent: false };
-}
 
 function formatTargetTime(sec: number): string {
   const h = Math.floor(sec / 3600);
@@ -118,14 +100,45 @@ function EventCard({
   event,
   onDelete,
   showCreator,
+  t,
+  lang,
 }: {
   event: UserEvent;
   onDelete?: (id: number) => void;
   showCreator?: boolean;
+  t: (key: TKey) => string;
+  lang: string;
 }) {
+  const locale = lang === 'pl' ? 'pl-PL' : 'en-US';
+
+  function formatDate(dateStr: string): string {
+    const d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  function getCountdown(dateStr: string): { label: string; urgent: boolean } {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const ev = new Date(dateStr + 'T00:00:00');
+    const diffMs = ev.getTime() - now.getTime();
+    const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) return { label: `${Math.abs(diffDays)}${t('events_days_ago')}`, urgent: false };
+    if (diffDays === 0) return { label: t('events_today'), urgent: true };
+    if (diffDays === 1) return { label: t('events_tomorrow'), urgent: true };
+    if (diffDays <= 7) return { label: `${diffDays}d`, urgent: true };
+    if (diffDays <= 30) return { label: `${diffDays}d`, urgent: false };
+    const weeks = Math.round(diffDays / 7);
+    return { label: `${weeks}${t('events_weeks')}`, urgent: false };
+  }
+
   const countdown = getCountdown(event.eventDate);
   const isPast = new Date(event.eventDate + 'T00:00:00') < new Date();
   const typeColor = getTypeColor(event.eventType);
+
+  const typeKey = EVENT_TYPE_KEYS[event.eventType];
+  const sportKey = SPORT_KEYS[event.sport];
+  const statusKey = STATUS_KEYS[event.status];
 
   return (
     <div
@@ -138,13 +151,13 @@ function EventCard({
               className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5"
               style={{ color: typeColor, background: `${typeColor}1A` }}
             >
-              {EVENT_TYPE_LABELS[event.eventType] ?? event.eventType.replace('_', ' ')}
+              {typeKey ? t(typeKey) : event.eventType.replace('_', ' ')}
             </span>
-            <span className="text-[10px] text-[#555555] uppercase">{SPORT_LABELS[event.sport] ?? event.sport}</span>
+            <span className="text-[10px] text-[#555555] uppercase">{sportKey ? t(sportKey) : event.sport}</span>
           </div>
           <h3 className="text-white font-medium text-sm truncate">{event.eventName}</h3>
           {showCreator && event.creatorUsername && (
-            <p className="text-[10px] text-[#555555] mt-0.5">od {event.creatorUsername}</p>
+            <p className="text-[10px] text-[#555555] mt-0.5">{t('events_from')} {event.creatorUsername}</p>
           )}
         </div>
 
@@ -199,13 +212,13 @@ function EventCard({
                 : { color: '#555555', borderColor: '#2A2A2A' }
             }
           >
-            {STATUS_LABELS[event.status] ?? event.status}
+            {statusKey ? t(statusKey) : event.status}
           </span>
           <span className="text-[10px] text-[#444444] flex items-center gap-1">
             {event.isPublic ? (
-              <><Globe className="w-3 h-3" /> Publiczne</>
+              <><Globe className="w-3 h-3" /> {t('events_public')}</>
             ) : (
-              <><Lock className="w-3 h-3" /> Prywatne</>
+              <><Lock className="w-3 h-3" /> {t('events_private')}</>
             )}
           </span>
         </div>
@@ -214,7 +227,7 @@ function EventCard({
           <button
             onClick={() => onDelete(event.id)}
             className="text-[#444444] hover:text-[#EF4444] transition-colors p-1"
-            title="Usuń wydarzenie"
+            title={t('events_delete_title')}
           >
             <Trash2 className="w-3.5 h-3.5" />
           </button>
@@ -227,9 +240,13 @@ function EventCard({
 function AddEventModal({
   onClose,
   onCreated,
+  t,
+  lang,
 }: {
   onClose: () => void;
   onCreated: () => void;
+  t: (key: TKey) => string;
+  lang: string;
 }) {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
@@ -293,7 +310,7 @@ function AddEventModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
       <div className="bg-[var(--bg-card)] border border-[var(--border)] w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
-          <h2 className="font-display text-lg text-white tracking-wider">DODAJ WYDARZENIE</h2>
+          <h2 className="font-display text-lg text-white tracking-wider">{t('events_modal_title')}</h2>
           <button onClick={onClose} className="text-[#888888] hover:text-white transition-colors">
             <X className="w-5 h-5" />
           </button>
@@ -303,14 +320,14 @@ function AddEventModal({
           {/* Event name */}
           <div>
             <label className="block text-xs text-[#888888] uppercase tracking-wider mb-1.5">
-              Nazwa wydarzenia *
+              {t('events_name_label')} *
             </label>
             <input
               required
               type="text"
               value={form.eventName}
               onChange={(e) => set('eventName', e.target.value)}
-              placeholder="np. Maraton Berliński 2026"
+              placeholder={t('events_name_placeholder')}
               className="w-full bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] px-3 py-2 text-sm focus:outline-none focus:border-[#6366F1] transition-colors"
             />
           </div>
@@ -319,34 +336,40 @@ function AddEventModal({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-[#888888] uppercase tracking-wider mb-1.5">
-                Typ wydarzenia *
+                {t('events_type_label')} *
               </label>
               <select
                 value={form.eventType}
                 onChange={(e) => set('eventType', e.target.value)}
                 className="w-full bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] px-3 py-2 text-sm focus:outline-none focus:border-[#6366F1] transition-colors"
               >
-                {EVENT_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {EVENT_TYPE_LABELS[t] ?? t.replace('_', ' ')}
-                  </option>
-                ))}
+                {EVENT_TYPES.map((tp) => {
+                  const key = EVENT_TYPE_KEYS[tp];
+                  return (
+                    <option key={tp} value={tp}>
+                      {key ? t(key) : tp.replace('_', ' ')}
+                    </option>
+                  );
+                })}
               </select>
             </div>
             <div>
               <label className="block text-xs text-[#888888] uppercase tracking-wider mb-1.5">
-                Dyscyplina *
+                {t('events_sport_label')} *
               </label>
               <select
                 value={form.sport}
                 onChange={(e) => set('sport', e.target.value)}
                 className="w-full bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] px-3 py-2 text-sm focus:outline-none focus:border-[#6366F1] transition-colors"
               >
-                {SPORTS.map((s) => (
-                  <option key={s} value={s}>
-                    {SPORT_LABELS[s] ?? s}
-                  </option>
-                ))}
+                {SPORTS.map((s) => {
+                  const key = SPORT_KEYS[s];
+                  return (
+                    <option key={s} value={s}>
+                      {key ? t(key) : s}
+                    </option>
+                  );
+                })}
               </select>
             </div>
           </div>
@@ -355,7 +378,7 @@ function AddEventModal({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-[#888888] uppercase tracking-wider mb-1.5">
-                Data wydarzenia *
+                {t('events_date_label')} *
               </label>
               <input
                 required
@@ -367,13 +390,13 @@ function AddEventModal({
             </div>
             <div>
               <label className="block text-xs text-[#888888] uppercase tracking-wider mb-1.5">
-                Lokalizacja
+                {t('events_location_label')}
               </label>
               <input
                 type="text"
                 value={form.location}
                 onChange={(e) => set('location', e.target.value)}
-                placeholder="Miasto, Kraj"
+                placeholder={t('events_location_placeholder')}
                 className="w-full bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] px-3 py-2 text-sm focus:outline-none focus:border-[#6366F1] transition-colors"
               />
             </div>
@@ -383,7 +406,7 @@ function AddEventModal({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-[#888888] uppercase tracking-wider mb-1.5">
-                Dystans (km)
+                {t('events_distance_label')}
               </label>
               <input
                 type="number"
@@ -391,24 +414,27 @@ function AddEventModal({
                 step="0.1"
                 value={form.distanceKm}
                 onChange={(e) => set('distanceKm', e.target.value)}
-                placeholder="np. 42.195"
+                placeholder={lang === 'pl' ? 'np. 42.195' : 'e.g. 42.195'}
                 className="w-full bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] px-3 py-2 text-sm focus:outline-none focus:border-[#6366F1] transition-colors"
               />
             </div>
             <div>
               <label className="block text-xs text-[#888888] uppercase tracking-wider mb-1.5">
-                Status planowania
+                {t('events_status_label')}
               </label>
               <select
                 value={form.status}
                 onChange={(e) => set('status', e.target.value)}
                 className="w-full bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] px-3 py-2 text-sm focus:outline-none focus:border-[#6366F1] transition-colors"
               >
-                {STATUS_OPTIONS.map((s) => (
-                  <option key={s} value={s}>
-                    {STATUS_LABELS[s] ?? s}
-                  </option>
-                ))}
+                {STATUS_OPTIONS.map((s) => {
+                  const key = STATUS_KEYS[s];
+                  return (
+                    <option key={s} value={s}>
+                      {key ? t(key) : s}
+                    </option>
+                  );
+                })}
               </select>
             </div>
           </div>
@@ -416,7 +442,7 @@ function AddEventModal({
           {/* Target time */}
           <div>
             <label className="block text-xs text-[#888888] uppercase tracking-wider mb-1.5">
-              Docelowy czas (opcjonalnie)
+              {t('events_target_time')}
             </label>
             <div className="flex items-center gap-2">
               <input
@@ -448,7 +474,7 @@ function AddEventModal({
                 placeholder="SS"
                 className="w-16 bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] px-2 py-2 text-sm text-center focus:outline-none focus:border-[#6366F1] transition-colors font-mono"
               />
-              <span className="text-xs text-[#555555]">godz : min : sek</span>
+              <span className="text-xs text-[#555555]">{t('events_hrs_min_sec')}</span>
             </div>
           </div>
 
@@ -468,17 +494,17 @@ function AddEventModal({
               />
             </button>
             <span className="text-sm text-[#888888]">
-              {form.isPublic ? 'Publiczne (widoczne dla innych)' : 'Prywatne'}
+              {form.isPublic ? t('events_public_toggle') : t('events_private')}
             </span>
           </div>
 
           {/* Actions */}
           <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border)]">
             <Button variant="outline" size="sm" type="button" onClick={onClose}>
-              Anuluj
+              {t('gen_cancel')}
             </Button>
             <Button size="sm" type="submit" disabled={saving}>
-              {saving ? 'Zapisywanie...' : 'Dodaj wydarzenie'}
+              {saving ? t('events_saving') : t('events_add')}
             </Button>
           </div>
         </form>
@@ -487,7 +513,8 @@ function AddEventModal({
   );
 }
 
-function NextEventCountdown({ event }: { event: UserEvent }) {
+function NextEventCountdown({ event, t, lang }: { event: UserEvent; t: (key: TKey) => string; lang: string }) {
+  const locale = lang === 'pl' ? 'pl-PL' : 'en-US';
   const now = new Date();
   now.setHours(0, 0, 0, 0);
   const eventDate = new Date(event.eventDate + 'T00:00:00');
@@ -496,11 +523,16 @@ function NextEventCountdown({ event }: { event: UserEvent }) {
 
   if (diffDays < 0) return null;
 
+  function formatDate(dateStr: string): string {
+    const d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
   return (
     <div className="bg-gradient-to-r from-[#6366F1]/10 to-transparent border border-[#6366F1]/30 p-4 mb-6">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-[10px] text-[#6366F1] uppercase tracking-widest mb-1">Następne wydarzenie</p>
+          <p className="text-[10px] text-[#6366F1] uppercase tracking-widest mb-1">{t('events_next')}</p>
           <h2 className="text-white font-medium">{event.eventName}</h2>
           <p className="text-xs text-[#888888] mt-0.5">
             {formatDate(event.eventDate)}
@@ -509,7 +541,7 @@ function NextEventCountdown({ event }: { event: UserEvent }) {
         </div>
         <div className="text-right">
           <div className="text-4xl font-display text-[#6366F1]">{diffDays}</div>
-          <div className="text-xs text-[#888888] uppercase tracking-wider">dni do startu</div>
+          <div className="text-xs text-[#888888] uppercase tracking-wider">{t('events_days_to_start')}</div>
         </div>
       </div>
     </div>
@@ -517,6 +549,7 @@ function NextEventCountdown({ event }: { event: UserEvent }) {
 }
 
 export default function EventsPage() {
+  const { t, lang } = useLang();
   const [data, setData] = useState<EventsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<ActiveTab>('mine');
@@ -574,19 +607,19 @@ export default function EventsPage() {
         <div>
           <div className="flex items-center gap-3 mb-1">
             <Flag className="w-5 h-5 text-[#6366F1]" />
-            <h1 className="font-display text-3xl text-white tracking-wider">WYDARZENIA</h1>
+            <h1 className="font-display text-3xl text-white tracking-wider">{t('events_title')}</h1>
           </div>
-          <p className="text-[#888888] text-sm ml-8">Twoje wyścigi, zawody i cele treningowe</p>
+          <p className="text-[#888888] text-sm ml-8">{t('events_subtitle')}</p>
         </div>
         <Button size="sm" onClick={() => setShowAddModal(true)}>
           <Plus className="w-4 h-4" />
-          Dodaj wydarzenie
+          {t('events_add')}
         </Button>
       </div>
 
       {/* Next event countdown */}
       {!loading && nextEvent && upcomingMine && upcomingMine.length > 0 && (
-        <NextEventCountdown event={upcomingMine[0]} />
+        <NextEventCountdown event={upcomingMine[0]} t={t} lang={lang} />
       )}
 
       {/* Tabs */}
@@ -601,7 +634,7 @@ export default function EventsPage() {
           }
         >
           <Trophy className="w-4 h-4" />
-          Moje wydarzenia
+          {t('events_my')}
           {data && (
             <span className="text-[10px] bg-[var(--bg-elevated)] px-1.5 py-0.5">
               {data.myEvents.length}
@@ -618,7 +651,7 @@ export default function EventsPage() {
           }
         >
           <Globe className="w-4 h-4" />
-          Odkryj
+          {t('events_discover')}
           {data && (
             <span className="text-[10px] bg-[var(--bg-elevated)] px-1.5 py-0.5">
               {data.publicEvents.length}
@@ -641,13 +674,13 @@ export default function EventsPage() {
               {sortedMyEvents.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 gap-4 bg-[var(--bg-card)] border border-[var(--border)]">
                   <Flag className="w-12 h-12 text-[#2A2A2A]" />
-                  <h3 className="font-display text-xl text-[#888888]">BRAK WYDARZEŃ</h3>
+                  <h3 className="font-display text-xl text-[#888888]">{t('events_none')}</h3>
                   <p className="text-[#555555] text-sm text-center max-w-sm">
-                    Dodaj swoje nadchodzące wyścigi i zawody, aby śledzić cele i odliczanie.
+                    {t('events_none_desc')}
                   </p>
                   <Button onClick={() => setShowAddModal(true)}>
                     <Plus className="w-4 h-4" />
-                    Dodaj pierwsze wydarzenie
+                    {t('events_add_first')}
                   </Button>
                 </div>
               ) : (
@@ -655,12 +688,12 @@ export default function EventsPage() {
                   {/* Upcoming */}
                   {upcomingMine && upcomingMine.length > 0 && (
                     <div className="mb-6">
-                      <h2 className="font-display text-xs text-[#888888] tracking-widest mb-3 px-1">NADCHODZĄCE</h2>
+                      <h2 className="font-display text-xs text-[#888888] tracking-widest mb-3 px-1">{t('events_upcoming')}</h2>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {sortedMyEvents
                           .filter((e) => e.eventDate >= today)
                           .map((event) => (
-                            <EventCard key={event.id} event={event} onDelete={handleDelete} />
+                            <EventCard key={event.id} event={event} onDelete={handleDelete} t={t} lang={lang} />
                           ))}
                       </div>
                     </div>
@@ -669,12 +702,12 @@ export default function EventsPage() {
                   {/* Past */}
                   {sortedMyEvents.filter((e) => e.eventDate < today).length > 0 && (
                     <div>
-                      <h2 className="font-display text-xs text-[#888888] tracking-widest mb-3 px-1">PRZESZŁE</h2>
+                      <h2 className="font-display text-xs text-[#888888] tracking-widest mb-3 px-1">{t('events_past')}</h2>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {sortedMyEvents
                           .filter((e) => e.eventDate < today)
                           .map((event) => (
-                            <EventCard key={event.id} event={event} onDelete={handleDelete} />
+                            <EventCard key={event.id} event={event} onDelete={handleDelete} t={t} lang={lang} />
                           ))}
                       </div>
                     </div>
@@ -689,19 +722,19 @@ export default function EventsPage() {
               {(data?.publicEvents ?? []).length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 gap-4 bg-[var(--bg-card)] border border-[var(--border)]">
                   <Globe className="w-12 h-12 text-[#2A2A2A]" />
-                  <h3 className="font-display text-xl text-[#888888]">BRAK WYDARZEŃ</h3>
+                  <h3 className="font-display text-xl text-[#888888]">{t('events_none')}</h3>
                   <p className="text-[#555555] text-sm text-center max-w-sm">
-                    Brak nadchodzących wydarzeń od innych sportowców. Bądź pierwszy!
+                    {t('events_none_public')}
                   </p>
                   <Button onClick={() => { setActiveTab('mine'); setShowAddModal(true); }}>
-                    Dodaj Wydarzenie
+                    {t('events_add_event')}
                     <ChevronRight className="w-4 h-4" />
                   </Button>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {data?.publicEvents.map((event) => (
-                    <EventCard key={event.id} event={event} showCreator />
+                    <EventCard key={event.id} event={event} showCreator t={t} lang={lang} />
                   ))}
                 </div>
               )}
@@ -715,6 +748,8 @@ export default function EventsPage() {
         <AddEventModal
           onClose={() => setShowAddModal(false)}
           onCreated={fetchEvents}
+          t={t}
+          lang={lang}
         />
       )}
     </div>

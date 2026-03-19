@@ -3,6 +3,7 @@ import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { userSportProfiles } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { unauthorized, badRequest, ErrorCode } from '@/lib/api-errors';
 
 // ─── Garmin Connect Internal API endpoints ──────────────────────────────────
 // These work when session cookies are provided.
@@ -127,14 +128,14 @@ function getDateMinus90Days() {
   return d.toISOString().split('T')[0];
 }
 
-function detectSportFromStats(stats: GarminStats | null): string {
+function detectSportFromStats(_: GarminStats | null): string {
   return 'running'; // default; would need activity type breakdown for accuracy
 }
 
 // ─── Main handler ─────────────────────────────────────────────────────────────
 export async function POST(request: Request) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   let body: {
     garminProfileUrl?: string;
@@ -146,7 +147,7 @@ export async function POST(request: Request) {
   try {
     body = await request.json() as typeof body;
   } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    return badRequest(ErrorCode.INVALID_INPUT, 'Invalid request body');
   }
 
   const { mode = 'url', cookies, garminProfileUrl, displayName } = body;
@@ -159,7 +160,7 @@ export async function POST(request: Request) {
       if (!resolvedName) {
         return NextResponse.json({
           requiresLogin: true,
-          message: 'Cookies nieprawidłowe lub wygasłe. Skopiuj cookies ponownie.',
+          error: { code: 'GARMIN_COOKIES_INVALID' },
         });
       }
 
@@ -189,7 +190,7 @@ export async function POST(request: Request) {
       console.error('Garmin cookies import error:', err);
       return NextResponse.json({
         requiresLogin: true,
-        message: 'Błąd połączenia z Garmin Connect.',
+        error: { code: 'GARMIN_CONNECTION_ERROR' },
       });
     }
   }
@@ -200,7 +201,7 @@ export async function POST(request: Request) {
   if (!targetUrl || !targetUrl.includes('garmin.com')) {
     return NextResponse.json({
       requiresLogin: false,
-      message: 'Podaj URL profilu Garmin Connect lub swój login Garmin.',
+      error: { code: 'GARMIN_URL_OR_LOGIN_REQUIRED' },
       modes: ['cookies', 'url', 'manual'],
     });
   }
@@ -218,7 +219,7 @@ export async function POST(request: Request) {
     if (response.status === 401 || response.status === 403 || !response.ok) {
       return NextResponse.json({
         requiresLogin: true,
-        message: 'Garmin wymaga logowania. Użyj metody cookies (instrukcja poniżej) lub wpisz dane ręcznie.',
+        error: { code: 'GARMIN_LOGIN_REQUIRED' },
         cookiesInstructions: COOKIES_INSTRUCTIONS,
       });
     }
@@ -228,7 +229,7 @@ export async function POST(request: Request) {
     if (html.toLowerCase().includes('sign-in') || html.toLowerCase().includes('log in to garmin')) {
       return NextResponse.json({
         requiresLogin: true,
-        message: 'Profil prywatny. Użyj metody cookies lub wpisz dane ręcznie.',
+        error: { code: 'GARMIN_PROFILE_PRIVATE' },
         cookiesInstructions: COOKIES_INSTRUCTIONS,
       });
     }
@@ -256,7 +257,7 @@ export async function POST(request: Request) {
     console.error('Garmin URL import error:', err);
     return NextResponse.json({
       requiresLogin: true,
-      message: 'Nie udało się pobrać danych. Użyj metody cookies lub wpisz dane ręcznie.',
+      error: { code: 'GARMIN_FETCH_FAILED' },
       cookiesInstructions: COOKIES_INSTRUCTIONS,
     });
   }
@@ -291,9 +292,9 @@ async function upsertSportProfile(
 }
 
 const COOKIES_INSTRUCTIONS = `
-Jak skopiować cookies z Garmin Connect:
-1. Otwórz connect.garmin.com i zaloguj się
-2. Otwórz DevTools (F12) → Application → Cookies
-3. Skopiuj wartości: GARMIN-SSO-GUID, JWT_FG, SESSIONID
-4. Wklej wszystkie jako jeden ciąg: "GARMIN-SSO-GUID=xxx; JWT_FG=yyy; SESSIONID=zzz"
+How to copy cookies from Garmin Connect:
+1. Open connect.garmin.com and log in
+2. Open DevTools (F12) → Application → Cookies
+3. Copy the values: GARMIN-SSO-GUID, JWT_FG, SESSIONID
+4. Paste all as one string: "GARMIN-SSO-GUID=xxx; JWT_FG=yyy; SESSIONID=zzz"
 `.trim();

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Bell, BellOff, Check } from 'lucide-react';
+import { useLang } from '@/lib/lang';
 
 type PermissionState = 'default' | 'granted' | 'denied' | 'unsupported';
 
@@ -17,6 +18,7 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 }
 
 export function PushPermission() {
+  const { t } = useLang();
   const [permission, setPermission] = useState<PermissionState>('default');
   const [loading, setLoading] = useState(false);
 
@@ -70,7 +72,7 @@ export function PushPermission() {
     return (
       <div className="flex items-center gap-2 px-3 py-2 text-xs text-green-500">
         <Check className="w-3 h-3" />
-        <span>Powiadomienia włączone</span>
+        <span>{t('push_enabled')}</span>
       </div>
     );
   }
@@ -79,7 +81,7 @@ export function PushPermission() {
     return (
       <div className="flex items-center gap-2 px-3 py-2 text-xs text-[#555555]">
         <BellOff className="w-3 h-3" />
-        <span>Powiadomienia zablokowane</span>
+        <span>{t('push_blocked')}</span>
       </div>
     );
   }
@@ -91,7 +93,7 @@ export function PushPermission() {
       className="flex items-center gap-2 px-3 py-2 text-xs text-[#888888] hover:text-white transition-colors disabled:opacity-50 w-full"
     >
       <Bell className="w-3 h-3" />
-      <span>{loading ? 'Włączanie...' : 'Włącz powiadomienia'}</span>
+      <span>{loading ? t('push_enabling') : t('push_enable')}</span>
     </button>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { X, CheckCircle } from 'lucide-react';
+import { useLang } from '@/lib/lang';
 
 const EXERCISES = [
   'Bench Press', 'Squat', 'Deadlift', 'Overhead Press', 'Barbell Row',
@@ -15,6 +16,7 @@ interface SpotterRequestProps {
 }
 
 export function SpotterRequest({ gymName, gymPlaceId }: SpotterRequestProps) {
+  const { t } = useLang();
   const [open, setOpen] = useState(false);
   const [exercise, setExercise] = useState('');
   const [customExercise, setCustomExercise] = useState('');
@@ -159,7 +161,7 @@ export function SpotterRequest({ gymName, gymPlaceId }: SpotterRequestProps) {
                   disabled={submitting || (!exercise || (exercise === 'Inne' && !customExercise))}
                   className="w-full py-2.5 bg-red-600 text-white text-sm font-semibold uppercase tracking-wider hover:bg-red-700 disabled:opacity-50 transition-all"
                 >
-                  {submitting ? 'Wysyłanie...' : 'Wyślij prośbę o asekuranta'}
+                  {submitting ? t('gym_sending') : t('gym_send_request')}
                 </button>
               </form>
             )}

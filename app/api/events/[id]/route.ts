@@ -3,17 +3,18 @@ import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { userEvents } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { unauthorized, notFound, serverError, badRequest, ErrorCode } from '@/lib/api-errors';
 
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   const { id } = await params;
   const eventId = parseInt(id);
-  if (isNaN(eventId)) return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
+  if (isNaN(eventId)) return badRequest(ErrorCode.INVALID_INPUT, 'Invalid ID');
 
   try {
     const body = await request.json() as {
@@ -35,7 +36,7 @@ export async function PUT(
       .limit(1);
 
     if (existing.length === 0) {
-      return NextResponse.json({ error: 'Event not found' }, { status: 404 });
+      return notFound('Event not found');
     }
 
     const [updated] = await db
@@ -57,7 +58,7 @@ export async function PUT(
     return NextResponse.json(updated);
   } catch (err) {
     console.error(`PUT /api/events/${id} error:`, err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }
 
@@ -66,11 +67,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   const { id } = await params;
   const eventId = parseInt(id);
-  if (isNaN(eventId)) return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
+  if (isNaN(eventId)) return badRequest(ErrorCode.INVALID_INPUT, 'Invalid ID');
 
   try {
     const deleted = await db
@@ -79,12 +80,12 @@ export async function DELETE(
       .returning();
 
     if (deleted.length === 0) {
-      return NextResponse.json({ error: 'Event not found' }, { status: 404 });
+      return notFound('Event not found');
     }
 
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error(`DELETE /api/events/${id} error:`, err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

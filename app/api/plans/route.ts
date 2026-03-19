@@ -3,10 +3,11 @@ import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { trainingPlans, users } from '@/lib/db/schema';
 import { eq, desc, inArray } from 'drizzle-orm';
+import { unauthorized, serverError, badRequest, ErrorCode } from '@/lib/api-errors';
 
 export async function GET(request: Request) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   const { searchParams } = new URL(request.url);
   const mine = searchParams.get('mine') === 'true';
@@ -37,23 +38,23 @@ export async function GET(request: Request) {
     // Batch-fetch all creators in one query — no N+1
     const creatorIds = [...new Set(rows.map((p) => p.creatorId))];
     const creatorRows = await db
-      .select({ clerkId: users.clerkId, username: users.username, avatarUrl: users.avatarUrl })
+      .select({ authEmail: users.authEmail, username: users.username, avatarUrl: users.avatarUrl })
       .from(users)
-      .where(inArray(users.clerkId, creatorIds));
-    const creatorMap = Object.fromEntries(creatorRows.map((u) => [u.clerkId, u]));
+      .where(inArray(users.authEmail, creatorIds));
+    const creatorMap = Object.fromEntries(creatorRows.map((u) => [u.authEmail, u]));
 
     const enriched = rows.map((plan) => ({ ...plan, creator: creatorMap[plan.creatorId] ?? null }));
 
     return NextResponse.json(enriched);
   } catch (err) {
     console.error('GET /api/plans error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }
 
 export async function POST(request: Request) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   try {
     const body = await request.json() as {
@@ -66,21 +67,21 @@ export async function POST(request: Request) {
     };
 
     if (typeof body.title !== 'string' || body.title.trim().length < 2) {
-      return NextResponse.json({ error: 'Tytuł jest wymagany (min. 2 znaki)' }, { status: 400 });
+      return badRequest(ErrorCode.TITLE_TOO_SHORT, 'Title is required (min 2 characters)');
     }
     if (body.title.trim().length > 120) {
-      return NextResponse.json({ error: 'Tytuł może mieć max. 120 znaków' }, { status: 400 });
+      return badRequest(ErrorCode.CONTENT_TOO_LONG, 'Title must be at most 120 characters');
     }
     if (typeof body.sportType !== 'string' || !body.sportType.trim()) {
-      return NextResponse.json({ error: 'Sport jest wymagany' }, { status: 400 });
+      return badRequest(ErrorCode.MISSING_FIELDS, 'Sport type is required');
     }
     if (typeof body.difficulty !== 'string' || !body.difficulty.trim()) {
-      return NextResponse.json({ error: 'Poziom trudności jest wymagany' }, { status: 400 });
+      return badRequest(ErrorCode.MISSING_FIELDS, 'Difficulty is required');
     }
 
     const durationWeeks = Number(body.durationWeeks);
     if (!Number.isInteger(durationWeeks) || durationWeeks < 1 || durationWeeks > 52) {
-      return NextResponse.json({ error: 'Czas trwania musi być między 1 a 52 tygodniami' }, { status: 400 });
+      return badRequest(ErrorCode.INVALID_INPUT, 'Duration must be between 1 and 52 weeks');
     }
 
     const description = typeof body.description === 'string' ? body.description.trim().slice(0, 2000) : null;
@@ -101,6 +102,6 @@ export async function POST(request: Request) {
     return NextResponse.json(plan);
   } catch (err) {
     console.error('POST /api/plans error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

@@ -5,25 +5,7 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Plus, Search, X, Loader2 } from 'lucide-react';
 import { PostCard } from '@/components/forum/post-card';
-
-const CATEGORIES = [
-  { value: 'all', label: 'Wszystko' },
-  { value: 'general', label: 'Ogólne' },
-  { value: 'training', label: 'Trening' },
-  { value: 'nutrition', label: 'Żywienie' },
-  { value: 'gear', label: 'Sprzęt' },
-  { value: 'race-report', label: 'Relacje' },
-  { value: 'question', label: 'Pytania' },
-];
-
-const CATEGORY_OPTIONS = [
-  { value: 'general', label: 'Ogólne' },
-  { value: 'training', label: 'Trening' },
-  { value: 'nutrition', label: 'Żywienie' },
-  { value: 'gear', label: 'Sprzęt' },
-  { value: 'race-report', label: 'Relacja' },
-  { value: 'question', label: 'Pytanie' },
-];
+import { useLang } from '@/lib/lang';
 
 interface Post {
   id: number;
@@ -40,6 +22,27 @@ interface Post {
 }
 
 export default function ForumPage() {
+  const { t } = useLang();
+
+  const CATEGORIES = [
+    { value: 'all', label: t('forum_all') },
+    { value: 'general', label: t('forum_general') },
+    { value: 'training', label: t('forum_training') },
+    { value: 'nutrition', label: t('forum_nutrition') },
+    { value: 'gear', label: t('forum_gear') },
+    { value: 'race-report', label: t('forum_reports') },
+    { value: 'question', label: t('forum_questions') },
+  ];
+
+  const CATEGORY_OPTIONS = [
+    { value: 'general', label: t('forum_general') },
+    { value: 'training', label: t('forum_training') },
+    { value: 'nutrition', label: t('forum_nutrition') },
+    { value: 'gear', label: t('forum_gear') },
+    { value: 'race-report', label: t('forum_reports') },
+    { value: 'question', label: t('forum_questions') },
+  ];
+
   const [activeCategory, setActiveCategory] = useState('all');
   const [posts, setPosts] = useState<Post[]>([]);
   const [total, setTotal] = useState(0);
@@ -108,11 +111,11 @@ export default function ForumPage() {
     setFormError('');
 
     if (newTitle.trim().length < 3) {
-      setFormError('Tytuł musi mieć co najmniej 3 znaki');
+      setFormError(t('forum_title_min'));
       return;
     }
     if (newContent.trim().length < 10) {
-      setFormError('Treść musi mieć co najmniej 10 znaków');
+      setFormError(t('forum_content_min'));
       return;
     }
 
@@ -125,7 +128,7 @@ export default function ForumPage() {
       });
       if (!res.ok) {
         const err = await res.json();
-        setFormError(err.error ?? 'Wystąpił błąd');
+        setFormError(err.error ?? t('forum_error'));
         return;
       }
 
@@ -137,7 +140,7 @@ export default function ForumPage() {
       // Refresh posts
       fetchPosts(activeCategory, true);
     } catch {
-      setFormError('Wystąpił błąd. Spróbuj ponownie.');
+      setFormError(t('forum_error_retry'));
     } finally {
       setSubmitting(false);
     }
@@ -146,37 +149,37 @@ export default function ForumPage() {
   const hasMore = !searchQuery && posts.length < total;
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-white">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
       {/* Header */}
       <div className="border-b border-[var(--border)] px-6 py-5">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-black uppercase tracking-widest">Forum</h1>
-            <p className="text-xs text-[#555555] mt-0.5">Społeczność treningowa</p>
+            <h1 className="text-2xl font-black uppercase tracking-widest">{t('forum_title')}</h1>
+            <p className="text-xs text-[var(--text-dim)] mt-0.5">{t('forum_subtitle')}</p>
           </div>
           <button
             onClick={() => setShowModal(true)}
             className="flex items-center gap-2 px-4 py-2.5 bg-[#6366F1] text-white text-xs font-bold uppercase tracking-wider hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-all"
           >
             <Plus className="w-4 h-4" />
-            Nowy post
+            {t('forum_new_post')}
           </button>
         </div>
 
         {/* Search */}
         <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#555555]" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-dim)]" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Szukaj postów..."
-            className="w-full bg-[var(--bg-card)] border border-[var(--border)] text-white placeholder-[#555555] pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-[#6366F1]/50 transition-colors"
+            placeholder={t('forum_search')}
+            className="w-full bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text)] placeholder-[var(--text-dim)] pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-[#6366F1]/50 transition-colors"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#555555] hover:text-white"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-dim)] hover:text-[var(--text)]"
             >
               <X className="w-4 h-4" />
             </button>
@@ -192,7 +195,7 @@ export default function ForumPage() {
               className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition-all border ${
                 activeCategory === cat.value
                   ? 'bg-[#6366F1] border-[#6366F1] text-white'
-                  : 'border-[var(--border)] text-[#555555] hover:border-[#444] hover:text-[#888]'
+                  : 'border-[var(--border)] text-[var(--text-dim)] hover:border-[var(--border-subtle)] hover:text-[var(--text-muted)]'
               }`}
             >
               {cat.label}
@@ -209,8 +212,8 @@ export default function ForumPage() {
           </div>
         ) : filteredPosts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <p className="text-[#444444] text-sm">Brak postów</p>
-            <p className="text-[#333333] text-xs mt-1">Bądź pierwszy i dodaj wpis!</p>
+            <p className="text-[var(--text-dim)] text-sm">{t('forum_empty')}</p>
+            <p className="text-[var(--text-dim)] text-xs mt-1">{t('forum_empty_sub')}</p>
           </div>
         ) : (
           <div className="flex flex-col gap-3">
@@ -225,10 +228,10 @@ export default function ForumPage() {
             <button
               onClick={() => fetchPosts(activeCategory, false)}
               disabled={loadingMore}
-              className="px-6 py-3 border border-[var(--border)] text-[#888888] text-xs font-bold uppercase tracking-wider hover:border-[#6366F1] hover:text-white transition-all disabled:opacity-50 flex items-center gap-2"
+              className="px-6 py-3 border border-[var(--border)] text-[var(--text-muted)] text-xs font-bold uppercase tracking-wider hover:border-[#6366F1] hover:text-[var(--text)] transition-all disabled:opacity-50 flex items-center gap-2"
             >
               {loadingMore && <Loader2 className="w-4 h-4 animate-spin" />}
-              Załaduj więcej
+              {t('forum_load_more')}
             </button>
           </div>
         )}
@@ -244,10 +247,10 @@ export default function ForumPage() {
         >
           <div className="w-full max-w-lg bg-[var(--bg-card)] border border-[var(--border)] p-6">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-black uppercase tracking-widest">Nowy post</h2>
+              <h2 className="text-lg font-black uppercase tracking-widest">{t('forum_new_post')}</h2>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-[#555] hover:text-white transition-colors"
+                className="text-[var(--text-dim)] hover:text-[var(--text)] transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -255,26 +258,26 @@ export default function ForumPage() {
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-[#555555] mb-1.5">
-                  Tytuł
+                <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-dim)] mb-1.5">
+                  {t('forum_post_title')}
                 </label>
                 <input
                   type="text"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder="O czym chcesz napisać?"
-                  className="w-full bg-[var(--bg-card)] border border-[var(--border)] text-white placeholder-[#444] px-4 py-3 text-sm focus:outline-none focus:border-[#6366F1]/50 transition-colors"
+                  placeholder={t('forum_placeholder')}
+                  className="w-full bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text)] placeholder-[var(--text-dim)] px-4 py-3 text-sm focus:outline-none focus:border-[#6366F1]/50 transition-colors"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-[#555555] mb-1.5">
-                  Kategoria
+                <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-dim)] mb-1.5">
+                  {t('forum_category')}
                 </label>
                 <select
                   value={newCategory}
                   onChange={(e) => setNewCategory(e.target.value)}
-                  className="w-full bg-[var(--bg-card)] border border-[var(--border)] text-white px-4 py-3 text-sm focus:outline-none focus:border-[#6366F1]/50 transition-colors"
+                  className="w-full bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text)] px-4 py-3 text-sm focus:outline-none focus:border-[#6366F1]/50 transition-colors"
                 >
                   {CATEGORY_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -285,17 +288,17 @@ export default function ForumPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-[#555555] mb-1.5">
-                  Treść
+                <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-dim)] mb-1.5">
+                  {t('forum_content')}
                 </label>
                 <textarea
                   value={newContent}
                   onChange={(e) => setNewContent(e.target.value)}
-                  placeholder="Podziel się swoją wiedzą, doświadczeniem lub pytaniem..."
+                  placeholder={t('forum_share')}
                   rows={6}
-                  className="w-full bg-[var(--bg-card)] border border-[var(--border)] text-white placeholder-[#444] px-4 py-3 text-sm focus:outline-none focus:border-[#6366F1]/50 transition-colors resize-none"
+                  className="w-full bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text)] px-4 py-3 text-sm focus:outline-none focus:border-[#6366F1]/50 transition-colors resize-none"
                 />
-                <p className="text-xs text-[#444] mt-1">{newContent.length} / min. 10 znaków</p>
+                <p className="text-xs text-[var(--text-dim)] mt-1">{newContent.length} / {t('forum_char_hint')}</p>
               </div>
 
               {formError && (
@@ -308,9 +311,9 @@ export default function ForumPage() {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="flex-1 py-3 border border-[var(--border)] text-[#888888] text-xs font-bold uppercase tracking-wider hover:border-[#444] transition-all"
+                  className="flex-1 py-3 border border-[var(--border)] text-[var(--text-muted)] text-xs font-bold uppercase tracking-wider hover:border-[var(--border-subtle)] transition-all"
                 >
-                  Anuluj
+                  {t('gen_cancel')}
                 </button>
                 <button
                   type="submit"
@@ -318,7 +321,7 @@ export default function ForumPage() {
                   className="flex-1 py-3 bg-[#6366F1] text-white text-xs font-bold uppercase tracking-wider hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                  Opublikuj
+                  {t('forum_publish')}
                 </button>
               </div>
             </form>

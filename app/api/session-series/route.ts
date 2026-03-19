@@ -3,10 +3,11 @@ import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { sessionSeries } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
+import { unauthorized, serverError, badRequest, ErrorCode } from '@/lib/api-errors';
 
 export async function GET() {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   try {
     const series = await db
@@ -18,7 +19,7 @@ export async function GET() {
     return NextResponse.json(series);
   } catch (err) {
     console.error('GET /api/session-series error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }
 
@@ -40,23 +41,23 @@ interface CreateSeriesBody {
 
 export async function POST(request: Request) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   let body: CreateSeriesBody;
   try {
     body = await request.json() as CreateSeriesBody;
   } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    return badRequest(ErrorCode.INVALID_INPUT, 'Invalid request body');
   }
 
   const { dayOfWeek, time, frequency, location, minLevel, startDate, endDate, title, sport, maxParticipants, description, lat, lon } = body;
 
   if (!title || !sport || !location || !startDate || !time || dayOfWeek === undefined) {
-    return NextResponse.json({ error: 'Missing required fields: title, sport, location, startDate, time, dayOfWeek' }, { status: 400 });
+    return badRequest(ErrorCode.MISSING_FIELDS, 'Missing required fields: title, sport, location, startDate, time, dayOfWeek');
   }
 
   if (dayOfWeek < 0 || dayOfWeek > 6) {
-    return NextResponse.json({ error: 'dayOfWeek must be 0-6' }, { status: 400 });
+    return badRequest(ErrorCode.INVALID_INPUT, 'dayOfWeek must be 0-6');
   }
 
   try {
@@ -84,6 +85,6 @@ export async function POST(request: Request) {
     return NextResponse.json(series, { status: 201 });
   } catch (err) {
     console.error('POST /api/session-series error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

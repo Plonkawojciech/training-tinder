@@ -3,17 +3,18 @@ import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { exercises, workoutLogs } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { unauthorized, notFound, serverError, badRequest, ErrorCode } from '@/lib/api-errors';
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   const { id } = await params;
   const logId = parseInt(id);
-  if (isNaN(logId)) return NextResponse.json({ error: 'Invalid workout id' }, { status: 400 });
+  if (isNaN(logId)) return badRequest(ErrorCode.INVALID_INPUT, 'Invalid workout id');
 
   try {
     // Verify ownership
@@ -23,7 +24,7 @@ export async function POST(
       .where(and(eq(workoutLogs.id, logId), eq(workoutLogs.userId, userId)))
       .limit(1);
 
-    if (!log) return NextResponse.json({ error: 'Nie znaleziono' }, { status: 404 });
+    if (!log) return notFound();
 
     const body = await request.json() as Array<{
       name: string;
@@ -52,6 +53,6 @@ export async function POST(
     return NextResponse.json(inserted);
   } catch (err) {
     console.error('POST /api/workouts/[id]/exercises error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

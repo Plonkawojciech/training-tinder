@@ -6,10 +6,14 @@ interface ThemeCtx { theme: Theme; setTheme: (t: Theme) => void; toggle: () => v
 const Ctx = createContext<ThemeCtx>({ theme: 'dark', setTheme: () => {}, toggle: () => {} });
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('dark');
-  useEffect(() => {
-    try { const s = localStorage.getItem('tt-theme') as Theme; if (s === 'dark' || s === 'light') setThemeState(s); } catch {}
-  }, []);
+  const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof window === 'undefined') return 'dark';
+    try {
+      const s = localStorage.getItem('tt-theme') as Theme;
+      if (s === 'dark' || s === 'light') return s;
+    } catch {}
+    return 'dark';
+  });
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     document.documentElement.classList.toggle('dark', theme === 'dark');

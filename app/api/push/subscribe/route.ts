@@ -3,17 +3,18 @@ import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { pushSubscriptions } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { unauthorized, serverError, badRequest, ErrorCode } from '@/lib/api-errors';
 
 export async function POST(request: Request) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   try {
     const body = await request.json();
     const { subscription } = body;
 
     if (!subscription || !subscription.endpoint) {
-      return NextResponse.json({ error: 'Invalid subscription object' }, { status: 400 });
+      return badRequest(ErrorCode.INVALID_INPUT, 'Invalid subscription object');
     }
 
     // Check if user already has a subscription
@@ -37,6 +38,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error('POST /api/push/subscribe error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

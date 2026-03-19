@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Repeat, MapPin, Clock, Users, Plus, Calendar, CheckCircle2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getSportColor, getSportLabel } from '@/lib/utils';
+import { useLang } from '@/lib/lang';
 
 interface SessionSeries {
   id: number;
@@ -24,11 +25,14 @@ interface SessionSeries {
   createdAt: string;
 }
 
-const DAY_LABELS = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Nd'];
-const FREQ_LABELS: Record<string, string> = {
-  weekly: 'Co tydzień',
-  biweekly: 'Co 2 tygodnie',
-  monthly: 'Co miesiąc',
+const DAY_LABEL_KEYS = [
+  'series_day_mon', 'series_day_tue', 'series_day_wed', 'series_day_thu',
+  'series_day_fri', 'series_day_sat', 'series_day_sun',
+] as const;
+const FREQ_LABEL_KEYS: Record<string, string> = {
+  weekly: 'series_freq_weekly',
+  biweekly: 'series_freq_biweekly',
+  monthly: 'series_freq_monthly',
 };
 
 const LEVEL_COLORS: Record<string, string> = {
@@ -62,6 +66,7 @@ function SeriesCard({
   isOwn: boolean;
   onDelete?: (id: number) => void;
 }) {
+  const { lang, t } = useLang();
   const [joined, setJoined] = useState(false);
   const [joining, setJoining] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -80,7 +85,7 @@ function SeriesCard({
   }
 
   async function handleDelete() {
-    if (!confirm('Usunąć tę serię cykliczną? Tej operacji nie można cofnąć.')) return;
+    if (!confirm(t('series_delete_confirm'))) return;
     setDeleting(true);
     try {
       const res = await fetch(`/api/session-series/${series.id}`, { method: 'DELETE' });
@@ -106,7 +111,7 @@ function SeriesCard({
               {getSportLabel(series.sportType)}
             </span>
             <span className="text-xs text-[#888888]">
-              {FREQ_LABELS[series.frequency] ?? series.frequency}
+              {FREQ_LABEL_KEYS[series.frequency] ? t(FREQ_LABEL_KEYS[series.frequency] as Parameters<typeof t>[0]) : series.frequency}
             </span>
             {series.minLevel && (
               <span
@@ -139,7 +144,7 @@ function SeriesCard({
       <div className="flex items-center gap-4 flex-wrap text-xs text-[#888888]">
         <span className="flex items-center gap-1.5">
           <Calendar className="w-3.5 h-3.5" />
-          {DAY_LABELS[series.dayOfWeek]}s
+          {t(DAY_LABEL_KEYS[series.dayOfWeek] as Parameters<typeof t>[0])}s
         </span>
         <span className="flex items-center gap-1.5">
           <Clock className="w-3.5 h-3.5" />
@@ -151,20 +156,20 @@ function SeriesCard({
         </span>
         <span className="flex items-center gap-1.5">
           <Users className="w-3.5 h-3.5" />
-          Maks. {series.maxParticipants}
+          {t('series_max')} {series.maxParticipants}
         </span>
       </div>
 
       {/* Next occurrence */}
       <div className="bg-[var(--bg-card)] border border-[var(--border)] px-3 py-2 flex items-center gap-2">
         <Repeat className="w-3.5 h-3.5 text-[#6366F1]" />
-        <span className="text-xs text-[#888888]">Następna:</span>
+        <span className="text-xs text-[#888888]">{t('series_next')}</span>
         <span className="text-xs text-white font-medium">
-          {nextOcc.toLocaleDateString('pl-PL', {
+          {nextOcc.toLocaleDateString(lang === 'pl' ? 'pl-PL' : 'en-US', {
             weekday: 'short',
             month: 'short',
             day: 'numeric',
-          })} o {series.time}
+          })} {t('series_at')} {series.time}
         </span>
       </div>
 
@@ -190,12 +195,12 @@ function SeriesCard({
           ) : joined ? (
             <>
               <CheckCircle2 className="w-3.5 h-3.5" />
-              Dołączono
+              {t('series_joined')}
             </>
           ) : (
             <>
               <Plus className="w-3.5 h-3.5" />
-              Dołącz
+              {t('series_join')}
             </>
           )}
         </button>
@@ -204,7 +209,7 @@ function SeriesCard({
       {isOwn && (
         <div className="flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full bg-[#6366F1]" />
-          <span className="text-xs text-[#888888]">Twoja seria</span>
+          <span className="text-xs text-[#888888]">{t('series_your')}</span>
         </div>
       )}
     </div>
@@ -212,6 +217,7 @@ function SeriesCard({
 }
 
 export default function SeriesListPage() {
+  const { t } = useLang();
   const router = useRouter();
   const [mySeries, setMySeries] = useState<SessionSeries[]>([]);
   const [loading, setLoading] = useState(true);
@@ -226,7 +232,7 @@ export default function SeriesListPage() {
         const data: SessionSeries[] = await res.json();
         setMySeries(data);
       } catch {
-        setError('Nie udało się załadować serii cyklicznych');
+        setError(t('series_load_error'));
       } finally {
         setLoading(false);
       }
@@ -245,8 +251,8 @@ export default function SeriesListPage() {
         <div className="flex items-center gap-3">
           <Repeat className="w-6 h-6 text-[#6366F1]" />
           <div>
-            <h1 className="font-display text-3xl text-white tracking-wider">SERIE CYKLICZNE</h1>
-            <p className="text-[#888888] text-sm">Regularne sesje grupowe, do których możesz dołączyć</p>
+            <h1 className="font-display text-3xl text-white tracking-wider">{t('series_title')}</h1>
+            <p className="text-[#888888] text-sm">{t('series_subtitle')}</p>
           </div>
         </div>
         <Button
@@ -254,7 +260,7 @@ export default function SeriesListPage() {
           size="sm"
         >
           <Plus className="w-3.5 h-3.5" />
-          Nowa seria
+          {t('series_new')}
         </Button>
       </div>
 
@@ -272,19 +278,19 @@ export default function SeriesListPage() {
             onClick={() => window.location.reload()}
             className="text-xs text-[#888888] hover:text-white underline"
           >
-            Spróbuj ponownie
+            {t('series_retry')}
           </button>
         </div>
       ) : mySeries.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 gap-4 border border-dashed border-[var(--border)]">
           <Repeat className="w-12 h-12 text-[#2A2A2A]" />
-          <h3 className="font-display text-xl text-[#888888]">BRAK SERII CYKLICZNYCH</h3>
+          <h3 className="font-display text-xl text-[#888888]">{t('series_none_title')}</h3>
           <p className="text-[#888888] text-sm text-center max-w-sm">
-            Nie masz jeszcze żadnych serii cyklicznych. Utwórz pierwszą, by gromadzić sportowców co tydzień.
+            {t('series_empty')}
           </p>
           <Button onClick={() => router.push('/sessions/new?mode=recurring')}>
             <Plus className="w-4 h-4" />
-            Utwórz pierwszą serię
+            {t('series_create_first')}
           </Button>
         </div>
       ) : (
@@ -293,7 +299,7 @@ export default function SeriesListPage() {
           <div className="mb-8">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-[#888888] mb-4 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#6366F1]" />
-              Moje serie ({mySeries.length})
+              {t('series_my')} ({mySeries.length})
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {mySeries.map((s) => (

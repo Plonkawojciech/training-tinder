@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Target, Zap, Heart, Timer, Save, RefreshCw, ChevronDown, ChevronUp, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useLang } from '@/lib/lang';
 
 interface PowerZone {
   zone: number;
@@ -105,6 +106,7 @@ function secToMinKm(sec: number): string {
 }
 
 export default function TrainingPage() {
+  const { t } = useLang();
   const [data, setData] = useState<ZonesData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -174,9 +176,9 @@ export default function TrainingPage() {
   }
 
   const tabs: { key: ActiveTab; label: string; icon: typeof Zap }[] = [
-    { key: 'power', label: 'Strefy mocy', icon: Zap },
-    { key: 'hr', label: 'Strefy HR', icon: Heart },
-    { key: 'pace', label: 'Strefy tempa', icon: Timer },
+    { key: 'power', label: t('training_power_zones'), icon: Zap },
+    { key: 'hr', label: t('training_hr_zones'), icon: Heart },
+    { key: 'pace', label: t('training_pace_zones'), icon: Timer },
   ];
 
   return (
@@ -186,10 +188,10 @@ export default function TrainingPage() {
         <div>
           <div className="flex items-center gap-3 mb-1">
             <Target className="w-5 h-5 text-[#6366F1]" />
-            <h1 className="font-display text-3xl text-white tracking-wider">STREFY TRENINGOWE</h1>
+            <h1 className="font-display text-3xl text-white tracking-wider">{t('training_zones_title')}</h1>
           </div>
           <p className="text-[#888888] text-sm ml-8">
-            Strefy obliczone na podstawie Twoich danych wydolnościowych
+            {t('training_zones_subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -207,7 +209,7 @@ export default function TrainingPage() {
             onClick={() => setShowInputs((v) => !v)}
           >
             {showInputs ? <ChevronUp className="w-4 h-4 mr-1" /> : <ChevronDown className="w-4 h-4 mr-1" />}
-            Aktualizuj wartości
+            {t('training_update_values')}
           </Button>
         </div>
       </div>
@@ -215,11 +217,11 @@ export default function TrainingPage() {
       {/* Input panel */}
       {showInputs && (
         <div className="mb-6 p-4 bg-[var(--bg-card)] border border-[var(--border)] animate-in fade-in slide-in-from-top-2 duration-200">
-          <h2 className="font-display text-sm text-[#888888] tracking-wider mb-4">TWOJE DANE WYDOLNOŚCIOWE</h2>
+          <h2 className="font-display text-sm text-[#888888] tracking-wider mb-4">{t('training_your_data')}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
             <div>
               <label className="block text-xs text-[#888888] uppercase tracking-wider mb-1.5">
-                FTP (W)
+                {t('training_ftp')}
               </label>
               <input
                 type="number"
@@ -227,14 +229,14 @@ export default function TrainingPage() {
                 max="600"
                 value={ftpInput}
                 onChange={(e) => setFtpInput(e.target.value)}
-                placeholder="np. 250"
+                placeholder={t('training_ftp_placeholder')}
                 className="w-full bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] px-3 py-2 text-sm focus:outline-none focus:border-[#6366F1] transition-colors"
               />
-              <p className="text-[10px] text-[#555555] mt-1">Funkcjonalna moc progowa (test 20 min × 0.95)</p>
+              <p className="text-[10px] text-[#555555] mt-1">{t('training_ftp_desc')}</p>
             </div>
             <div>
               <label className="block text-xs text-[#888888] uppercase tracking-wider mb-1.5">
-                Maks. tętno (bpm)
+                {t('training_max_hr')}
               </label>
               <input
                 type="number"
@@ -242,32 +244,32 @@ export default function TrainingPage() {
                 max="230"
                 value={maxHrInput}
                 onChange={(e) => setMaxHrInput(e.target.value)}
-                placeholder="np. 185"
+                placeholder={t('training_hr_placeholder')}
                 className="w-full bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] px-3 py-2 text-sm focus:outline-none focus:border-[#6366F1] transition-colors"
               />
-              <p className="text-[10px] text-[#555555] mt-1">Najwyższe tętno podczas testu maksymalnego</p>
+              <p className="text-[10px] text-[#555555] mt-1">{t('training_max_hr_desc')}</p>
             </div>
             <div>
               <label className="block text-xs text-[#888888] uppercase tracking-wider mb-1.5">
-                Tempo progowe (mm:ss /km)
+                {t('training_threshold_pace')}
               </label>
               <input
                 type="text"
                 value={paceInput}
                 onChange={(e) => setPaceInput(e.target.value)}
-                placeholder="np. 4:30"
+                placeholder={t('training_pace_placeholder')}
                 className="w-full bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] px-3 py-2 text-sm focus:outline-none focus:border-[#6366F1] transition-colors font-mono"
               />
-              <p className="text-[10px] text-[#555555] mt-1">Przybliżone tempo biegu na 10 km lub próg mleczanowy</p>
+              <p className="text-[10px] text-[#555555] mt-1">{t('training_pace_desc')}</p>
             </div>
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" size="sm" onClick={() => setShowInputs(false)}>
-              Anuluj
+              {t('gen_cancel')}
             </Button>
             <Button size="sm" onClick={handleSave} disabled={saving}>
               <Save className="w-4 h-4 mr-1" />
-              {saving ? 'Zapisywanie...' : 'Zapisz i przelicz'}
+              {saving ? t('gen_saving') : t('training_save_recalc')}
             </Button>
           </div>
         </div>
@@ -284,7 +286,7 @@ export default function TrainingPage() {
             <span className="text-2xl font-display text-white">
               {data.ftp ? `${data.ftp}W` : '—'}
             </span>
-            <span className="text-[10px] text-[#555555]">Funkcjonalna moc progowa</span>
+            <span className="text-[10px] text-[#555555]">{t('training_ftp_label')}</span>
           </div>
           <div className="bg-[var(--bg-card)] border border-[var(--border)] p-4 flex flex-col gap-1">
             <div className="flex items-center gap-2 text-[#888888] text-xs uppercase tracking-wider mb-1">
@@ -294,17 +296,17 @@ export default function TrainingPage() {
             <span className="text-2xl font-display text-white">
               {data.maxHr ? `${data.maxHr} bpm` : '—'}
             </span>
-            <span className="text-[10px] text-[#555555]">Maksymalne tętno</span>
+            <span className="text-[10px] text-[#555555]">{t('training_max_hr_label')}</span>
           </div>
           <div className="bg-[var(--bg-card)] border border-[var(--border)] p-4 flex flex-col gap-1">
             <div className="flex items-center gap-2 text-[#888888] text-xs uppercase tracking-wider mb-1">
               <Timer className="w-3.5 h-3.5 text-blue-400" />
-              Tempo progowe
+              {t('training_threshold_label')}
             </div>
             <span className="text-2xl font-display text-white">
               {data.thresholdPaceSec ? secToMinKm(data.thresholdPaceSec) : '—'}
             </span>
-            <span className="text-[10px] text-[#555555]">Tempo progowe</span>
+            <span className="text-[10px] text-[#555555]">{t('training_threshold_label')}</span>
           </div>
         </div>
       )}
@@ -342,15 +344,16 @@ export default function TrainingPage() {
               {!data?.powerZones ? (
                 <EmptyZoneState
                   icon={Zap}
-                  title="Brak FTP"
-                  description="Wprowadź swój FTP (funkcjonalną moc progową), aby zobaczyć strefy mocy."
+                  title={t('training_no_ftp')}
+                  description={t('training_ftp_empty_desc')}
                   onSetValues={() => setShowInputs(true)}
+                  buttonLabel={t('training_set_values')}
                 />
               ) : (
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center justify-between px-3 py-2 mb-1">
-                    <span className="text-[10px] text-[#444444] uppercase tracking-widest">Strefa</span>
-                    <span className="text-[10px] text-[#444444] uppercase tracking-widest">Zakres (W)</span>
+                    <span className="text-[10px] text-[#444444] uppercase tracking-widest">{t('training_zone')}</span>
+                    <span className="text-[10px] text-[#444444] uppercase tracking-widest">{t('training_range_w')}</span>
                   </div>
                   {data.powerZones.map((z, i) => (
                     <ZoneBar
@@ -363,7 +366,7 @@ export default function TrainingPage() {
                     />
                   ))}
                   <p className="text-[10px] text-[#444444] mt-3 px-1">
-                    Na podstawie FTP: {data.ftp}W · model 7 stref Coggana
+                    {t('training_based_ftp')} {data.ftp}W · {t('training_coggan')}
                   </p>
                 </div>
               )}
@@ -375,15 +378,16 @@ export default function TrainingPage() {
               {!data?.hrZones ? (
                 <EmptyZoneState
                   icon={Heart}
-                  title="Brak maks. tętna"
-                  description="Wprowadź swoje maksymalne tętno, aby zobaczyć strefy tętna."
+                  title={t('training_no_hr')}
+                  description={t('training_hr_empty_desc')}
                   onSetValues={() => setShowInputs(true)}
+                  buttonLabel={t('training_set_values')}
                 />
               ) : (
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center justify-between px-3 py-2 mb-1">
-                    <span className="text-[10px] text-[#444444] uppercase tracking-widest">Strefa</span>
-                    <span className="text-[10px] text-[#444444] uppercase tracking-widest">Zakres (bpm)</span>
+                    <span className="text-[10px] text-[#444444] uppercase tracking-widest">{t('training_zone')}</span>
+                    <span className="text-[10px] text-[#444444] uppercase tracking-widest">{t('training_range_bpm')}</span>
                   </div>
                   {data.hrZones.map((z, i) => (
                     <ZoneBar
@@ -396,7 +400,7 @@ export default function TrainingPage() {
                     />
                   ))}
                   <p className="text-[10px] text-[#444444] mt-3 px-1">
-                    Na podstawie maks. tętna: {data.maxHr} bpm · model 5 stref
+                    {t('training_based_hr')} {data.maxHr} bpm · {t('training_5zone')}
                   </p>
                 </div>
               )}
@@ -408,15 +412,16 @@ export default function TrainingPage() {
               {!data?.paceZones ? (
                 <EmptyZoneState
                   icon={Timer}
-                  title="Brak tempa progowego"
-                  description="Wprowadź swoje tempo progowe (przybliżone tempo biegu na 10 km), aby zobaczyć strefy tempa."
+                  title={t('training_no_pace')}
+                  description={t('training_pace_empty_desc')}
                   onSetValues={() => setShowInputs(true)}
+                  buttonLabel={t('training_set_values')}
                 />
               ) : (
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center justify-between px-3 py-2 mb-1">
-                    <span className="text-[10px] text-[#444444] uppercase tracking-widest">Strefa</span>
-                    <span className="text-[10px] text-[#444444] uppercase tracking-widest">Zakres tempa</span>
+                    <span className="text-[10px] text-[#444444] uppercase tracking-widest">{t('training_zone')}</span>
+                    <span className="text-[10px] text-[#444444] uppercase tracking-widest">{t('training_range_pace')}</span>
                   </div>
                   {data.paceZones.map((z, i) => (
                     <ZoneBar
@@ -429,7 +434,7 @@ export default function TrainingPage() {
                     />
                   ))}
                   <p className="text-[10px] text-[#444444] mt-3 px-1">
-                    Na podstawie tempa progowego: {secToMinKm(data.thresholdPaceSec!)} · model 5 stref
+                    {t('training_based_pace')} {secToMinKm(data.thresholdPaceSec!)} · {t('training_5zone')}
                   </p>
                 </div>
               )}
@@ -440,16 +445,16 @@ export default function TrainingPage() {
 
       {/* Info box */}
       <div className="mt-8 p-4 bg-[var(--bg-card)] border border-[var(--border)]">
-        <h3 className="font-display text-xs text-[#888888] tracking-wider mb-2">JAK WYZNACZYĆ SWOJE STREFY</h3>
+        <h3 className="font-display text-xs text-[#888888] tracking-wider mb-2">{t('training_how_to')}</h3>
         <ul className="text-xs text-[#555555] space-y-1.5">
           <li>
-            <span className="text-[#888888]">Test FTP:</span> Jedź 20 min z maksymalnym wysiłkiem, pomnóż średnią moc przez 0.95
+            <span className="text-[#888888]">{t('training_ftp_test')}</span> {t('training_ftp_test_desc')}
           </li>
           <li>
-            <span className="text-[#888888]">Maks. tętno:</span> Wykonaj interwały 400m lub dystans 1 mili z pełnym wysiłkiem i zapisz szczytowe tętno
+            <span className="text-[#888888]">{t('training_hr_test')}</span> {t('training_hr_test_desc')}
           </li>
           <li>
-            <span className="text-[#888888]">Tempo progowe:</span> Użyj ostatniego tempa biegu na 10 km lub wykonaj 30-minutowy test czasowy
+            <span className="text-[#888888]">{t('training_pace_test')}</span> {t('training_pace_test_desc')}
           </li>
         </ul>
       </div>
@@ -462,11 +467,13 @@ function EmptyZoneState({
   title,
   description,
   onSetValues,
+  buttonLabel,
 }: {
   icon: typeof Zap;
   title: string;
   description: string;
   onSetValues: () => void;
+  buttonLabel: string;
 }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 gap-4 bg-[var(--bg-card)] border border-[var(--border)]">
@@ -474,7 +481,7 @@ function EmptyZoneState({
       <h3 className="font-display text-lg text-[#888888]">{title.toUpperCase()}</h3>
       <p className="text-[#555555] text-sm text-center max-w-sm">{description}</p>
       <Button size="sm" onClick={onSetValues}>
-        Ustaw wartości
+        {buttonLabel}
       </Button>
     </div>
   );

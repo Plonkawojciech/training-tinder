@@ -3,6 +3,7 @@ import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { userSportProfiles } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { unauthorized, serverError, badRequest, ErrorCode } from '@/lib/api-errors';
 
 interface ManualGarminStats {
   weeklyKm?: number;
@@ -14,19 +15,19 @@ interface ManualGarminStats {
 
 export async function POST(request: Request) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   let body: ManualGarminStats;
   try {
     body = await request.json() as ManualGarminStats;
   } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    return badRequest(ErrorCode.INVALID_INPUT, 'Invalid request body');
   }
 
   const { weeklyKm, vo2max, ftpWatts, avgPaceKmh, sport } = body;
 
   if (!sport) {
-    return NextResponse.json({ error: 'sport is required' }, { status: 400 });
+    return badRequest(ErrorCode.MISSING_FIELDS, 'Sport is required');
   }
 
   try {
@@ -67,6 +68,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, profile });
   } catch (err) {
     console.error('POST /api/garmin/manual error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

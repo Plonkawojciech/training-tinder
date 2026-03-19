@@ -25,7 +25,7 @@ interface MixedSwipeStackProps {
 
 export function MixedSwipeStack({ athletes, sessions, onRefreshAthletes, onRefreshSessions }: MixedSwipeStackProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const { lang } = useLang();
+  const { t } = useLang();
 
   // Interleave athletes and sessions, shuffle for variety
   const items = useMemo<MixedItem[]>(() => {
@@ -50,7 +50,7 @@ export function MixedSwipeStack({ athletes, sessions, onRefreshAthletes, onRefre
       const res = await fetch('/api/swipes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ targetId: item.user.clerkId, direction }),
+        body: JSON.stringify({ targetId: item.user.authEmail, direction }),
       });
       if (res.ok) {
         await res.json();
@@ -71,12 +71,10 @@ export function MixedSwipeStack({ athletes, sessions, onRefreshAthletes, onRefre
       <div className="flex flex-col items-center justify-center py-20 gap-6 min-h-[500px]">
         <div className="text-6xl">🎲</div>
         <h3 className="font-display text-2xl text-zinc-500 tracking-wider">
-          {lang === 'pl' ? 'TO WSZYSTKO!' : 'ALL CAUGHT UP!'}
+          {t('discover_seen_all_mixed_title')}
         </h3>
         <p className="text-zinc-600 text-sm text-center max-w-xs">
-          {lang === 'pl'
-            ? 'Widziałeś już wszystkich sportowców i sesje w pobliżu.'
-            : "You've seen all athletes and sessions nearby."}
+          {t('discover_seen_all_mixed')}
         </p>
         <div className="flex gap-3">
           {onRefreshAthletes && (
@@ -85,7 +83,7 @@ export function MixedSwipeStack({ athletes, sessions, onRefreshAthletes, onRefre
               className="flex items-center gap-2 px-6 py-3 bg-zinc-800 border border-zinc-700 text-zinc-300 rounded-3xl hover:bg-zinc-700 transition-colors font-semibold text-sm"
             >
               <RefreshCw className="w-4 h-4" />
-              {lang === 'pl' ? 'Odśwież' : 'Refresh'}
+              {t('gen_refresh')}
             </button>
           )}
         </div>
@@ -119,7 +117,7 @@ export function MixedSwipeStack({ athletes, sessions, onRefreshAthletes, onRefre
             if (item.type === 'athlete') {
               return (
                 <SwipeCard
-                  key={`a-${item.data.user.clerkId}`}
+                  key={`a-${item.data.user.authEmail}`}
                   athlete={item.data.user}
                   score={item.data.score}
                   distanceKm={item.data.distanceKm}
@@ -146,7 +144,7 @@ export function MixedSwipeStack({ athletes, sessions, onRefreshAthletes, onRefre
       </div>
 
       <p className="text-center text-zinc-600 text-xs mt-6">
-        {lang === 'pl' ? 'Przeciągnij w prawo · W lewo by pominąć' : 'Drag right to like/join · Left to pass'}
+        {t('discover_swipe_hint_mixed')}
       </p>
     </>
   );

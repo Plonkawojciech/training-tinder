@@ -6,12 +6,13 @@ import nextDynamic from 'next/dynamic';
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Calendar, MapPin, Users, Clock, Download, ArrowLeft, Trash2, Star } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock, Download, ArrowLeft, Trash2, Star, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
 import { getSportLabel } from '@/lib/utils';
 import { useSafeUser } from '@/lib/auth';
+import { useLang } from '@/lib/lang';
 import { ReviewModal } from '@/components/reviews/review-modal';
 
 const GroupChat = nextDynamic(
@@ -21,7 +22,7 @@ const GroupChat = nextDynamic(
 
 interface Participant {
   userId: string;
-  clerkId: string;
+  authEmail: string;
   username: string | null;
   avatarUrl: string | null;
   joinedAt: string;
@@ -66,6 +67,7 @@ function SessionDetailPageInner({ params }: { params: Promise<{ id: string }> })
   const { id } = use(params);
   const user = useSafeUser();
   const router = useRouter();
+  const { t } = useLang();
   const [session, setSession] = useState<SessionDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
@@ -123,13 +125,13 @@ function SessionDetailPageInner({ params }: { params: Promise<{ id: string }> })
       const data = await res.json() as { success?: boolean; pending?: boolean; error?: string };
       if (res.ok) {
         if (data.pending) {
-          setMessage('Prośba o dołączenie została wysłana. Oczekuj na zatwierdzenie.');
+          setMessage(t('sess_join_request_sent'));
         } else {
-          setMessage('Dołączono pomyślnie!');
+          setMessage(t('sess_joined_success'));
         }
         fetchSession();
       } else {
-        setMessage(data.error ?? 'Błąd podczas dołączania');
+        setMessage(data.error ?? t('sess_join_error'));
       }
     } finally {
       setJoining(false);
@@ -151,7 +153,7 @@ function SessionDetailPageInner({ params }: { params: Promise<{ id: string }> })
   }
 
   async function handleDelete() {
-    if (!confirm('Usunąć tę sesję?')) return;
+    if (!confirm(t('sess_delete_confirm'))) return;
     setDeleting(true);
     try {
       await fetch(`/api/sessions/${id}`, { method: 'DELETE' });
@@ -195,9 +197,9 @@ function SessionDetailPageInner({ params }: { params: Promise<{ id: string }> })
   const canReview = isCompleted && isParticipant && !hasReviewed && !reviewSubmitted;
 
   const tabs: { id: TabId; label: string }[] = [
-    { id: 'details', label: 'Szczegóły' },
-    { id: 'chat', label: 'Chat' },
-    { id: 'reviews', label: 'Oceny' },
+    { id: 'details', label: t('sess_tab_details') },
+    { id: 'chat', label: t('sess_tab_chat') },
+    { id: 'reviews', label: t('sess_tab_reviews') },
   ];
 
   return (
@@ -208,7 +210,7 @@ function SessionDetailPageInner({ params }: { params: Promise<{ id: string }> })
         style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-muted)', textDecoration: 'none', fontSize: 14, fontWeight: 500, marginBottom: 20 }}
       >
         <ArrowLeft style={{ width: 16, height: 16 }} />
-        Wróć do sesji
+        {t('sess_back_to_sessions')}
       </Link>
 
       {/* Main card */}
@@ -219,10 +221,10 @@ function SessionDetailPageInner({ params }: { params: Promise<{ id: string }> })
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
               <Badge sport={session.sportType}>{getSportLabel(session.sportType)}</Badge>
               {session.status === 'cancelled' && (
-                <span style={{ fontSize: 11, fontWeight: 600, color: '#EF4444', background: 'rgba(239,68,68,0.1)', borderRadius: 99, padding: '3px 10px' }}>Anulowana</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: '#EF4444', background: 'rgba(239,68,68,0.1)', borderRadius: 99, padding: '3px 10px' }}>{t('sess_cancelled_label')}</span>
               )}
               {isCompleted && session.status !== 'cancelled' && (
-                <span style={{ fontSize: 11, fontWeight: 600, color: '#34D399', background: 'rgba(52,211,153,0.1)', borderRadius: 99, padding: '3px 10px' }}>Zakończona</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: '#34D399', background: 'rgba(52,211,153,0.1)', borderRadius: 99, padding: '3px 10px' }}>{t('sess_completed_label')}</span>
               )}
             </div>
             <h1 style={{ fontWeight: 800, fontSize: 22, color: 'var(--text)', letterSpacing: -0.5, lineHeight: 1.25 }}>{session.title}</h1>
@@ -231,20 +233,27 @@ function SessionDetailPageInner({ params }: { params: Promise<{ id: string }> })
           <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
             {canReview && (
               <Button variant="secondary" size="sm" onClick={() => setReviewModalOpen(true)}>
-                <Star style={{ width: 14, height: 14 }} />Oceń
+                <Star style={{ width: 14, height: 14 }} />{t('sess_rate')}
               </Button>
             )}
             {isCreator && (
-              <Button variant="danger" size="sm" onClick={handleDelete} loading={deleting}>
-                <Trash2 style={{ width: 14, height: 14 }} />Usuń
-              </Button>
+              <>
+                <Link href={`/sessions/new?edit=${id}`}>
+                  <Button variant="secondary" size="sm">
+                    <Pencil style={{ width: 14, height: 14 }} />{t('sess_edit')}
+                  </Button>
+                </Link>
+                <Button variant="danger" size="sm" onClick={handleDelete} loading={deleting}>
+                  <Trash2 style={{ width: 14, height: 14 }} />{t('sess_delete')}
+                </Button>
+              </>
             )}
           </div>
         </div>
 
         {reviewSubmitted && (
           <div style={{ marginBottom: 12, padding: '10px 14px', background: 'rgba(52,211,153,0.1)', borderRadius: 12, color: '#34D399', fontSize: 13 }}>
-            Dziękujemy za ocenę!
+            {t('sess_review_thanks')}
           </div>
         )}
 
@@ -275,11 +284,11 @@ function SessionDetailPageInner({ params }: { params: Promise<{ id: string }> })
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <Users style={{ width: 14, height: 14, color: 'var(--text-muted)' }} />
               <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                {session.participantCount}/{session.maxParticipants} uczestników
+                {session.participantCount}/{session.maxParticipants} {t('sess_participants_count')}
               </span>
             </div>
             <span style={{ fontSize: 13, fontWeight: 700, color: isFull ? 'var(--text-muted)' : '#6366F1' }}>
-              {isFull ? 'Pełna' : `${session.maxParticipants - session.participantCount} miejsc`}
+              {isFull ? t('sess_full_label') : `${session.maxParticipants - session.participantCount} ${t('sess_spots_remaining')}`}
             </span>
           </div>
           <div style={{ height: 6, background: 'var(--bg-elevated)', borderRadius: 99, overflow: 'hidden' }}>
@@ -304,25 +313,25 @@ function SessionDetailPageInner({ params }: { params: Promise<{ id: string }> })
 
           // Format terrain
           const terrainMap: Record<string, string> = {
-            asphalt: 'Asfalt', trail: 'Trail / Terenowy', track: 'Bieżnia',
+            asphalt: t('sess_terrain_asphalt'), trail: t('sess_terrain_trail'), track: t('sess_terrain_track'),
           };
           const terrainLabel = session.terrain ? (terrainMap[session.terrain] ?? session.terrain) : null;
 
           return (
             <div className="mb-6 p-4 rounded-2xl" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
               <p className="text-xs font-bold text-[#6366F1] uppercase tracking-wider mb-3">
-                {isCycling ? '🚴 Szczegóły trasy' : isRunning ? '🏃 Szczegóły biegu' : '📊 Szczegóły'}
+                {isCycling ? t('sess_route_details_cycling') : isRunning ? t('sess_route_details_running') : t('sess_route_details_generic')}
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {session.estimatedDistanceKm && (
                   <div>
-                    <p className="text-xs text-[#888] uppercase tracking-wider mb-0.5">Dystans</p>
+                    <p className="text-xs text-[#888] uppercase tracking-wider mb-0.5">{t('sess_stat_distance')}</p>
                     <p className="text-base font-bold" style={{ color: 'var(--text)' }}>{session.estimatedDistanceKm} km</p>
                   </div>
                 )}
                 {session.estimatedDurationMin && (
                   <div>
-                    <p className="text-xs text-[#888] uppercase tracking-wider mb-0.5">Czas</p>
+                    <p className="text-xs text-[#888] uppercase tracking-wider mb-0.5">{t('sess_stat_time')}</p>
                     <p className="text-base font-bold" style={{ color: 'var(--text)' }}>
                       {Math.floor(session.estimatedDurationMin / 60) > 0 ? `${Math.floor(session.estimatedDurationMin / 60)}h ` : ''}
                       {session.estimatedDurationMin % 60 > 0 ? `${session.estimatedDurationMin % 60}min` : ''}
@@ -331,32 +340,32 @@ function SessionDetailPageInner({ params }: { params: Promise<{ id: string }> })
                 )}
                 {isCycling && session.targetAvgPowerWatts && (
                   <div>
-                    <p className="text-xs text-[#888] uppercase tracking-wider mb-0.5">Śr. moc</p>
+                    <p className="text-xs text-[#888] uppercase tracking-wider mb-0.5">{t('sess_avg_power')}</p>
                     <p className="text-base font-bold" style={{ color: 'var(--text)' }}>{session.targetAvgPowerWatts} W</p>
                   </div>
                 )}
                 {isRunning && paceLabel && (
                   <div>
-                    <p className="text-xs text-[#888] uppercase tracking-wider mb-0.5">Tempo</p>
+                    <p className="text-xs text-[#888] uppercase tracking-wider mb-0.5">{t('sess_stat_pace')}</p>
                     <p className="text-base font-bold" style={{ color: 'var(--text)' }}>{paceLabel} /km</p>
                   </div>
                 )}
                 {session.elevationGainM && (
                   <div>
-                    <p className="text-xs text-[#888] uppercase tracking-wider mb-0.5">Przewyższenie</p>
+                    <p className="text-xs text-[#888] uppercase tracking-wider mb-0.5">{t('sess_stat_elevation')}</p>
                     <p className="text-base font-bold" style={{ color: 'var(--text)' }}>{session.elevationGainM} m</p>
                   </div>
                 )}
                 {isRunning && terrainLabel && (
                   <div>
-                    <p className="text-xs text-[#888] uppercase tracking-wider mb-0.5">Nawierzchnia</p>
+                    <p className="text-xs text-[#888] uppercase tracking-wider mb-0.5">{t('sess_stat_terrain')}</p>
                     <p className="text-base font-bold" style={{ color: 'var(--text)' }}>{terrainLabel}</p>
                   </div>
                 )}
               </div>
               {isCycling && session.stops && session.stops.length > 0 && (
                 <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--border)' }}>
-                  <p className="text-xs text-[#888] uppercase tracking-wider mb-2">Postoje</p>
+                  <p className="text-xs text-[#888] uppercase tracking-wider mb-2">{t('sess_stat_stops')}</p>
                   <div className="flex flex-col gap-1.5">
                     {session.stops.map((stop, i) => (
                       <div key={i} className="flex items-center gap-2 text-sm">
@@ -375,7 +384,7 @@ function SessionDetailPageInner({ params }: { params: Promise<{ id: string }> })
         {/* Privacy badge */}
         {session.privacy === 'friends' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#A78BFA', marginBottom: 12 }}>
-            🔒 <span>Sesja dostępna tylko dla znajomych</span>
+            🔒 <span>{t('sess_friends_only')}</span>
           </div>
         )}
 
@@ -385,7 +394,7 @@ function SessionDetailPageInner({ params }: { params: Promise<{ id: string }> })
             href={session.gpxUrl} target="_blank" rel="noopener noreferrer"
             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#6366F1', marginBottom: 16 }}
           >
-            <Download style={{ width: 14, height: 14 }} />Pobierz trasę GPX
+            <Download style={{ width: 14, height: 14 }} />{t('sess_download_gpx')}
           </a>
         )}
 
@@ -393,22 +402,22 @@ function SessionDetailPageInner({ params }: { params: Promise<{ id: string }> })
         {!isCreator && session.status !== 'cancelled' && (
           <div>
             {message && (
-              <p style={{ fontSize: 13, marginBottom: 10, color: message.includes('Prośba') || message.includes('Dołączono') ? '#34D399' : '#EF4444' }}>
+              <p style={{ fontSize: 13, marginBottom: 10, color: message === t('sess_join_request_sent') || message === t('sess_joined_success') ? '#34D399' : '#EF4444' }}>
                 {message}
               </p>
             )}
             {isParticipant ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#34D399', fontSize: 14, fontWeight: 600, padding: '12px 16px', background: 'rgba(52,211,153,0.1)', borderRadius: 12 }}>
-                ✓ Uczestniczysz w tej sesji
+                ✓ {t('sess_participating')}
               </div>
             ) : hasPendingRequest ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, padding: '12px 16px', background: 'var(--bg-elevated)', borderRadius: 12, color: 'var(--text-muted)' }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#FBBF24', display: 'inline-block' }} />
-                Oczekuje na akceptację
+                {t('sess_waiting_approval')}
               </div>
             ) : (
               <Button onClick={handleJoin} loading={joining} disabled={isFull} className="w-full">
-                {isFull ? 'Sesja pełna' : 'Dołącz do sesji'}
+                {isFull ? t('sess_session_full') : t('sess_join_session')}
               </Button>
             )}
           </div>
@@ -440,14 +449,14 @@ function SessionDetailPageInner({ params }: { params: Promise<{ id: string }> })
         <>
           {/* Creator */}
           <div style={{ background: 'var(--bg-card)', borderRadius: 20, padding: '16px', marginBottom: 12, boxShadow: 'var(--shadow-card)' }}>
-            <h2 style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Organizator</h2>
+            <h2 style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>{t('sess_organizer')}</h2>
             <div className="flex items-center gap-3">
               <Avatar src={session.creatorAvatar} fallback={session.creatorName ?? '?'} size="md" />
               <Link
                 href={`/profile/${session.creatorId}`}
                 className="font-semibold text-white hover:text-[#6366F1] transition-colors text-sm"
               >
-                {session.creatorName ?? 'Nieznany'}
+                {session.creatorName ?? t('sess_unknown_user')}
               </Link>
             </div>
           </div>
@@ -459,23 +468,23 @@ function SessionDetailPageInner({ params }: { params: Promise<{ id: string }> })
                 {session.participants.filter((p) => p.status === 'pending').length > 0 && (
                   <div style={{ marginBottom: 20 }}>
                     <p style={{ fontSize: 11, fontWeight: 700, color: '#FBBF24', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
-                      Oczekujące ({session.participants.filter((p) => p.status === 'pending').length})
+                      {t('sess_pending_count', { count: String(session.participants.filter((p) => p.status === 'pending').length) })}
                     </p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {session.participants.filter((p) => p.status === 'pending').map((p) => (
                         <div key={p.userId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'rgba(251,191,36,0.06)', borderRadius: 12 }}>
                           <Avatar src={p.avatarUrl} fallback={p.username ?? '?'} size="sm" />
                           <Link href={`/profile/${p.userId}`} style={{ flex: 1, fontSize: 14, fontWeight: 600, color: 'var(--text)', textDecoration: 'none' }}>
-                            {p.username ?? 'Użytkownik'}
+                            {p.username ?? t('gen_user')}
                           </Link>
                           <div style={{ display: 'flex', gap: 6 }}>
                             <button onClick={() => handleMemberAction(p.userId, 'accept')} disabled={memberActionLoading === p.userId + 'accept'}
                               style={{ padding: '6px 14px', borderRadius: 99, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, background: '#6366F1', color: 'white', opacity: memberActionLoading === p.userId + 'accept' ? 0.5 : 1 }}>
-                              {memberActionLoading === p.userId + 'accept' ? '...' : 'Akceptuj'}
+                              {memberActionLoading === p.userId + 'accept' ? '...' : t('sess_accept')}
                             </button>
                             <button onClick={() => handleMemberAction(p.userId, 'reject')} disabled={memberActionLoading === p.userId + 'reject'}
                               style={{ padding: '6px 14px', borderRadius: 99, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, background: 'rgba(239,68,68,0.1)', color: '#EF4444', opacity: memberActionLoading === p.userId + 'reject' ? 0.5 : 1 }}>
-                              {memberActionLoading === p.userId + 'reject' ? '...' : 'Odrzuć'}
+                              {memberActionLoading === p.userId + 'reject' ? '...' : t('sess_reject')}
                             </button>
                           </div>
                         </div>
@@ -484,31 +493,31 @@ function SessionDetailPageInner({ params }: { params: Promise<{ id: string }> })
                   </div>
                 )}
                 <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
-                  Zatwierdzeni ({session.participantCount})
+                  {t('sess_approved')} ({session.participantCount})
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {session.participants.filter((p) => p.status === 'accepted' || p.status === 'host').map((p) => (
                     <Link key={p.userId} href={`/profile/${p.userId}`} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 12, textDecoration: 'none', transition: 'background 0.15s' }}>
                       <Avatar src={p.avatarUrl} fallback={p.username ?? '?'} size="sm" />
-                      <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>{p.username ?? 'Użytkownik'}</span>
+                      <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>{p.username ?? t('gen_user')}</span>
                       {p.status === 'host' && <span style={{ fontSize: 10, fontWeight: 700, color: '#6366F1', background: 'rgba(99,102,241,0.12)', padding: '3px 8px', borderRadius: 99 }}>HOST</span>}
                     </Link>
                   ))}
                   {session.participants.filter((p) => p.status === 'accepted' || p.status === 'host').length === 0 && (
-                    <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Brak zatwierdzonych uczestników.</p>
+                    <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t('sess_no_participants')}</p>
                   )}
                 </div>
               </>
             ) : (
               <>
                 <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
-                  Uczestnicy ({session.participantCount})
+                  {t('sess_participants_label')} ({session.participantCount})
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {session.participants.filter((p) => p.status === 'accepted' || p.status === 'host').map((p) => (
                     <Link key={p.userId} href={`/profile/${p.userId}`} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 12, textDecoration: 'none' }}>
                       <Avatar src={p.avatarUrl} fallback={p.username ?? '?'} size="sm" />
-                      <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>{p.username ?? 'Użytkownik'}</span>
+                      <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>{p.username ?? t('gen_user')}</span>
                       {p.status === 'host' && <span style={{ fontSize: 10, fontWeight: 700, color: '#6366F1', background: 'rgba(99,102,241,0.12)', padding: '3px 8px', borderRadius: 99 }}>HOST</span>}
                     </Link>
                   ))}
@@ -526,7 +535,7 @@ function SessionDetailPageInner({ params }: { params: Promise<{ id: string }> })
             <GroupChat sessionId={session.id} currentUserId={user.id} currentUsername={user.username} />
           ) : (
             <div style={{ background: 'var(--bg-card)', borderRadius: 20, padding: 32, textAlign: 'center', color: 'var(--text-muted)', fontSize: 14, boxShadow: 'var(--shadow-card)' }}>
-              Dołącz do sesji, aby uzyskać dostęp do czatu.
+              {t('sess_join_for_chat')}
             </div>
           )}
         </>
@@ -536,11 +545,11 @@ function SessionDetailPageInner({ params }: { params: Promise<{ id: string }> })
       {activeTab === 'reviews' && (
         <div style={{ background: 'var(--bg-card)', borderRadius: 20, padding: '16px', boxShadow: 'var(--shadow-card)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-            <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>Oceny sesji</p>
+            <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>{t('sess_reviews_title')}</p>
             {canReview && (
               <Button size="sm" onClick={() => setReviewModalOpen(true)}>
                 <Star style={{ width: 12, height: 12 }} />
-                Oceń tę sesję
+                {t('sess_rate_session')}
               </Button>
             )}
           </div>
@@ -570,6 +579,7 @@ interface Review {
 }
 
 function ReviewsPanel({ sessionId }: { sessionId: number }) {
+  const { t } = useLang();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -592,7 +602,7 @@ function ReviewsPanel({ sessionId }: { sessionId: number }) {
   if (reviews.length === 0) {
     return (
       <p className="text-[#888888] text-sm text-center py-8">
-        Brak ocen. Bądź pierwszy!
+        {t('sess_no_reviews')}
       </p>
     );
   }
@@ -614,7 +624,7 @@ function ReviewsPanel({ sessionId }: { sessionId: number }) {
               />
             ))}
           </div>
-          <span className="text-xs text-[#888888]">{reviews.length} {reviews.length === 1 ? 'ocena' : 'ocen'}</span>
+          <span className="text-xs text-[#888888]">{reviews.length} {reviews.length === 1 ? t('sess_review_single') : t('sess_review_plural')}</span>
         </div>
       </div>
 

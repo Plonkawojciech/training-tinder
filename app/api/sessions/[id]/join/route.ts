@@ -3,17 +3,18 @@ import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { sessions, sessionParticipants } from '@/lib/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
+import { unauthorized, notFound, serverError, badRequest, ErrorCode } from '@/lib/api-errors';
 
 export async function POST(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   const { id } = await params;
   const sessionId = parseInt(id);
-  if (isNaN(sessionId)) return NextResponse.json({ error: 'Invalid session id' }, { status: 400 });
+  if (isNaN(sessionId)) return badRequest(ErrorCode.INVALID_INPUT, 'Invalid session id');
 
   try {
     const sessionRows = await db
@@ -23,13 +24,13 @@ export async function POST(
       .limit(1);
 
     if (sessionRows.length === 0) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+      return notFound('Session not found');
     }
 
     const session = sessionRows[0];
 
     if (session.status === 'cancelled') {
-      return NextResponse.json({ error: 'Session is cancelled' }, { status: 400 });
+      return badRequest(ErrorCode.INVALID_STATUS, 'Session is cancelled');
     }
 
     const existing = await db
@@ -44,7 +45,7 @@ export async function POST(
       .limit(1);
 
     if (existing.length > 0) {
-      return NextResponse.json({ error: 'Already joined' }, { status: 400 });
+      return badRequest(ErrorCode.ALREADY_JOINED, 'Already joined');
     }
 
     // Use DB-level count to avoid race condition
@@ -60,7 +61,7 @@ export async function POST(
     const acceptedCount = Number(countResult[0]?.count ?? 0);
 
     if (acceptedCount >= session.maxParticipants) {
-      return NextResponse.json({ error: 'Session is full' }, { status: 400 });
+      return badRequest(ErrorCode.SESSION_FULL, 'Session is full');
     }
 
     const isHost = session.creatorId === userId;
@@ -74,6 +75,6 @@ export async function POST(
     return NextResponse.json({ pending: true });
   } catch (err) {
     console.error('POST /api/sessions/[id]/join error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

@@ -6,12 +6,14 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import { useSafeUser } from '@/lib/auth';
+import { useLang } from '@/lib/lang';
 
 export function Header({ title }: { title?: string }) {
   const [query, setQuery] = useState('');
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const router = useRouter();
   const user = useSafeUser();
+  const { t } = useLang();
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -46,7 +48,7 @@ export function Header({ title }: { title?: string }) {
             <Zap className="w-4 h-4 text-white" fill="white" />
           </div>
           <span className="font-bold text-base tracking-tight" style={{ color: 'var(--text)' }}>
-            Training<span style={{ color: '#6366F1' }}>Tinder</span>
+            Athlix <span style={{ color: '#6366F1' }}>TrainMate</span>
           </span>
         </Link>
 
@@ -62,7 +64,8 @@ export function Header({ title }: { title?: string }) {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Szukaj sportowców..."
+              placeholder={t('header_search')}
+              aria-label={t('header_search')}
               className="w-full pl-9 pr-4 py-2 text-sm transition-all"
               style={{
                 background: 'var(--bg-elevated)',
@@ -80,7 +83,7 @@ export function Header({ title }: { title?: string }) {
             className="md:hidden w-9 h-9 flex items-center justify-center rounded-[10px] transition-colors"
             style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)' }}
             onClick={() => setShowMobileSearch((v) => !v)}
-            aria-label="Szukaj"
+            aria-label={t('header_search_btn')}
           >
             {showMobileSearch ? <X className="w-4 h-4" /> : <Search className="w-4 h-4" />}
           </button>
@@ -90,8 +93,8 @@ export function Header({ title }: { title?: string }) {
           {user.isSignedIn && (
             <button
               onClick={handleLogout}
-              title="Wyloguj"
-              aria-label="Wyloguj"
+              title={t('header_logout')}
+              aria-label={t('header_logout')}
               className="w-9 h-9 flex items-center justify-center rounded-[10px] transition-colors"
               style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)' }}
             >
@@ -114,7 +117,8 @@ export function Header({ title }: { title?: string }) {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Szukaj sportowców..."
+                placeholder={t('header_search')}
+                aria-label={t('header_search')}
                 autoFocus
                 className="w-full pl-9 pr-4 py-2.5 text-sm"
                 style={{

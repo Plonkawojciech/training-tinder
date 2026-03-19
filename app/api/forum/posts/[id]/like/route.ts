@@ -3,17 +3,18 @@ import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { forumLikes, forumPosts } from '@/lib/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
+import { unauthorized, notFound, serverError, badRequest, ErrorCode } from '@/lib/api-errors';
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   const { id } = await params;
   const postId = parseInt(id);
-  if (isNaN(postId)) return NextResponse.json({ error: 'Invalid post id' }, { status: 400 });
+  if (isNaN(postId)) return badRequest(ErrorCode.INVALID_INPUT, 'Invalid post id');
 
   try {
     // Check if post exists
@@ -24,7 +25,7 @@ export async function POST(
       .limit(1);
 
     if (!postRows.length) {
-      return NextResponse.json({ error: 'Post not found' }, { status: 404 });
+      return notFound('Post not found');
     }
 
     // Check existing like
@@ -70,6 +71,6 @@ export async function POST(
     return NextResponse.json({ liked, likesCount: updated[0]?.likesCount ?? 0 });
   } catch (err) {
     console.error('POST /api/forum/posts/[id]/like error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

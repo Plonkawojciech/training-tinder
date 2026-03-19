@@ -3,10 +3,11 @@ import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { swipes, matches } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { unauthorized, serverError, badRequest, ErrorCode } from '@/lib/api-errors';
 
 export async function GET() {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   try {
     const userSwipes = await db
@@ -18,20 +19,20 @@ export async function GET() {
     return NextResponse.json({ swipedIds });
   } catch (err) {
     console.error('GET /api/swipes error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }
 
 export async function POST(request: Request) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   try {
     const body = await request.json() as { targetId: string; direction: 'like' | 'pass' };
     const { targetId, direction } = body;
 
     if (!targetId || !direction || !['like', 'pass'].includes(direction)) {
-      return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
+      return badRequest(ErrorCode.INVALID_INPUT, 'Invalid body');
     }
 
     // Upsert swipe (ignore if already swiped)
@@ -87,6 +88,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ match: false });
   } catch (err) {
     console.error('POST /api/swipes error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

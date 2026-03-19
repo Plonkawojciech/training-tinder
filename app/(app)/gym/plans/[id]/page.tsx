@@ -6,6 +6,7 @@ import { ArrowLeft, Calendar, Target, User, Star, ChevronDown, ChevronUp } from 
 import { Button } from '@/components/ui/button';
 import { StrengthBadge } from '@/components/gym/strength-badge';
 import { getSportLabel, getSportColor } from '@/lib/utils';
+import { useLang } from '@/lib/lang';
 
 interface PlanWeek {
   id: number;
@@ -26,12 +27,13 @@ interface Plan {
   createdAt: string;
   creatorId: string;
   weeks: PlanWeek[];
-  creator: { username: string | null; avatarUrl: string | null; clerkId: string } | null;
+  creator: { username: string | null; avatarUrl: string | null; authEmail: string } | null;
 }
 
 export default function PlanDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const { t } = useLang();
   const [plan, setPlan] = useState<Plan | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
@@ -65,8 +67,8 @@ export default function PlanDetailPage() {
 
   const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const dayLabels: Record<string, string> = {
-    Monday: 'Poniedziałek', Tuesday: 'Wtorek', Wednesday: 'Środa',
-    Thursday: 'Czwartek', Friday: 'Piątek', Saturday: 'Sobota', Sunday: 'Niedziela',
+    Monday: t('gym_plan_day_mon'), Tuesday: t('gym_plan_day_tue'), Wednesday: t('gym_plan_day_wed'),
+    Thursday: t('gym_plan_day_thu'), Friday: t('gym_plan_day_fri'), Saturday: t('gym_plan_day_sat'), Sunday: t('gym_plan_day_sun'),
   };
 
   return (
@@ -77,7 +79,7 @@ export default function PlanDetailPage() {
         className="flex items-center gap-2 text-[#888888] hover:text-white text-sm mb-6 transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
-        Powrót do planów
+        {t('gym_plan_back')}
       </button>
 
       {/* Plan header */}
@@ -103,18 +105,18 @@ export default function PlanDetailPage() {
             variant={following ? 'outline' : 'default'}
             size="sm"
           >
-            {following ? 'Obserwujesz' : 'Obserwuj plan'}
+            {following ? t('gym_plan_following') : t('gym_plan_follow')}
           </Button>
         </div>
 
         <div className="grid grid-cols-3 gap-4 border-t border-[var(--border)] pt-4">
           <div className="flex items-center gap-2 text-sm text-[#888888]">
             <Calendar className="w-4 h-4 text-[#6366F1]" />
-            <span>{plan.durationWeeks} tyg.</span>
+            <span>{plan.durationWeeks} {t('gym_week_short')}</span>
           </div>
           <div className="flex items-center gap-2 text-sm text-[#888888]">
             <Target className="w-4 h-4 text-[#6366F1]" />
-            <span>{plan.weeks.length} tygodni</span>
+            <span>{plan.weeks.length} {t('gym_weeks')}</span>
           </div>
           {plan.creator && (
             <div className="flex items-center gap-2 text-sm text-[#888888]">
@@ -127,12 +129,12 @@ export default function PlanDetailPage() {
 
       {/* Weekly breakdown */}
       <div className="mb-6">
-        <h2 className="font-display text-sm text-[#888888] tracking-wider mb-3">PLAN TYGODNIOWY</h2>
+        <h2 className="font-display text-sm text-[#888888] tracking-wider mb-3">{t('gym_plan_weekly')}</h2>
 
         {plan.weeks.length === 0 ? (
           <div className="bg-[var(--bg-card)] border border-[var(--border)] p-6 text-center">
             <p className="text-[#888888] text-sm">
-              Brak szczegółowego planu tygodniowego.
+              {t('gym_plan_no_weekly')}
             </p>
           </div>
         ) : (
@@ -144,7 +146,7 @@ export default function PlanDetailPage() {
                   className="w-full flex items-center justify-between p-4 text-left"
                 >
                   <div>
-                    <span className="font-semibold text-white text-sm">Tydzień {week.weekNumber}</span>
+                    <span className="font-semibold text-white text-sm">{t('gym_plan_week_n')} {week.weekNumber}</span>
                     {week.notes && (
                       <span className="text-xs text-[#888888] ml-3">{week.notes}</span>
                     )}
@@ -159,7 +161,7 @@ export default function PlanDetailPage() {
                 {expandedWeek === week.weekNumber && (
                   <div className="border-t border-[var(--border)] p-4">
                     {!week.daysJson || Object.keys(week.daysJson).length === 0 ? (
-                      <p className="text-xs text-[#555555]">Brak szczegółowego planu dziennego</p>
+                      <p className="text-xs text-[#555555]">{t('gym_plan_no_daily')}</p>
                     ) : (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {dayNames.map((day) => {
@@ -232,7 +234,7 @@ export default function PlanDetailPage() {
           }}
         >
           <Star className="w-4 h-4" />
-          Wyślij opinię
+          {t('review_submit')}
         </Button>
       </div>
     </div>

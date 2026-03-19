@@ -3,10 +3,11 @@ import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { userAchievements, workoutLogs, personalRecords } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
+import { unauthorized, serverError } from '@/lib/api-errors';
 
 export async function GET() {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   try {
     const achievements = await db
@@ -88,6 +89,6 @@ export async function GET() {
     return NextResponse.json(allAchievements);
   } catch (err) {
     console.error('GET /api/achievements error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

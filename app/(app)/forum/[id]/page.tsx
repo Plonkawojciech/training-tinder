@@ -1,7 +1,5 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -14,20 +12,21 @@ import {
   Send,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { pl } from 'date-fns/locale';
+import { pl, enUS } from 'date-fns/locale';
 import { useSafeUser } from '@/lib/auth';
+import { useLang, type TKey } from '@/lib/lang';
 
-const CATEGORY_LABELS: Record<string, string> = {
-  general: 'Ogólne',
-  training: 'Trening',
-  nutrition: 'Żywienie',
-  gear: 'Sprzęt',
-  'race-report': 'Relacja',
-  question: 'Pytanie',
+const CATEGORY_KEYS: Record<string, TKey> = {
+  general: 'forum_general',
+  training: 'forum_training',
+  nutrition: 'forum_nutrition',
+  gear: 'forum_gear',
+  'race-report': 'forum_race_report',
+  question: 'forum_questions',
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
-  general: 'bg-[#2A2A2A] text-[#888888]',
+  general: 'bg-[var(--border)] text-[var(--text-muted)]',
   training: 'bg-[rgba(99,102,241,0.15)] text-[#6366F1]',
   nutrition: 'bg-[rgba(34,197,94,0.15)] text-green-500',
   gear: 'bg-[rgba(59,130,246,0.15)] text-blue-400',
@@ -63,6 +62,9 @@ export default function ForumPostPage({ params }: { params: Promise<{ id: string
   const { id } = use(params);
   const router = useRouter();
   const currentUser = useSafeUser();
+  const { t, lang } = useLang();
+
+  const dateFnsLocale = lang === 'pl' ? pl : enUS;
 
   const [post, setPost] = useState<Post | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -80,7 +82,7 @@ export default function ForumPostPage({ params }: { params: Promise<{ id: string
       try {
         const res = await fetch(`/api/forum/posts/${id}`);
         if (!res.ok) {
-          setError('Post nie został znaleziony');
+          setError(t('forum_not_found'));
           return;
         }
         const data = await res.json();
@@ -88,13 +90,13 @@ export default function ForumPostPage({ params }: { params: Promise<{ id: string
         setComments(data.comments);
         setIsLiked(data.isLiked);
       } catch {
-        setError('Wystąpił błąd podczas ładowania posta');
+        setError(t('forum_not_found'));
       } finally {
         setLoading(false);
       }
     }
     loadPost();
-  }, [id]);
+  }, [id, t]);
 
   async function handleLike() {
     if (!post || likeLoading) return;
@@ -136,7 +138,7 @@ export default function ForumPostPage({ params }: { params: Promise<{ id: string
 
   async function handleDelete() {
     if (!post || deleting) return;
-    if (!confirm('Czy na pewno chcesz usunąć ten post?')) return;
+    if (!confirm(t('forum_delete_confirm'))) return;
     setDeleting(true);
     try {
       const res = await fetch(`/api/forum/posts/${id}`, { method: 'DELETE' });
@@ -161,32 +163,33 @@ export default function ForumPostPage({ params }: { params: Promise<{ id: string
   if (error || !post) {
     return (
       <div className="min-h-screen bg-[var(--bg)] flex flex-col items-center justify-center gap-4">
-        <p className="text-[#555555]">{error || 'Post nie został znaleziony'}</p>
+        <p className="text-[var(--text-dim)]">{error || t('forum_not_found')}</p>
         <button
           onClick={() => router.push('/forum')}
-          className="flex items-center gap-2 text-sm text-[#888888] hover:text-white transition-colors"
+          className="flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Wróć do forum
+          {t('forum_back')}
         </button>
       </div>
     );
   }
 
-  const categoryLabel = CATEGORY_LABELS[post.category] ?? post.category;
-  const categoryColor = CATEGORY_COLORS[post.category] ?? 'bg-[#2A2A2A] text-[#888888]';
+  const categoryKey = CATEGORY_KEYS[post.category];
+  const categoryLabel = categoryKey ? t(categoryKey) : post.category;
+  const categoryColor = CATEGORY_COLORS[post.category] ?? 'bg-[var(--border)] text-[var(--text-muted)]';
   const isOwner = currentUser.id === post.userId;
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-white">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
       <div className="max-w-2xl mx-auto px-4 py-6">
         {/* Back button */}
         <button
           onClick={() => router.push('/forum')}
-          className="flex items-center gap-2 text-sm text-[#555555] hover:text-white transition-colors mb-6"
+          className="flex items-center gap-2 text-sm text-[var(--text-dim)] hover:text-[var(--text)] transition-colors mb-6"
         >
           <ArrowLeft className="w-4 h-4" />
-          Wróć do forum
+          {t('forum_back')}
         </button>
 
         {/* Post */}
@@ -198,13 +201,13 @@ export default function ForumPostPage({ params }: { params: Promise<{ id: string
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={post.avatarUrl} alt={post.username ?? 'avatar'} className="w-full h-full object-cover" />
               ) : (
-                <User className="w-5 h-5 text-[#555]" />
+                <User className="w-5 h-5 text-[var(--text-dim)]" />
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-white">{post.username ?? 'Użytkownik'}</p>
-              <p className="text-xs text-[#555555]">
-                {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true, locale: pl })}
+              <p className="text-sm font-bold text-[var(--text)]">{post.username ?? t('gen_user')}</p>
+              <p className="text-xs text-[var(--text-dim)]">
+                {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true, locale: dateFnsLocale })}
               </p>
             </div>
             <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 ${categoryColor}`}>
@@ -214,7 +217,7 @@ export default function ForumPostPage({ params }: { params: Promise<{ id: string
               <button
                 onClick={handleDelete}
                 disabled={deleting}
-                className="text-[#555555] hover:text-red-500 transition-colors p-1"
+                className="text-[var(--text-dim)] hover:text-red-500 transition-colors p-1"
               >
                 {deleting ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -229,7 +232,7 @@ export default function ForumPostPage({ params }: { params: Promise<{ id: string
           <h1 className="text-xl font-black uppercase tracking-wider mb-3">{post.title}</h1>
 
           {/* Content */}
-          <p className="text-sm text-[#BBBBBB] leading-relaxed whitespace-pre-wrap">{post.content}</p>
+          <p className="text-sm text-[var(--text-muted)] leading-relaxed whitespace-pre-wrap">{post.content}</p>
 
           {/* Actions */}
           <div className="flex items-center gap-4 mt-5 pt-4 border-t border-[var(--border)]">
@@ -237,13 +240,13 @@ export default function ForumPostPage({ params }: { params: Promise<{ id: string
               onClick={handleLike}
               disabled={likeLoading}
               className={`flex items-center gap-2 text-sm transition-colors ${
-                isLiked ? 'text-[#6366F1]' : 'text-[#555555] hover:text-[#6366F1]'
+                isLiked ? 'text-[#6366F1]' : 'text-[var(--text-dim)] hover:text-[#6366F1]'
               } disabled:opacity-50`}
             >
               <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
               <span className="font-medium">{post.likesCount}</span>
             </button>
-            <span className="flex items-center gap-2 text-sm text-[#555555]">
+            <span className="flex items-center gap-2 text-sm text-[var(--text-dim)]">
               <MessageCircle className="w-5 h-5" />
               <span>{post.commentsCount}</span>
             </span>
@@ -252,14 +255,14 @@ export default function ForumPostPage({ params }: { params: Promise<{ id: string
 
         {/* Comments section */}
         <div className="mb-4">
-          <h2 className="text-sm font-bold uppercase tracking-widest text-[#555555] mb-3">
-            Komentarze ({comments.length})
+          <h2 className="text-sm font-bold uppercase tracking-widest text-[var(--text-dim)] mb-3">
+            {t('forum_comments')} ({comments.length})
           </h2>
 
           <div className="flex flex-col gap-3 mb-4">
             {comments.length === 0 ? (
-              <p className="text-sm text-[#444444] py-4 text-center">
-                Brak komentarzy. Bądź pierwszy!
+              <p className="text-sm text-[var(--text-dim)] py-4 text-center">
+                {t('forum_no_comments')}
               </p>
             ) : (
               comments.map((comment) => (
@@ -274,20 +277,20 @@ export default function ForumPostPage({ params }: { params: Promise<{ id: string
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <User className="w-3.5 h-3.5 text-[#555]" />
+                        <User className="w-3.5 h-3.5 text-[var(--text-dim)]" />
                       )}
                     </div>
-                    <span className="text-sm font-medium text-white">
-                      {comment.username ?? 'Użytkownik'}
+                    <span className="text-sm font-medium text-[var(--text)]">
+                      {comment.username ?? t('gen_user')}
                     </span>
-                    <span className="text-xs text-[#555555]">
+                    <span className="text-xs text-[var(--text-dim)]">
                       {formatDistanceToNow(new Date(comment.createdAt), {
                         addSuffix: true,
-                        locale: pl,
+                        locale: dateFnsLocale,
                       })}
                     </span>
                   </div>
-                  <p className="text-sm text-[#AAAAAA] leading-relaxed">{comment.content}</p>
+                  <p className="text-sm text-[var(--text-muted)] leading-relaxed">{comment.content}</p>
                 </div>
               ))
             )}
@@ -298,9 +301,9 @@ export default function ForumPostPage({ params }: { params: Promise<{ id: string
             <textarea
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
-              placeholder="Napisz komentarz..."
+              placeholder={t('forum_comment_placeholder')}
               rows={3}
-              className="flex-1 bg-[var(--bg-card)] border border-[var(--border)] text-white placeholder-[#444] px-4 py-3 text-sm focus:outline-none focus:border-[#6366F1]/50 transition-colors resize-none"
+              className="flex-1 bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text)] placeholder-[var(--text-dim)] px-4 py-3 text-sm focus:outline-none focus:border-[#6366F1]/50 transition-colors resize-none"
             />
             <button
               type="submit"

@@ -3,10 +3,11 @@ import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { sessions, sessionParticipants, users } from '@/lib/db/schema';
 import { eq, desc, inArray, and, gte, lte } from 'drizzle-orm';
+import { unauthorized, serverError, badRequest, ErrorCode } from '@/lib/api-errors';
 
 export async function GET(request: Request) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   const { searchParams } = new URL(request.url);
   const sport = searchParams.get('sport');
@@ -82,16 +83,16 @@ export async function GET(request: Request) {
       db.select({ sessionId: sessionParticipants.sessionId })
         .from(sessionParticipants)
         .where(inArray(sessionParticipants.sessionId, sessionIds)),
-      db.select({ clerkId: users.clerkId, username: users.username })
+      db.select({ authEmail: users.authEmail, username: users.username })
         .from(users)
-        .where(inArray(users.clerkId, creatorIds)),
+        .where(inArray(users.authEmail, creatorIds)),
     ]);
 
     const countMap: Record<number, number> = {};
     for (const p of allParticipants) {
       countMap[p.sessionId] = (countMap[p.sessionId] ?? 0) + 1;
     }
-    const creatorMap = Object.fromEntries(allCreators.map((u) => [u.clerkId, u.username]));
+    const creatorMap = Object.fromEntries(allCreators.map((u) => [u.authEmail, u.username]));
 
     const enriched = filtered.map((session) => ({
       ...session,
@@ -102,13 +103,13 @@ export async function GET(request: Request) {
     return NextResponse.json(enriched);
   } catch (err) {
     console.error('GET /api/sessions error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }
 
 export async function POST(request: Request) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   try {
     const body = await request.json() as {
@@ -138,36 +139,36 @@ export async function POST(request: Request) {
 
     // Required field validation
     if (typeof body.title !== 'string' || body.title.trim().length < 2) {
-      return NextResponse.json({ error: 'Tytuł jest wymagany (min. 2 znaki)' }, { status: 400 });
+      return badRequest(ErrorCode.TITLE_TOO_SHORT, 'Title is required (min 2 characters)');
     }
     if (body.title.trim().length > 120) {
-      return NextResponse.json({ error: 'Tytuł może mieć max. 120 znaków' }, { status: 400 });
+      return badRequest(ErrorCode.INVALID_INPUT, 'Title must be 120 characters or less');
     }
     if (typeof body.sportType !== 'string' || !body.sportType.trim()) {
-      return NextResponse.json({ error: 'Typ sportu jest wymagany' }, { status: 400 });
+      return badRequest(ErrorCode.MISSING_FIELDS, 'Sport type is required');
     }
     if (typeof body.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(body.date)) {
-      return NextResponse.json({ error: 'Nieprawidłowy format daty (YYYY-MM-DD)' }, { status: 400 });
+      return badRequest(ErrorCode.INVALID_DATE, 'Invalid date format (YYYY-MM-DD)');
     }
     if (typeof body.time !== 'string' || !/^\d{2}:\d{2}$/.test(body.time)) {
-      return NextResponse.json({ error: 'Nieprawidłowy format godziny (HH:MM)' }, { status: 400 });
+      return badRequest(ErrorCode.INVALID_TIME, 'Invalid time format (HH:MM)');
     }
     if (typeof body.location !== 'string' || body.location.trim().length < 2) {
-      return NextResponse.json({ error: 'Lokalizacja jest wymagana' }, { status: 400 });
+      return badRequest(ErrorCode.MISSING_FIELDS, 'Location is required');
     }
 
     // Numeric bounds
     const maxParticipants = body.maxParticipants !== undefined ? Number(body.maxParticipants) : 10;
     if (!Number.isInteger(maxParticipants) || maxParticipants < 2 || maxParticipants > 200) {
-      return NextResponse.json({ error: 'Liczba uczestników musi być między 2 a 200' }, { status: 400 });
+      return badRequest(ErrorCode.INVALID_INPUT, 'Max participants must be between 2 and 200');
     }
     const lat = body.lat !== undefined ? Number(body.lat) : null;
     const lon = body.lon !== undefined ? Number(body.lon) : null;
     if (lat !== null && (isNaN(lat) || lat < -90 || lat > 90)) {
-      return NextResponse.json({ error: 'Nieprawidłowa szerokość geograficzna' }, { status: 400 });
+      return badRequest(ErrorCode.INVALID_COORDINATES, 'Invalid latitude');
     }
     if (lon !== null && (isNaN(lon) || lon < -180 || lon > 180)) {
-      return NextResponse.json({ error: 'Nieprawidłowa długość geograficzna' }, { status: 400 });
+      return badRequest(ErrorCode.INVALID_COORDINATES, 'Invalid longitude');
     }
 
     // Safe optional strings
@@ -236,6 +237,6 @@ export async function POST(request: Request) {
     return NextResponse.json(session);
   } catch (err) {
     console.error('POST /api/sessions error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

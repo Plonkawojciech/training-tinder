@@ -2,7 +2,7 @@
 
 let _promise: Promise<void> | null = null;
 
-export function loadGoogleMapsAPI(_libs?: string[]): Promise<void> {
+export function loadGoogleMapsAPI(): Promise<void> {
   if (_promise) return _promise;
 
   _promise = new Promise<void>((resolve, reject) => {

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { BIG4_EXERCISES } from '@/lib/exercises';
 import { epley1RM } from '@/lib/utils';
+import { useLang } from '@/lib/lang';
 
 interface PRRecord {
   id: number;
@@ -27,6 +28,7 @@ interface PRHistory {
 }
 
 export default function PersonalRecordsPage() {
+  const { t, lang } = useLang();
   const [prs, setPrs] = useState<PRRecord[]>([]);
   const [allPrs, setAllPrs] = useState<PRRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,12 +100,12 @@ export default function PersonalRecordsPage() {
     <div className="p-4 md:p-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="font-display text-3xl text-white tracking-wider">REKORDY OSOBISTE</h1>
-          <p className="text-[#888888] text-sm mt-1">{prs.length} ćwiczeń</p>
+          <h1 className="font-display text-3xl text-white tracking-wider">{t('records_title')}</h1>
+          <p className="text-[#888888] text-sm mt-1">{prs.length} {t('records_exercises')}</p>
         </div>
         <Button onClick={() => setShowAddModal(true)}>
           <Plus className="w-4 h-4" />
-          Dodaj PR
+          {t('records_add')}
         </Button>
       </div>
 
@@ -115,7 +117,7 @@ export default function PersonalRecordsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left: PR list */}
         <div>
-          <h2 className="font-display text-sm text-[#888888] tracking-wider mb-3">WSZYSTKIE REKORDY</h2>
+          <h2 className="font-display text-sm text-[#888888] tracking-wider mb-3">{t('records_all')}</h2>
           {loading ? (
             <div className="flex flex-col gap-3">
               {Array.from({ length: 6 }).map((_, i) => (
@@ -125,10 +127,10 @@ export default function PersonalRecordsPage() {
           ) : prs.length === 0 ? (
             <div className="bg-[var(--bg-card)] border border-[var(--border)] p-8 text-center">
               <Trophy className="w-10 h-10 text-[#2A2A2A] mx-auto mb-3" />
-              <p className="text-[#888888] text-sm mb-3">Brak rekordów</p>
+              <p className="text-[#888888] text-sm mb-3">{t('gym_no_records')}</p>
               <Button size="sm" onClick={() => setShowAddModal(true)}>
                 <Plus className="w-4 h-4" />
-                Dodaj pierwszy PR
+                {t('records_add_first')}
               </Button>
             </div>
           ) : (
@@ -177,7 +179,7 @@ export default function PersonalRecordsPage() {
         {/* Right: History chart */}
         <div>
           <h2 className="font-display text-sm text-[#888888] tracking-wider mb-3">
-            HISTORIA POSTĘPÓW
+            {t('records_history')}
           </h2>
           {selectedExercise ? (
             <div className="bg-[var(--bg-card)] border border-[var(--border)] p-4">
@@ -197,7 +199,7 @@ export default function PersonalRecordsPage() {
 
               {/* History table */}
               <div className="mt-4 border-t border-[var(--border)] pt-4">
-                <p className="text-xs text-[#555555] uppercase tracking-wider mb-2">Wszystkie wpisy</p>
+                <p className="text-xs text-[#555555] uppercase tracking-wider mb-2">{t('records_all_entries')}</p>
                 <div className="flex flex-col gap-1 max-h-48 overflow-y-auto">
                   {history
                     .slice()
@@ -205,7 +207,7 @@ export default function PersonalRecordsPage() {
                     .map((h, i) => (
                       <div key={i} className="flex items-center justify-between py-1 text-xs border-b border-[#0D0D0D]">
                         <span className="text-[#555555]">
-                          {new Date(h.date).toLocaleDateString('pl-PL', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          {new Date(h.date).toLocaleDateString(lang === 'pl' ? 'pl-PL' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                         </span>
                         <span className="text-white font-bold">{h.weightKg}kg × {h.reps}</span>
                         <span className="text-[#6366F1] text-[10px]">
@@ -220,7 +222,7 @@ export default function PersonalRecordsPage() {
             <div className="bg-[var(--bg-card)] border border-[var(--border)] p-8 text-center">
               <TrendingUp className="w-10 h-10 text-[#2A2A2A] mx-auto mb-3" />
               <p className="text-[#888888] text-sm">
-                Kliknij ćwiczenie, aby zobaczyć wykres postępów
+                {t('records_click_hint')}
               </p>
             </div>
           )}
@@ -232,7 +234,7 @@ export default function PersonalRecordsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <div className="bg-[var(--bg-card)] border border-[var(--border)] w-full max-w-md p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-display text-xl text-white tracking-wider">DODAJ REKORD</h3>
+              <h3 className="font-display text-xl text-white tracking-wider">{t('records_add_title')}</h3>
               <button onClick={() => setShowAddModal(false)} className="text-[#888888] hover:text-white">
                 <X className="w-5 h-5" />
               </button>
@@ -240,14 +242,14 @@ export default function PersonalRecordsPage() {
 
             <div className="flex flex-col gap-4">
               <Input
-                label="Nazwa ćwiczenia *"
+                label={t('records_exercise_name')}
                 value={newPR.exerciseName}
                 onChange={(e) => setNewPR((p) => ({ ...p, exerciseName: e.target.value }))}
-                placeholder="np. Wyciskanie na ławce"
+                placeholder={t('records_exercise_ph')}
               />
               <div className="grid grid-cols-2 gap-3">
                 <Input
-                  label="Ciężar (kg) *"
+                  label={t('records_weight')}
                   type="number"
                   step="0.5"
                   min="0"
@@ -256,7 +258,7 @@ export default function PersonalRecordsPage() {
                   placeholder="100"
                 />
                 <Input
-                  label="Powtórzenia *"
+                  label={t('records_reps')}
                   type="number"
                   min="1"
                   value={newPR.reps}
@@ -266,27 +268,27 @@ export default function PersonalRecordsPage() {
               </div>
               {newPR.weightKg && newPR.reps && parseInt(newPR.reps) > 1 && (
                 <div className="p-2 bg-[rgba(99,102,241,0.08)] border border-[rgba(99,102,241,0.2)] text-xs text-[#888888]">
-                  Szacowane 1RM:{' '}
+                  {t('records_est_1rm')}{' '}
                   <span className="text-[#6366F1] font-bold">
                     {epley1RM(parseFloat(newPR.weightKg), parseInt(newPR.reps))}kg
                   </span>
                 </div>
               )}
               <Input
-                label="Notatki (opcjonalnie)"
+                label={t('records_notes')}
                 value={newPR.notes}
                 onChange={(e) => setNewPR((p) => ({ ...p, notes: e.target.value }))}
-                placeholder="Zawody, rekord, itp."
+                placeholder={t('records_notes_ph')}
               />
             </div>
 
             <div className="flex gap-3 mt-6">
               <Button variant="outline" onClick={() => setShowAddModal(false)} className="flex-1">
-                Anuluj
+                {t('gen_cancel')}
               </Button>
               <Button onClick={handleAddPR} loading={saving} className="flex-1">
                 <Trophy className="w-4 h-4" />
-                Zapisz PR
+                {t('records_save')}
               </Button>
             </div>
           </div>

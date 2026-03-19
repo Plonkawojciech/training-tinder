@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { paceSecToMinKm, paceSecToKmh, kmhToPaceSec, minKmToPaceSec } from '@/lib/utils';
 
 export interface PaceInputProps {
@@ -13,27 +13,30 @@ export interface PaceInputProps {
 type PaceUnit = 'min_km' | 'km_h';
 
 export function PaceInput({ valueSec, onChange, label, className }: PaceInputProps) {
-  const [unit, setUnit] = useState<PaceUnit>('min_km');
-  const [minKmStr, setMinKmStr] = useState('');
-  const [kmhStr, setKmhStr] = useState('');
-
-  // Load preference from localStorage
-  useEffect(() => {
+  const [unit, setUnit] = useState<PaceUnit>(() => {
+    if (typeof window === 'undefined') return 'min_km';
     try {
       const saved = localStorage.getItem('pace_unit') as PaceUnit | null;
-      if (saved === 'min_km' || saved === 'km_h') setUnit(saved);
-    } catch {
-      // ignore
-    }
-  }, []);
+      if (saved === 'min_km' || saved === 'km_h') return saved;
+    } catch {}
+    return 'min_km';
+  });
+  const [minKmStr, setMinKmStr] = useState(() =>
+    valueSec && valueSec > 0 ? paceSecToMinKm(valueSec) : ''
+  );
+  const [kmhStr, setKmhStr] = useState(() =>
+    valueSec && valueSec > 0 ? String(paceSecToKmh(valueSec)) : ''
+  );
 
-  // Sync display values when valueSec changes externally
-  useEffect(() => {
+  // Sync display values when valueSec changes externally (during render)
+  const [prevValueSec, setPrevValueSec] = useState(valueSec);
+  if (valueSec !== prevValueSec) {
+    setPrevValueSec(valueSec);
     if (valueSec && valueSec > 0) {
       setMinKmStr(paceSecToMinKm(valueSec));
       setKmhStr(String(paceSecToKmh(valueSec)));
     }
-  }, [valueSec]);
+  }
 
   function switchUnit(newUnit: PaceUnit) {
     setUnit(newUnit);

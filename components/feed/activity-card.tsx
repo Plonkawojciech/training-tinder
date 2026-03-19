@@ -3,13 +3,14 @@
 import { useState } from 'react';
 import { Dumbbell, Trophy, Users, BookOpen, Award, UserPlus, UserMinus } from 'lucide-react';
 import { formatRelativeTime } from '@/lib/utils';
+import { useLang, type TKey } from '@/lib/lang';
 
 interface ActivityCardProps {
   id: number;
   type: string;
   dataJson: Record<string, unknown>;
   createdAt: string;
-  creator: { username: string | null; avatarUrl: string | null; clerkId: string } | null;
+  creator: { username: string | null; avatarUrl: string | null; authEmail: string } | null;
   isOwn: boolean;
   isFollowing: boolean;
   onFollowToggle: (targetId: string, following: boolean) => void;
@@ -41,16 +42,16 @@ const TYPE_COLORS: Record<string, string> = {
   achievement: '#CC44FF',
 };
 
-function ActivityContent({ type, data }: { type: string; data: Record<string, unknown> }) {
+function ActivityContent({ type, data, t }: { type: string; data: Record<string, unknown>; t: (key: TKey) => string }) {
   switch (type) {
     case 'workout_completed':
       return (
         <div>
-          <p className="text-sm text-white">
-            Ukończono <span className="text-[#6366F1] font-semibold">{String(data.workoutName ?? 'trening')}</span>
+          <p className="text-sm text-[var(--text)]">
+            {t('activity_completed')} <span className="text-[#6366F1] font-semibold">{String(data.workoutName ?? t('activity_workout'))}</span>
           </p>
-          <p className="text-xs text-[#888888] mt-1">
-            {String(data.type ?? '').toUpperCase()} · {String(data.exerciseCount ?? 0)} ćwiczeń
+          <p className="text-xs text-[var(--text-muted)] mt-1">
+            {String(data.type ?? '').toUpperCase()} · {String(data.exerciseCount ?? 0)} {t('activity_exercises')}
             {data.durationMin ? ` · ${data.durationMin}min` : ''}
           </p>
         </div>
@@ -58,39 +59,39 @@ function ActivityContent({ type, data }: { type: string; data: Record<string, un
     case 'pr_set':
       return (
         <div>
-          <p className="text-sm text-white">
-            Nowy rekord w <span className="text-[#FFD700] font-semibold">{String(data.exerciseName ?? '')}</span>
+          <p className="text-sm text-[var(--text)]">
+            {t('activity_new_pr')} <span className="text-[#FFD700] font-semibold">{String(data.exerciseName ?? '')}</span>
           </p>
-          <p className="text-xs text-[#888888] mt-1">
-            {String(data.weightKg ?? 0)}kg × {String(data.reps ?? 0)} powt.
+          <p className="text-xs text-[var(--text-muted)] mt-1">
+            {String(data.weightKg ?? 0)}kg × {String(data.reps ?? 0)} {t('activity_reps')}
           </p>
         </div>
       );
     case 'session_joined':
       return (
-        <p className="text-sm text-white">
-          Dołączono do sesji treningowej
+        <p className="text-sm text-[var(--text)]">
+          {t('activity_joined')}
         </p>
       );
     case 'plan_shared':
       return (
         <div>
-          <p className="text-sm text-white">
-            Udostępniono plan: <span className="text-[#00CC44] font-semibold">{String(data.planTitle ?? '')}</span>
+          <p className="text-sm text-[var(--text)]">
+            {t('activity_shared')} <span className="text-[#00CC44] font-semibold">{String(data.planTitle ?? '')}</span>
           </p>
         </div>
       );
     case 'achievement':
       return (
         <div>
-          <p className="text-sm text-white">
-            Odblokowano osiągnięcie: <span className="text-[#CC44FF] font-semibold">{String(data.title ?? '')}</span>
+          <p className="text-sm text-[var(--text)]">
+            {t('activity_achievement')} <span className="text-[#CC44FF] font-semibold">{String(data.title ?? '')}</span>
           </p>
-          <p className="text-xs text-[#888888] mt-1">{String(data.description ?? '')}</p>
+          <p className="text-xs text-[var(--text-muted)] mt-1">{String(data.description ?? '')}</p>
         </div>
       );
     default:
-      return <p className="text-sm text-[#888888]">Aktywność zapisana</p>;
+      return <p className="text-sm text-[var(--text-muted)]">{t('activity_logged')}</p>;
   }
 }
 
@@ -103,6 +104,7 @@ export function ActivityCard({
   isFollowing,
   onFollowToggle,
 }: ActivityCardProps) {
+  const { t } = useLang();
   const color = TYPE_COLORS[type] ?? '#888888';
   const [followLoading, setFollowLoading] = useState(false);
   const [localFollowing, setLocalFollowing] = useState(isFollowing);
@@ -114,12 +116,12 @@ export function ActivityCard({
       const res = await fetch('/api/follow', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ targetId: creator.clerkId }),
+        body: JSON.stringify({ targetId: creator.authEmail }),
       });
       if (res.ok) {
         const data = await res.json() as { following: boolean };
         setLocalFollowing(data.following);
-        onFollowToggle(creator.clerkId, data.following);
+        onFollowToggle(creator.authEmail, data.following);
       }
     } finally {
       setFollowLoading(false);
@@ -142,16 +144,16 @@ export function ActivityCard({
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <div
-                className="w-6 h-6 flex items-center justify-center text-[10px] font-bold text-white"
+                className="w-6 h-6 flex items-center justify-center text-[10px] font-bold text-[var(--text)]"
                 style={{ background: '#6366F1' }}
               >
                 {(creator?.username ?? '?')[0].toUpperCase()}
               </div>
-              <span className="text-xs font-semibold text-white">
-                {creator?.username ?? 'Nieznany'}
+              <span className="text-xs font-semibold text-[var(--text)]">
+                {creator?.username ?? t('gen_athlete')}
               </span>
               {isOwn && (
-                <span className="text-[9px] text-[#555555] uppercase tracking-wider">Ty</span>
+                <span className="text-[9px] text-[var(--text-dim)] uppercase tracking-wider">{t('activity_you')}</span>
               )}
             </div>
 
@@ -168,17 +170,17 @@ export function ActivityCard({
                   }
                 >
                   {localFollowing ? (
-                    <><UserMinus className="w-3 h-3" /> Obserwujesz</>
+                    <><UserMinus className="w-3 h-3" /> {t('activity_following')}</>
                   ) : (
-                    <><UserPlus className="w-3 h-3" /> Obserwuj</>
+                    <><UserPlus className="w-3 h-3" /> {t('activity_follow')}</>
                   )}
                 </button>
               )}
-              <span className="text-[10px] text-[#555555]">{formatRelativeTime(createdAt)}</span>
+              <span className="text-[10px] text-[var(--text-dim)]">{formatRelativeTime(createdAt)}</span>
             </div>
           </div>
 
-          <ActivityContent type={type} data={dataJson} />
+          <ActivityContent type={type} data={dataJson} t={t} />
         </div>
       </div>
     </div>

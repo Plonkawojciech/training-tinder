@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { RefreshCw } from 'lucide-react';
 import { SwipeCard } from './swipe-card';
@@ -9,7 +9,7 @@ import { useLang } from '@/lib/lang';
 interface MatchResult {
   user: {
     id: string;
-    clerkId: string;
+    authEmail: string;
     username: string | null;
     avatarUrl: string | null;
     bio: string | null;
@@ -38,9 +38,19 @@ interface MatchPopupProps {
   onClose: () => void;
 }
 
-function MatchPopup({ username, avatarUrl, onClose, clerkId }: MatchPopupProps & { clerkId: string }) {
-  const { t, lang } = useLang();
+function MatchPopup({ username, avatarUrl, onClose, authEmail }: MatchPopupProps & { authEmail: string }) {
+  const { t } = useLang();
   const router = useRouter();
+
+  const [confettiRandom] = useState(() =>
+    Array.from({ length: 30 }).map(() => ({
+      size: 4 + Math.random() * 8,
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+      duration: 1.5 + Math.random() * 2,
+      delay: Math.random() * 0.5,
+    })));
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center"
@@ -48,18 +58,18 @@ function MatchPopup({ username, avatarUrl, onClose, clerkId }: MatchPopupProps &
     >
       {/* Confetti-style dots */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {Array.from({ length: 30 }).map((_, i) => (
+        {confettiRandom.map((r, i) => (
           <div
             key={i}
             className="absolute rounded-full"
             style={{
-              width: `${4 + Math.random() * 8}px`,
-              height: `${4 + Math.random() * 8}px`,
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
+              width: `${r.size}px`,
+              height: `${r.size}px`,
+              left: `${r.left}%`,
+              top: `${r.top}%`,
               background: ['#6366F1', '#00CC44', '#FFD700', '#00D4FF', '#FF69B4'][i % 5],
-              animation: `confettiFall ${1.5 + Math.random() * 2}s ease-in forwards`,
-              animationDelay: `${Math.random() * 0.5}s`,
+              animation: `confettiFall ${r.duration}s ease-in forwards`,
+              animationDelay: `${r.delay}s`,
             }}
           />
         ))}
@@ -102,12 +112,8 @@ function MatchPopup({ username, avatarUrl, onClose, clerkId }: MatchPopupProps &
         <h2 style={{ color: 'white', fontSize: 32, fontWeight: 900, letterSpacing: -0.5, marginBottom: 8 }}>
           {t('match_title')}
         </h2>
-        <p style={{ color: '#888', fontSize: 14, marginBottom: 24, lineHeight: 1.5 }}>
-          {lang === 'pl' ? 'Ty i ' : 'You and '}
-          <span style={{ color: '#818CF8', fontWeight: 700 }}>
-            {username ?? (lang === 'pl' ? 'ten sportowiec' : 'this athlete')}
-          </span>
-          {lang === 'pl' ? ' polubiliście się nawzajem!' : ' liked each other!'}
+        <p style={{ color: 'var(--text-dim)', fontSize: 14, marginBottom: 24, lineHeight: 1.5 }}>
+          {t('match_body', { name: username ?? t('gen_athlete') })}
         </p>
 
         {avatarUrl && (
@@ -140,7 +146,7 @@ function MatchPopup({ username, avatarUrl, onClose, clerkId }: MatchPopupProps &
             {t('match_swipe')}
           </button>
           <button
-            onClick={() => { onClose(); router.push(`/messages?partner=${clerkId}&name=${encodeURIComponent(username ?? '')}`); }}
+            onClick={() => { onClose(); router.push(`/messages?partner=${authEmail}&name=${encodeURIComponent(username ?? '')}`); }}
             style={{
               width: '100%', padding: '14px',
               background: 'rgba(255,255,255,0.06)',
@@ -160,7 +166,7 @@ function MatchPopup({ username, avatarUrl, onClose, clerkId }: MatchPopupProps &
 export function SwipeStack({ athletes, onRefresh }: SwipeStackProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [matchedAthlete, setMatchedAthlete] = useState<MatchResult | null>(null);
-  const { lang } = useLang();
+  const { t } = useLang();
 
   const remaining = athletes.slice(currentIndex);
   const topThree = remaining.slice(0, 3);
@@ -170,7 +176,7 @@ export function SwipeStack({ athletes, onRefresh }: SwipeStackProps) {
       const res = await fetch('/api/swipes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ targetId: athlete.user.clerkId, direction }),
+        body: JSON.stringify({ targetId: athlete.user.authEmail, direction }),
       });
 
       if (res.ok) {
@@ -194,16 +200,33 @@ export function SwipeStack({ athletes, onRefresh }: SwipeStackProps) {
     handleSwipe(athlete, 'pass');
   }, [handleSwipe]);
 
+  // Keyboard accessibility: ArrowRight/Enter to like, ArrowLeft/Backspace to pass
+  useEffect(() => {
+    if (remaining.length === 0) return;
+    const topAthlete = remaining[0];
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'ArrowRight' || e.key === 'Enter') {
+        e.preventDefault();
+        handleLike(topAthlete);
+      } else if (e.key === 'ArrowLeft' || e.key === 'Backspace') {
+        e.preventDefault();
+        handlePass(topAthlete);
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [remaining, handleLike, handlePass]);
+
   // Empty state
   if (remaining.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-6 min-h-[500px]">
         <div className="text-6xl" style={{ animation: 'pulse 2s ease-in-out infinite' }}>🏃</div>
-        <h3 className="font-display text-2xl text-zinc-500 tracking-wider">WIDZIAŁEŚ WSZYSTKICH</h3>
+        <h3 className="font-display text-2xl text-zinc-500 tracking-wider">{t('discover_seen_all')}</h3>
         <p className="text-zinc-600 text-sm text-center max-w-xs">
-          {lang === 'pl'
-            ? 'Widziałeś już wszystkich sportowców w pobliżu. Wróć później lub zwiększ zasięg.'
-            : "You've seen all athletes in your area. Check back later or expand your search radius."}
+          {t('discover_seen_desc')}
         </p>
         {onRefresh && (
           <button
@@ -211,7 +234,7 @@ export function SwipeStack({ athletes, onRefresh }: SwipeStackProps) {
             className="flex items-center gap-2 px-6 py-3 bg-zinc-800 border border-zinc-700 text-zinc-300 rounded-3xl hover:bg-zinc-700 transition-colors font-semibold text-sm"
           >
             <RefreshCw className="w-4 h-4" />
-            {lang === 'pl' ? 'Odśwież' : 'Refresh'}
+            {t('gen_refresh')}
           </button>
         )}
       </div>
@@ -220,11 +243,22 @@ export function SwipeStack({ athletes, onRefresh }: SwipeStackProps) {
 
   return (
     <>
+      {/* Screen reader live region — announces match popup */}
+      <div
+        aria-live="assertive"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {matchedAthlete
+          ? t('match_title') + ' ' + t('match_body', { name: matchedAthlete.user.username ?? t('gen_athlete') })
+          : ''}
+      </div>
+
       {matchedAthlete && (
         <MatchPopup
           username={matchedAthlete.user.username}
           avatarUrl={matchedAthlete.user.avatarUrl}
-          clerkId={matchedAthlete.user.clerkId}
+          authEmail={matchedAthlete.user.authEmail}
           onClose={() => setMatchedAthlete(null)}
         />
       )}
@@ -237,7 +271,8 @@ export function SwipeStack({ athletes, onRefresh }: SwipeStackProps) {
       </div>
 
       {/* Card stack */}
-      <div className="relative mx-auto md:max-w-[400px]" style={{ width: '100%', height: 'clamp(400px, 65vh, 600px)' }}>
+      {/* Card stack — height fills viewport minus bottom nav (~70px) and top controls (~130px) */}
+      <div className="relative mx-auto md:max-w-[400px]" style={{ width: '100%', height: 'clamp(340px, calc(100dvh - 200px), 700px)' }}>
         {topThree
           .slice()
           .reverse()
@@ -249,9 +284,9 @@ export function SwipeStack({ athletes, onRefresh }: SwipeStackProps) {
 
             return (
               <SwipeCard
-                key={item.user.clerkId}
+                key={item.user.authEmail}
                 athlete={{
-                  clerkId: item.user.clerkId,
+                  authEmail: item.user.authEmail,
                   username: item.user.username,
                   avatarUrl: item.user.avatarUrl,
                   bio: item.user.bio,
@@ -281,7 +316,7 @@ export function SwipeStack({ athletes, onRefresh }: SwipeStackProps) {
 
       {/* Swipe hint */}
       <p className="text-center text-zinc-600 text-xs mt-6">
-        Przeciągnij w lewo, aby pominąć · w prawo, aby polubić
+        {t('discover_swipe_hint')}
       </p>
     </>
   );

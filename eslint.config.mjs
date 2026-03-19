@@ -5,6 +5,18 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  // App Router uses next/font — this Pages Router rule is a false positive
+  // Allow _-prefixed vars for intentional unused destructuring
+  {
+    rules: {
+      "@next/next/no-page-custom-font": "off",
+      "@typescript-eslint/no-unused-vars": ["warn", {
+        argsIgnorePattern: "^_",
+        varsIgnorePattern: "^_",
+        destructuredArrayIgnorePattern: "^_",
+      }],
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:
@@ -12,6 +24,7 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    ".claude/**",
   ]),
 ]);
 

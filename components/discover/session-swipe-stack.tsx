@@ -12,7 +12,7 @@ interface SessionSwipeStackProps {
 
 export function SessionSwipeStack({ sessions, onRefresh }: SessionSwipeStackProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const { lang } = useLang();
+  const { t } = useLang();
 
   const remaining = sessions.slice(currentIndex);
   const topThree = remaining.slice(0, 3);
@@ -33,12 +33,10 @@ export function SessionSwipeStack({ sessions, onRefresh }: SessionSwipeStackProp
       <div className="flex flex-col items-center justify-center py-20 gap-6 min-h-[500px]">
         <div className="text-6xl">📅</div>
         <h3 className="font-display text-2xl text-zinc-500 tracking-wider">
-          {lang === 'pl' ? 'BRAK SESJI' : 'NO SESSIONS'}
+          {t('discover_no_sessions_title')}
         </h3>
         <p className="text-zinc-600 text-sm text-center max-w-xs">
-          {lang === 'pl'
-            ? 'Brak nowych sesji treningowych. Wróć później lub sam stwórz sesję!'
-            : 'No new training sessions. Check back later or create your own!'}
+          {t('discover_no_sessions')}
         </p>
         {onRefresh && (
           <button
@@ -46,7 +44,7 @@ export function SessionSwipeStack({ sessions, onRefresh }: SessionSwipeStackProp
             className="flex items-center gap-2 px-6 py-3 bg-zinc-800 border border-zinc-700 text-zinc-300 rounded-3xl hover:bg-zinc-700 transition-colors font-semibold text-sm"
           >
             <RefreshCw className="w-4 h-4" />
-            {lang === 'pl' ? 'Odśwież' : 'Refresh'}
+            {t('gen_refresh')}
           </button>
         )}
       </div>
@@ -89,7 +87,7 @@ export function SessionSwipeStack({ sessions, onRefresh }: SessionSwipeStackProp
       </div>
 
       <p className="text-center text-zinc-600 text-xs mt-6">
-        {lang === 'pl' ? 'Przeciągnij w prawo by dołączyć · W lewo by pominąć' : 'Drag right to join · Drag left to pass'}
+        {t('discover_session_swipe_hint')}
       </p>
     </>
   );

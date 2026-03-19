@@ -8,7 +8,7 @@ import {
   Activity, BarChart2, TrendingUp, Calendar, Zap,
 } from 'lucide-react';
 import { useLang, type TKey } from '@/lib/lang';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { LangToggle } from '@/components/lang-toggle';
 import { ThemeToggle } from '@/components/theme-toggle';
 
@@ -19,22 +19,40 @@ const MAIN_ITEMS: { href: string; key: TKey; icon: React.ElementType }[] = [
   { href: '/leaderboard', key: 'nav_leaderboard', icon: Trophy },
 ];
 
-const MORE_ITEMS: { href: string; label: string; labelPl: string; icon: React.ElementType }[] = [
-  { href: '/profile',   label: 'Profile',   labelPl: 'Profil',      icon: User },
-  { href: '/friends',   label: 'Friends',   labelPl: 'Znajomi',     icon: UserPlus },
-  { href: '/feed',      label: 'Feed',      labelPl: 'Aktywności',  icon: Newspaper },
-  { href: '/forum',     label: 'Forum',     labelPl: 'Forum',       icon: Users },
-  { href: '/gym',       label: 'Gym',       labelPl: 'Siłownia',    icon: Activity },
-  { href: '/training',  label: 'Training',  labelPl: 'Trening',     icon: TrendingUp },
-  { href: '/stats',     label: 'Stats',     labelPl: 'Statystyki',  icon: BarChart2 },
-  { href: '/calendar',  label: 'Calendar',  labelPl: 'Kalendarz',   icon: Calendar },
-  { href: '/settings',  label: 'Settings',  labelPl: 'Ustawienia',  icon: Settings },
+const MORE_ITEMS: { href: string; key: TKey; icon: React.ElementType }[] = [
+  { href: '/profile',   key: 'mob_profile',   icon: User },
+  { href: '/friends',   key: 'mob_friends',   icon: UserPlus },
+  { href: '/feed',      key: 'mob_feed',      icon: Newspaper },
+  { href: '/forum',     key: 'mob_forum',     icon: Users },
+  { href: '/gym',       key: 'mob_gym',       icon: Activity },
+  { href: '/training',  key: 'mob_training',  icon: TrendingUp },
+  { href: '/stats',     key: 'mob_stats',     icon: BarChart2 },
+  { href: '/calendar',  key: 'mob_calendar',  icon: Calendar },
+  { href: '/settings',  key: 'mob_settings',  icon: Settings },
 ];
 
 export function MobileBottomNav() {
   const pathname = usePathname();
   const { t, lang } = useLang();
   const [moreOpen, setMoreOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const fetchUnreadCount = useCallback(() => {
+    fetch('/api/messages/unread-count')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && typeof data.unreadCount === 'number') {
+          setUnreadCount(data.unreadCount);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 30_000);
+    return () => clearInterval(interval);
+  }, [fetchUnreadCount]);
 
   function isActive(href: string) {
     return pathname === href || pathname.startsWith(href + '/');
@@ -119,7 +137,7 @@ export function MobileBottomNav() {
                 >
                   <Icon style={{ width: 22, height: 22 }} />
                   <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.01em' }}>
-                    {lang === 'pl' ? item.labelPl : item.label}
+                    {t(item.key)}
                   </span>
                 </Link>
               );
@@ -141,13 +159,15 @@ export function MobileBottomNav() {
             }}
           >
             <Zap style={{ width: 16, height: 16 }} />
-            TrainPilot — analityka osobista ↗
+            TrainPilot — {t('dash_personal_analytics')} ↗
           </a>
         </div>
       </div>
 
       {/* Bottom nav bar — frosted glass, Revolut style */}
       <nav
+        role="navigation"
+        aria-label={t('nav_main_aria')}
         className="md:hidden fixed bottom-0 left-0 right-0 z-50"
         style={{
           background: 'var(--bg-card)',
@@ -168,6 +188,7 @@ export function MobileBottomNav() {
               key={item.href}
               href={item.href}
               aria-label={t(item.key)}
+              aria-current={active ? 'page' : undefined}
               style={{
                 flex: 1,
                 display: 'flex',
@@ -183,13 +204,37 @@ export function MobileBottomNav() {
               }}
             >
               <div style={{
-                width: 48, height: 32,
+                width: 48, height: 44,
                 borderRadius: 99,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 background: active ? 'rgba(99,102,241,0.12)' : 'transparent',
                 transition: 'background 0.15s',
+                position: 'relative',
               }}>
                 <Icon style={{ width: 22, height: 22 }} />
+                {item.href === '/messages' && unreadCount > 0 && (
+                  <span
+                    aria-label={t('nav_unread_aria', { count: String(unreadCount > 99 ? '99+' : unreadCount) })}
+                    style={{
+                    position: 'absolute',
+                    top: -4,
+                    right: -2,
+                    minWidth: 16,
+                    height: 16,
+                    borderRadius: 99,
+                    background: '#EF4444',
+                    color: '#FFFFFF',
+                    fontSize: 10,
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '0 4px',
+                    lineHeight: 1,
+                  }}>
+                    <span aria-hidden="true">{unreadCount > 99 ? '99+' : unreadCount}</span>
+                  </span>
+                )}
               </div>
               <span style={{ fontSize: 10, fontWeight: active ? 700 : 500, letterSpacing: '0.01em' }}>
                 {t(item.key)}
@@ -201,7 +246,7 @@ export function MobileBottomNav() {
         {/* More button */}
         <button
           onClick={() => setMoreOpen((v) => !v)}
-          aria-label={lang === 'pl' ? 'Więcej opcji' : 'More options'}
+          aria-label={t('mob_more_aria')}
           aria-expanded={moreOpen}
           style={{
             flex: 1,
@@ -213,7 +258,7 @@ export function MobileBottomNav() {
           }}
         >
           <div style={{
-            width: 48, height: 32, borderRadius: 99,
+            width: 48, height: 44, borderRadius: 99,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             background: (moreOpen || isMoreActive) ? 'rgba(99,102,241,0.12)' : 'transparent',
             transition: 'background 0.15s',
@@ -223,7 +268,7 @@ export function MobileBottomNav() {
               : <MoreHorizontal style={{ width: 22, height: 22 }} />}
           </div>
           <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: '0.01em' }}>
-            {lang === 'pl' ? 'Więcej' : 'More'}
+            {t('mob_more')}
           </span>
         </button>
         </div>

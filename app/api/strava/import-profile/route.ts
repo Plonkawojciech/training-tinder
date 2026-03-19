@@ -3,20 +3,14 @@ import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { stravaTokens, userSportProfiles, users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { unauthorized, serverError, badRequest, apiError, ErrorCode } from '@/lib/api-errors';
+import { refreshStravaTokenIfNeeded } from '@/lib/strava';
 
 function extractAthleteId(stravaUrl: string): string | null {
-  // Accepts formats:
-  // https://www.strava.com/athletes/12345
-  // https://strava.com/athletes/12345
-  // strava.com/athletes/12345
-  // Just a numeric ID: 12345
   const match = stravaUrl.match(/athletes\/(\d+)/);
   if (match) return match[1];
-
-  // Try bare numeric ID
   const numMatch = stravaUrl.trim().match(/^\d+$/);
   if (numMatch) return stravaUrl.trim();
-
   return null;
 }
 
@@ -44,65 +38,20 @@ interface StravaStats {
   ytd_ride_totals?: { distance: number; count: number };
 }
 
-async function refreshStravaToken(token: typeof stravaTokens.$inferSelect): Promise<string | null> {
-  if (!process.env.STRAVA_CLIENT_ID || !process.env.STRAVA_CLIENT_SECRET) return null;
-
-  if (new Date() < new Date(token.expiresAt)) {
-    return token.accessToken;
-  }
-
-  try {
-    const res = await fetch('https://www.strava.com/oauth/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        client_id: process.env.STRAVA_CLIENT_ID,
-        client_secret: process.env.STRAVA_CLIENT_SECRET,
-        refresh_token: token.refreshToken,
-        grant_type: 'refresh_token',
-      }),
-    });
-
-    if (!res.ok) return null;
-
-    const data = await res.json() as {
-      access_token: string;
-      refresh_token: string;
-      expires_at: number;
-    };
-
-    await db
-      .update(stravaTokens)
-      .set({
-        accessToken: data.access_token,
-        refreshToken: data.refresh_token,
-        expiresAt: new Date(data.expires_at * 1000),
-      })
-      .where(eq(stravaTokens.userId, token.userId));
-
-    return data.access_token;
-  } catch {
-    return null;
-  }
-}
-
 export async function POST(request: Request) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   try {
     const body = await request.json() as { stravaUrl?: string };
 
     if (!body.stravaUrl) {
-      return NextResponse.json({ error: 'stravaUrl is required' }, { status: 400 });
+      return badRequest(ErrorCode.MISSING_FIELDS, 'stravaUrl is required');
     }
 
     const athleteId = extractAthleteId(body.stravaUrl);
     if (!athleteId) {
-      return NextResponse.json(
-        { error: 'Could not extract athlete ID from URL. Expected format: https://www.strava.com/athletes/12345' },
-        { status: 400 }
-      );
+      return badRequest(ErrorCode.INVALID_INPUT, 'Could not extract athlete ID from URL. Expected format: https://www.strava.com/athletes/12345');
     }
 
     // Check if user has Strava OAuth tokens
@@ -117,15 +66,20 @@ export async function POST(request: Request) {
 
     // If we have OAuth token and Strava is configured, use API
     if (hasToken && stravaConfigured) {
-      const accessToken = await refreshStravaToken(tokenRows[0]);
-
-      if (!accessToken) {
-        return NextResponse.json({
-          success: false,
-          needsReconnect: true,
-          message: 'Strava token expired. Please reconnect your Strava account.',
-          connectUrl: '/api/strava/connect',
-        });
+      let accessToken: string;
+      try {
+        accessToken = await refreshStravaTokenIfNeeded(tokenRows[0]);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : '';
+        if (msg === 'STRAVA_TOKEN_REVOKED') {
+          return NextResponse.json({
+            success: false,
+            needsReconnect: true,
+            message: 'Strava token expired. Please reconnect your Strava account.',
+            connectUrl: '/api/strava/connect',
+          });
+        }
+        return apiError(ErrorCode.STRAVA_CONNECTION_ERROR, 'Failed to refresh Strava token', 502);
       }
 
       // Fetch athlete profile
@@ -134,10 +88,7 @@ export async function POST(request: Request) {
       });
 
       if (!athleteRes.ok) {
-        return NextResponse.json(
-          { error: 'Failed to fetch Strava athlete data' },
-          { status: 502 }
-        );
+        return apiError(ErrorCode.STRAVA_CONNECTION_ERROR, 'Failed to fetch Strava athlete data', 502);
       }
 
       const athlete = await athleteRes.json() as StravaAthlete;
@@ -163,7 +114,7 @@ export async function POST(request: Request) {
         await db
           .update(users)
           .set(profileUpdate as Partial<typeof users.$inferInsert>)
-          .where(eq(users.clerkId, userId))
+          .where(eq(users.authEmail, userId))
           .catch(() => {});
       }
 
@@ -264,6 +215,6 @@ export async function POST(request: Request) {
     });
   } catch (err) {
     console.error('POST /api/strava/import-profile error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

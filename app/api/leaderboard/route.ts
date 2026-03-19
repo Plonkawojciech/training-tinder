@@ -2,16 +2,20 @@ import { NextResponse } from 'next/server';
 import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { users, sessionParticipants } from '@/lib/db/schema';
-import { desc, sql, inArray } from 'drizzle-orm';
+import { desc, sql, inArray, gte, and } from 'drizzle-orm';
+import { unauthorized, serverError } from '@/lib/api-errors';
 
-export async function GET() {
+export async function GET(req: Request) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
+
+  const { searchParams } = new URL(req.url);
+  const period = searchParams.get('period'); // 'week' | 'month' | undefined
 
   try {
     const topUsers = await db
       .select({
-        clerkId: users.clerkId,
+        id: users.authEmail,
         username: users.username,
         avatarUrl: users.avatarUrl,
         sportTypes: users.sportTypes,
@@ -23,8 +27,18 @@ export async function GET() {
       .orderBy(desc(users.weeklyKm))
       .limit(50);
 
+    // Compute time-range cutoff for session counts
+    let dateCutoff: Date | null = null;
+    if (period === 'week') {
+      dateCutoff = new Date();
+      dateCutoff.setDate(dateCutoff.getDate() - 7);
+    } else if (period === 'month') {
+      dateCutoff = new Date();
+      dateCutoff.setMonth(dateCutoff.getMonth() - 1);
+    }
+
     // Batch-fetch session counts only for these 50 users
-    const userIds = topUsers.map((u) => u.clerkId);
+    const userIds = topUsers.map((u) => u.id);
     const sessionCountRows = userIds.length > 0
       ? await db
           .select({
@@ -32,26 +46,30 @@ export async function GET() {
             count: sql<number>`count(*)`,
           })
           .from(sessionParticipants)
-          .where(inArray(sessionParticipants.userId, userIds))
+          .where(
+            dateCutoff
+              ? and(inArray(sessionParticipants.userId, userIds), gte(sessionParticipants.joinedAt, dateCutoff))
+              : inArray(sessionParticipants.userId, userIds)
+          )
           .groupBy(sessionParticipants.userId)
       : [];
     const sessionCounts = Object.fromEntries(sessionCountRows.map((r) => [r.userId, Number(r.count)]));
 
     const leaderboard = topUsers.map((u, index) => ({
       rank: index + 1,
-      clerkId: u.clerkId,
+      id: u.id,
       username: u.username,
       avatarUrl: u.avatarUrl,
       sportTypes: u.sportTypes,
       weeklyKm: u.weeklyKm ?? 0,
-      sessionCount: sessionCounts[u.clerkId] ?? 0,
+      sessionCount: sessionCounts[u.id] ?? 0,
       city: u.city,
-      isCurrentUser: u.clerkId === userId,
+      isCurrentUser: u.id === userId,
     }));
 
     return NextResponse.json(leaderboard);
   } catch (err) {
     console.error('GET /api/leaderboard error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

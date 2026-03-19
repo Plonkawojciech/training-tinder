@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Download, X, Smartphone } from 'lucide-react';
+import { useLang } from '@/lib/lang';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -20,21 +21,19 @@ function isInStandaloneMode() {
 }
 
 export function PwaInstallButton() {
+  const { t } = useLang();
   const [prompt, setPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [installed, setInstalled] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
+  const [installed, setInstalled] = useState(() => isInStandaloneMode());
+  const [dismissed, setDismissed] = useState(() => {
+    try { return !!localStorage.getItem('pwa-install-dismissed'); } catch { return false; }
+  });
   const [showBanner, setShowBanner] = useState(false);
-  const [isIosDevice, setIsIosDevice] = useState(false);
+  const [isIosDevice] = useState(() => isIos());
 
   useEffect(() => {
-    if (isInStandaloneMode()) { setInstalled(true); return; }
+    if (installed || dismissed) return;
 
-    try { if (localStorage.getItem('pwa-install-dismissed')) { setDismissed(true); return; } } catch {}
-
-    const ios = isIos();
-    setIsIosDevice(ios);
-
-    if (ios) {
+    if (isIosDevice) {
       // iOS: show manual instructions banner after 3s
       setTimeout(() => setShowBanner(true), 3000);
       return;
@@ -50,7 +49,7 @@ export function PwaInstallButton() {
     window.addEventListener('appinstalled', () => setInstalled(true));
 
     return () => { window.removeEventListener('beforeinstallprompt', handler); };
-  }, []);
+  }, [installed, dismissed, isIosDevice]);
 
   async function handleInstall() {
     if (!prompt) return;
@@ -105,14 +104,14 @@ export function PwaInstallButton() {
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ color: 'white', fontWeight: 700, fontSize: 14, marginBottom: 3 }}>
-          Dodaj do ekranu głównego
+          {t('pwa_add_home')}
         </div>
         {isIosDevice ? (
-          <div style={{ color: '#888', fontSize: 11, lineHeight: 1.4 }}>
-            Naciśnij <span style={{ color: 'white' }}>□↑</span> → <em>Dodaj do ekranu głównego</em>
+          <div style={{ color: 'var(--text-muted)', fontSize: 11, lineHeight: 1.4 }}>
+            {t('pwa_ios_hint')} <span style={{ color: 'white' }}>□↑</span> → <em>{t('pwa_add_home')}</em>
           </div>
         ) : (
-          <div style={{ color: '#888', fontSize: 12 }}>Działa jak natywna aplikacja</div>
+          <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>{t('pwa_native_like')}</div>
         )}
       </div>
 
@@ -121,7 +120,7 @@ export function PwaInstallButton() {
           width: 32, height: 32, borderRadius: 99,
           background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
           color: '#666', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }} aria-label="Zamknij">
+        }} aria-label={t('pwa_close')}>
           <X style={{ width: 14, height: 14 }} />
         </button>
 
@@ -134,7 +133,7 @@ export function PwaInstallButton() {
             boxShadow: '0 4px 12px rgba(99,102,241,0.3)',
           }}>
             <Download style={{ width: 12, height: 12 }} />
-            Instaluj
+            {t('pwa_install')}
           </button>
         )}
       </div>
@@ -144,14 +143,14 @@ export function PwaInstallButton() {
 
 // Standalone install button for use in profile/settings
 export function PwaInstallButtonInline() {
+  const { t } = useLang();
   const [prompt, setPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [installed, setInstalled] = useState(false);
+  const [installed, setInstalled] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches
+  );
 
   useEffect(() => {
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      setInstalled(true);
-      return;
-    }
+    if (installed) return;
     const handler = (e: Event) => {
       e.preventDefault();
       setPrompt(e as BeforeInstallPromptEvent);
@@ -159,7 +158,7 @@ export function PwaInstallButtonInline() {
     window.addEventListener('beforeinstallprompt', handler);
     window.addEventListener('appinstalled', () => setInstalled(true));
     return () => window.removeEventListener('beforeinstallprompt', handler);
-  }, []);
+  }, [installed]);
 
   async function handleInstall() {
     if (!prompt) return;
@@ -178,7 +177,7 @@ export function PwaInstallButtonInline() {
         color: '#00E676', fontSize: 13, fontWeight: 600,
       }}>
         <Smartphone style={{ width: 16, height: 16 }} />
-        Aplikacja zainstalowana
+        {t('pwa_installed')}
       </div>
     );
   }
@@ -189,14 +188,14 @@ export function PwaInstallButtonInline() {
       <div style={{
         padding: '12px 16px', borderRadius: 20,
         background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)',
-        fontSize: 12, color: '#888', lineHeight: 1.5,
+        fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, color: 'white', fontWeight: 600 }}>
           <Smartphone style={{ width: 14, height: 14, color: '#6366F1' }} />
-          Dodaj do ekranu głównego
+          {t('pwa_add_home')}
         </div>
-        <p>iOS Safari: naciśnij <strong>□↑</strong> → <em>Dodaj do ekranu głównego</em></p>
-        <p>Android Chrome: menu ⋮ → <em>Dodaj do ekranu głównego</em></p>
+        <p>{t('pwa_ios_safari')} <strong>□↑</strong> → <em>{t('pwa_add_home')}</em></p>
+        <p>{t('pwa_android_chrome')} <em>{t('pwa_add_home')}</em></p>
       </div>
     );
   }
@@ -213,7 +212,7 @@ export function PwaInstallButtonInline() {
       }}
     >
       <Download style={{ width: 18, height: 18 }} />
-      Zainstaluj aplikację
+      {t('pwa_install_app')}
     </button>
   );
 }

@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUserId } from '@/lib/server-auth';
+import { unauthorized, badRequest, ErrorCode } from '@/lib/api-errors';
 
 export async function GET(req: NextRequest) {
   if (!process.env.STRAVA_CLIENT_ID) {
-    return NextResponse.json({ error: 'Strava not configured' }, { status: 503 });
+    return badRequest(ErrorCode.STRAVA_NOT_CONFIGURED, 'Strava not configured');
   }
 
   const { searchParams } = new URL(req.url);
@@ -12,7 +13,7 @@ export async function GET(req: NextRequest) {
   if (mode !== 'auth') {
     const userId = await getAuthUserId();
     if (!userId) {
-      return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+      return unauthorized();
     }
   }
 

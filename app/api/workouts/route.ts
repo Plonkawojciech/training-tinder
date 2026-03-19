@@ -3,10 +3,11 @@ import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { workoutLogs, exercises, users, activityFeed } from '@/lib/db/schema';
 import { eq, desc, inArray } from 'drizzle-orm';
+import { unauthorized, serverError, badRequest, ErrorCode } from '@/lib/api-errors';
 
 export async function GET(request: Request) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   const { searchParams } = new URL(request.url);
   const mine = searchParams.get('mine') === 'true';
@@ -38,8 +39,8 @@ export async function GET(request: Request) {
         ? db.select().from(exercises).where(inArray(exercises.workoutLogId, logIds))
         : Promise.resolve([]),
       userIds.length > 0
-        ? db.select({ clerkId: users.clerkId, username: users.username, avatarUrl: users.avatarUrl })
-            .from(users).where(inArray(users.clerkId, userIds))
+        ? db.select({ authEmail: users.authEmail, username: users.username, avatarUrl: users.avatarUrl })
+            .from(users).where(inArray(users.authEmail, userIds))
         : Promise.resolve([]),
     ]);
 
@@ -48,7 +49,7 @@ export async function GET(request: Request) {
     for (const ex of allExercises) {
       (exMap[ex.workoutLogId] ??= []).push(ex);
     }
-    const creatorMap = Object.fromEntries(allCreators.map((u) => [u.clerkId, u]));
+    const creatorMap = Object.fromEntries(allCreators.map((u) => [u.authEmail, u]));
 
     const enriched = rows.map((log) => ({
       ...log,
@@ -59,13 +60,13 @@ export async function GET(request: Request) {
     return NextResponse.json(enriched);
   } catch (err) {
     console.error('GET /api/workouts error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }
 
 export async function POST(request: Request) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   try {
     const body = await request.json() as {
@@ -79,21 +80,21 @@ export async function POST(request: Request) {
     };
 
     if (typeof body.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(body.date)) {
-      return NextResponse.json({ error: 'Nieprawidłowy format daty (YYYY-MM-DD)' }, { status: 400 });
+      return badRequest(ErrorCode.INVALID_DATE, 'Invalid date format (YYYY-MM-DD)');
     }
     if (typeof body.type !== 'string' || !body.type.trim()) {
-      return NextResponse.json({ error: 'Typ treningu jest wymagany' }, { status: 400 });
+      return badRequest(ErrorCode.MISSING_FIELDS, 'Workout type is required');
     }
     if (typeof body.name !== 'string' || body.name.trim().length < 1) {
-      return NextResponse.json({ error: 'Nazwa treningu jest wymagana' }, { status: 400 });
+      return badRequest(ErrorCode.MISSING_FIELDS, 'Workout name is required');
     }
     if (body.name.trim().length > 120) {
-      return NextResponse.json({ error: 'Nazwa może mieć max. 120 znaków' }, { status: 400 });
+      return badRequest(ErrorCode.CONTENT_TOO_LONG, 'Name must be at most 120 characters');
     }
 
     const durationMin = body.durationMin !== undefined ? Number(body.durationMin) : null;
     if (durationMin !== null && (isNaN(durationMin) || durationMin < 0 || durationMin > 1440)) {
-      return NextResponse.json({ error: 'Czas trwania musi być między 0 a 1440 minut' }, { status: 400 });
+      return badRequest(ErrorCode.INVALID_INPUT, 'Duration must be between 0 and 1440 minutes');
     }
 
     const notes = typeof body.notes === 'string' ? body.notes.trim().slice(0, 2000) : null;
@@ -153,6 +154,6 @@ export async function POST(request: Request) {
     return NextResponse.json(log);
   } catch (err) {
     console.error('POST /api/workouts error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

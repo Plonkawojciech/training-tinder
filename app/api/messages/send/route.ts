@@ -4,7 +4,9 @@ import { db } from '@/lib/db';
 import { messages, users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { isRateLimited } from '@/lib/rate-limit';
+import { sanitizeText } from '@/lib/utils';
 import Pusher from 'pusher';
+import { unauthorized, serverError, notFound, rateLimited, badRequest, ErrorCode } from '@/lib/api-errors';
 
 const PUSHER_ENABLED = Boolean(
   process.env.PUSHER_APP_ID && process.env.PUSHER_KEY && process.env.PUSHER_SECRET
@@ -22,42 +24,42 @@ const pusher = PUSHER_ENABLED
 
 export async function POST(request: Request) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   // Rate limit: 30 messages per user per minute
   if (isRateLimited(`msg:${userId}`, 30, 60 * 1000)) {
-    return NextResponse.json({ error: 'Wysyłasz za szybko. Poczekaj chwilę.' }, { status: 429 });
+    return rateLimited();
   }
 
   try {
     const body = await request.json() as { receiverId?: unknown; content?: unknown };
 
     if (typeof body.receiverId !== 'string' || !body.receiverId.trim()) {
-      return NextResponse.json({ error: 'receiverId jest wymagany' }, { status: 400 });
+      return badRequest(ErrorCode.MISSING_FIELDS, 'receiverId is required');
     }
     if (typeof body.content !== 'string' || !body.content.trim()) {
-      return NextResponse.json({ error: 'Treść wiadomości jest wymagana' }, { status: 400 });
+      return badRequest(ErrorCode.MISSING_FIELDS, 'Message content is required');
     }
 
-    const content = body.content.trim();
+    const content = sanitizeText(body.content);
     const receiverId = body.receiverId.trim();
 
     if (content.length > 2000) {
-      return NextResponse.json({ error: 'Wiadomość może mieć max. 2000 znaków' }, { status: 400 });
+      return badRequest(ErrorCode.CONTENT_TOO_LONG, 'Message cannot exceed 2000 characters');
     }
     if (receiverId === userId) {
-      return NextResponse.json({ error: 'Nie możesz napisać do siebie' }, { status: 400 });
+      return badRequest(ErrorCode.SELF_ACTION, 'Cannot message yourself');
     }
 
     // Verify receiver exists
     const [receiver] = await db
-      .select({ clerkId: users.clerkId })
+      .select({ authEmail: users.authEmail })
       .from(users)
-      .where(eq(users.clerkId, receiverId))
+      .where(eq(users.authEmail, receiverId))
       .limit(1);
 
     if (!receiver) {
-      return NextResponse.json({ error: 'Odbiorca nie istnieje' }, { status: 404 });
+      return notFound('Receiver not found');
     }
 
     const [message] = await db
@@ -86,6 +88,6 @@ export async function POST(request: Request) {
     return NextResponse.json(message);
   } catch (err) {
     console.error('POST /api/messages/send error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

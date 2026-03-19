@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
 import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
-import { users } from '@/lib/db/schema';
-import { eq, ne, sql } from 'drizzle-orm';
+import { users, swipes } from '@/lib/db/schema';
+import { eq, sql } from 'drizzle-orm';
 import { rankMatches, filterByLocation, filterBySport, type UserForMatching } from '@/lib/matching';
+import { unauthorized, serverError } from '@/lib/api-errors';
 
 export async function GET(request: Request) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   const { searchParams } = new URL(request.url);
   const sport = searchParams.get('sport') ?? 'all';
@@ -20,12 +21,14 @@ export async function GET(request: Request) {
   const minWeeklyKm = searchParams.get('minWeeklyKm') ? parseInt(searchParams.get('minWeeklyKm')!) : null;
   const maxWeeklyKm = searchParams.get('maxWeeklyKm') ? parseInt(searchParams.get('maxWeeklyKm')!) : null;
   const verified = searchParams.get('verified') === 'true';
+  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') ?? '50') || 50));
+  const offset = Math.max(0, parseInt(searchParams.get('offset') ?? '0') || 0);
 
   try {
     const currentUserRows = await db
       .select()
       .from(users)
-      .where(eq(users.clerkId, userId))
+      .where(eq(users.authEmail, userId))
       .limit(1);
 
     if (currentUserRows.length === 0) {
@@ -34,7 +37,14 @@ export async function GET(request: Request) {
 
     const currentUser = currentUserRows[0];
 
-    // Pre-filter at DB level: bounding box when user has location, always exclude self
+    // Get already-swiped users at DB level
+    const swipedRows = await db
+      .select({ targetId: swipes.targetId })
+      .from(swipes)
+      .where(eq(swipes.swiperId, userId));
+    const swipedIds = swipedRows.map((s) => s.targetId);
+
+    // Pre-filter at DB level: bounding box when user has location, exclude self + swiped
     const radiusKmToLatDelta = radius / 111.32;
     const radiusKmToLonDelta = currentUser.lat
       ? radius / (111.32 * Math.cos((currentUser.lat * Math.PI) / 180))
@@ -48,15 +58,23 @@ export async function GET(request: Request) {
           ))`
         : sql`1=1`;
 
+    const swipedExclusion = swipedIds.length > 0
+      ? sql`${users.authEmail} NOT IN (${sql.join(swipedIds.map(id => sql`${id}`), sql`, `)})`
+      : sql`1=1`;
+
+    // Exclude users with privacy set to "nobody" (they don't want to be discovered)
+    const privacyCondition = sql`(${users.profileVisibility} IS NULL OR ${users.profileVisibility} != 'nobody')`;
+
     const allUsers = await db
       .select()
       .from(users)
-      .where(sql`${users.clerkId} != ${userId} AND ${locationCondition}`)
-      .limit(500);
+      .where(sql`${users.authEmail} != ${userId} AND ${locationCondition} AND ${swipedExclusion} AND ${privacyCondition}`)
+      .limit(limit)
+      .offset(offset);
 
     const currentForMatch: UserForMatching = {
       id: String(currentUser.id),
-      clerkId: currentUser.clerkId,
+      authEmail: currentUser.authEmail,
       username: currentUser.username,
       avatarUrl: currentUser.avatarUrl,
       bio: currentUser.bio,
@@ -79,7 +97,7 @@ export async function GET(request: Request) {
     let extCandidates: ExtendedCandidate[] = allUsers
       .map((u) => ({
         id: String(u.id),
-        clerkId: u.clerkId,
+        authEmail: u.authEmail,
         username: u.username,
         avatarUrl: u.avatarUrl,
         bio: u.bio,
@@ -94,6 +112,7 @@ export async function GET(request: Request) {
         trainingSplits: (u.trainingSplits as string[] | null) ?? [],
         goals: (u.goals as string[] | null) ?? [],
         availability: (u.availability as string[] | null) ?? [],
+        stravaVerified: u.stravaVerified ?? false,
         _raw: u,
       }));
 
@@ -112,26 +131,28 @@ export async function GET(request: Request) {
     }
 
     // Strip _raw before ranking
-    const candidatesClean: UserForMatching[] = extCandidates.map(({ _raw: _r, ...rest }) => rest);
+    const candidatesClean: UserForMatching[] = extCandidates.map(({ _raw: _unused, ...rest }) => rest);
 
     let ranked = rankMatches(currentForMatch, candidatesClean);
     ranked = filterByLocation(ranked, radius);
     if (sport !== 'all') ranked = filterBySport(ranked, sport);
 
     // Build raw user lookup for enrichment (already in memory)
-    const rawUserMap = Object.fromEntries(extCandidates.map((c) => [c.clerkId, c._raw]));
+    const rawUserMap = Object.fromEntries(extCandidates.map((c) => [c.authEmail, c._raw]));
 
     const enriched = ranked.map((r) => {
-      const raw = rawUserMap[r.user.clerkId];
-      const isVerified = raw?.stravaVerified ?? false;
+      const raw = rawUserMap[r.user.authEmail];
+      // Strava verified bonus (+10 pts, capped at 100)
+      const stravaBonus = raw?.stravaVerified ? 10 : 0;
       return {
         ...r,
-        score: isVerified ? Math.min(100, r.score + 10) : r.score,
+        score: Math.min(100, r.score + stravaBonus),
         user: {
           ...r.user,
-          stravaVerified: isVerified,
+          stravaVerified: raw?.stravaVerified ?? false,
           profileSongUrl: raw?.profileSongUrl ?? null,
           ftpWatts: raw?.ftpWatts ?? null,
+          age: raw?.age ?? null,
         },
       };
     });
@@ -139,6 +160,6 @@ export async function GET(request: Request) {
     return NextResponse.json(enriched);
   } catch (err) {
     console.error('GET /api/discover error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }

@@ -3,10 +3,11 @@ import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { gymCheckins, users } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { unauthorized, serverError, badRequest, ErrorCode } from '@/lib/api-errors';
 
 export async function POST(request: Request) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   try {
     const body = await request.json() as {
@@ -18,7 +19,7 @@ export async function POST(request: Request) {
     };
 
     if (!body.gymName) {
-      return NextResponse.json({ error: 'gymName is required' }, { status: 400 });
+      return badRequest(ErrorCode.MISSING_FIELDS, 'gymName is required');
     }
 
     // Deactivate any previous active checkins
@@ -43,13 +44,13 @@ export async function POST(request: Request) {
     return NextResponse.json(checkin);
   } catch (err) {
     console.error('POST /api/checkin error:', err);
-    return NextResponse.json({ error: 'Bad request or internal server error' }, { status: 400 });
+    return serverError();
   }
 }
 
 export async function DELETE() {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   try {
     await db
@@ -60,13 +61,13 @@ export async function DELETE() {
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error('DELETE /api/checkin error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }
 
 export async function GET(request: Request) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   const { searchParams } = new URL(request.url);
   const gymPlaceId = searchParams.get('gymPlaceId');
@@ -85,28 +86,28 @@ export async function GET(request: Request) {
       .select({
         checkin: gymCheckins,
         user: {
-          clerkId: users.clerkId,
+          authEmail: users.authEmail,
           username: users.username,
           avatarUrl: users.avatarUrl,
           sportTypes: users.sportTypes,
         },
       })
       .from(gymCheckins)
-      .leftJoin(users, eq(gymCheckins.userId, users.clerkId))
+      .leftJoin(users, eq(gymCheckins.userId, users.authEmail))
       .where(and(eq(gymCheckins.gymPlaceId, gymPlaceId), eq(gymCheckins.isActive, true)));
   } else if (gymName) {
     query = db
       .select({
         checkin: gymCheckins,
         user: {
-          clerkId: users.clerkId,
+          authEmail: users.authEmail,
           username: users.username,
           avatarUrl: users.avatarUrl,
           sportTypes: users.sportTypes,
         },
       })
       .from(gymCheckins)
-      .leftJoin(users, eq(gymCheckins.userId, users.clerkId))
+      .leftJoin(users, eq(gymCheckins.userId, users.authEmail))
       .where(and(eq(gymCheckins.gymName, gymName), eq(gymCheckins.isActive, true)));
   } else {
     // Return all active checkins
@@ -114,14 +115,14 @@ export async function GET(request: Request) {
       .select({
         checkin: gymCheckins,
         user: {
-          clerkId: users.clerkId,
+          authEmail: users.authEmail,
           username: users.username,
           avatarUrl: users.avatarUrl,
           sportTypes: users.sportTypes,
         },
       })
       .from(gymCheckins)
-      .leftJoin(users, eq(gymCheckins.userId, users.clerkId))
+      .leftJoin(users, eq(gymCheckins.userId, users.authEmail))
       .where(eq(gymCheckins.isActive, true));
   }
 

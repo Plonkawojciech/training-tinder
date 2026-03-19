@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Star, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useLang } from '@/lib/lang';
 
 interface ReviewModalProps {
   sessionId: number;
@@ -13,6 +14,7 @@ interface ReviewModalProps {
 }
 
 export function ReviewModal({ sessionId, sessionTitle, isOpen, onClose, onSubmit }: ReviewModalProps) {
+  const { t } = useLang();
   const [rating, setRating] = useState(0);
   const [hovered, setHovered] = useState(0);
   const [comment, setComment] = useState('');
@@ -23,7 +25,7 @@ export function ReviewModal({ sessionId, sessionTitle, isOpen, onClose, onSubmit
 
   async function handleSubmit() {
     if (rating === 0) {
-      setError('Wybierz ocenę od 1 do 5 gwiazdek.');
+      setError(t('review_rating_required'));
       return;
     }
 
@@ -42,7 +44,7 @@ export function ReviewModal({ sessionId, sessionTitle, isOpen, onClose, onSubmit
         onClose();
       } else {
         const data = await res.json() as { error?: string };
-        setError(data.error ?? 'Nie udało się wysłać oceny.');
+        setError(data.error ?? t('review_submit_error'));
       }
     } finally {
       setSubmitting(false);
@@ -65,7 +67,7 @@ export function ReviewModal({ sessionId, sessionTitle, isOpen, onClose, onSubmit
           <X className="w-5 h-5" />
         </button>
 
-        <h2 className="font-display text-xl text-white tracking-wider mb-1">Oceń sesję</h2>
+        <h2 className="font-display text-xl text-white tracking-wider mb-1">{t('review_rate_session')}</h2>
         <p className="text-[#888888] text-sm mb-6 truncate">{sessionTitle}</p>
 
         {/* Stars */}
@@ -87,11 +89,11 @@ export function ReviewModal({ sessionId, sessionTitle, isOpen, onClose, onSubmit
           ))}
           {rating > 0 && (
             <span className="text-sm text-[#888888] ml-2">
-              {rating === 1 && 'Słabo'}
-              {rating === 2 && 'Przeciętnie'}
-              {rating === 3 && 'Dobrze'}
-              {rating === 4 && 'Bardzo dobrze'}
-              {rating === 5 && 'Świetnie!'}
+              {rating === 1 && t('review_poor')}
+              {rating === 2 && t('review_average')}
+              {rating === 3 && t('review_ok')}
+              {rating === 4 && t('review_very_good')}
+              {rating === 5 && t('review_great')}
             </span>
           )}
         </div>
@@ -100,7 +102,7 @@ export function ReviewModal({ sessionId, sessionTitle, isOpen, onClose, onSubmit
         <textarea
           value={comment}
           onChange={(e) => setComment(e.target.value)}
-          placeholder="Komentarz (opcjonalny)..."
+          placeholder={t('review_comment_placeholder')}
           rows={3}
           className="w-full bg-[var(--bg-elevated)] border border-[var(--border)] rounded-3xl px-3 py-2 text-sm text-white placeholder-[#555555] focus:outline-none focus:border-[#6366F1] transition-colors resize-none mb-4"
         />
@@ -116,7 +118,7 @@ export function ReviewModal({ sessionId, sessionTitle, isOpen, onClose, onSubmit
             className="flex-1"
             disabled={submitting}
           >
-            Anuluj
+            {t('review_cancel')}
           </Button>
           <Button
             onClick={handleSubmit}
@@ -124,7 +126,7 @@ export function ReviewModal({ sessionId, sessionTitle, isOpen, onClose, onSubmit
             disabled={rating === 0 || submitting}
             className="flex-1"
           >
-            Oceń
+            {t('review_submit')}
           </Button>
         </div>
       </div>

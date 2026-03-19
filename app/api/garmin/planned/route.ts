@@ -3,6 +3,7 @@ import { getAuthUserId } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { userEvents } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { unauthorized, serverError, badRequest, ErrorCode } from '@/lib/api-errors';
 
 // Garmin Calendar API returns planned workouts
 const GARMIN_CALENDAR_API = 'https://connect.garmin.com/modern/proxy/calendar-service';
@@ -53,17 +54,17 @@ async function fetchGarminCalendar(
 
 export async function POST(request: Request) {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   let body: { cookies: string };
   try {
     body = await request.json() as { cookies: string };
   } catch {
-    return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
+    return badRequest(ErrorCode.INVALID_INPUT, 'Invalid request body');
   }
 
   if (!body.cookies) {
-    return NextResponse.json({ error: 'cookies required' }, { status: 400 });
+    return badRequest(ErrorCode.GARMIN_CREDENTIALS_REQUIRED, 'Cookies are required');
   }
 
   try {
@@ -121,13 +122,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, imported: saved, found: future.length });
   } catch (err) {
     console.error('Garmin planned import error:', err);
-    return NextResponse.json({ error: 'Failed to fetch Garmin calendar' }, { status: 500 });
+    return serverError('Failed to fetch Garmin calendar');
   }
 }
 
 export async function GET() {
   const userId = await getAuthUserId();
-  if (!userId) return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 });
+  if (!userId) return unauthorized();
 
   try {
     const allEvents = await db
@@ -143,6 +144,6 @@ export async function GET() {
     return NextResponse.json(planned);
   } catch (err) {
     console.error('GET /api/garmin/planned error:', err);
-    return NextResponse.json({ error: 'Błąd serwera' }, { status: 500 });
+    return serverError();
   }
 }
