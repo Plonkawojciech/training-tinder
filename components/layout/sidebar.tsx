@@ -49,7 +49,7 @@ export function Sidebar() {
     >
       {/* Logo */}
       <div className="p-5 pb-4">
-        <Link href="/dashboard" className="flex items-center gap-2.5">
+        <Link href="/" className="flex items-center gap-2.5">
           <div
             className="w-9 h-9 flex items-center justify-center rounded-[12px]"
             style={{ background: 'linear-gradient(135deg, #6366F1, #818CF8)' }}
@@ -58,7 +58,7 @@ export function Sidebar() {
           </div>
           <div>
             <span style={{ fontFamily: 'Syne, Inter, sans-serif', fontWeight: 800, fontSize: 16, letterSpacing: '-0.02em', color: 'var(--text)' }}>
-              Train<span style={{ color: 'var(--accent)' }}>Mate</span>
+              Athlix <span style={{ color: 'var(--accent)' }}>TrainMate</span>
             </span>
           </div>
         </Link>
@@ -109,6 +109,16 @@ export function Sidebar() {
         >
           <Zap className="w-4 h-4 shrink-0 text-[#6366F1]" />
           <span className="font-medium">TrainPilot</span>
+          <ExternalLink className="w-3 h-3 ml-auto opacity-50" />
+        </a>
+        <a
+          href="https://athlix-health.vercel.app"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-[12px] text-sm font-medium transition-all text-[var(--text-muted)] hover:text-white hover:bg-[var(--bg-elevated)]"
+        >
+          <Activity className="w-4 h-4 shrink-0 text-[#00E676]" />
+          <span className="font-medium">Athlix Health</span>
           <ExternalLink className="w-3 h-3 ml-auto opacity-50" />
         </a>
       </div>

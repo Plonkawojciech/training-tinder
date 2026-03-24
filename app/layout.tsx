@@ -25,7 +25,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'TrainMate — Find Your Training Partner',
+  title: 'Athlix TrainMate — Find Your Training Partner',
   description: 'Znajdź partnera do treningu. Swipuj. Trenuj. Rywalizuj.',
   keywords: ['training', 'cycling', 'running', 'triathlon', 'athletes', 'fitness'],
   manifest: '/manifest.json',

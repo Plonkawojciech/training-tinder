@@ -892,10 +892,10 @@ export default function LandingPage({ userId }: { userId: string | null }) {
             <div className="lp-eco-badge lp-eco-badge-secondary">Health & Recovery</div>
             <h3 className="lp-eco-title" style={{ color: 'rgba(255,255,255,0.7)', whiteSpace: 'pre-line' }}>{'Health &\nRecovery Analytics'}</h3>
             <p className="lp-eco-desc">
-              TrainHealth to bezpłatna alternatywa WHOOP. Monitoruj tętno przez Bluetooth, śledź recovery score, strain, sen i otrzymuj AI coaching — bez subskrypcji.
+              Athlix Health to bezpłatna analityka zdrowia. Monitoruj tętno przez Bluetooth, śledź recovery score, strain, sen i otrzymuj AI coaching — bez subskrypcji.
             </p>
             <ul className="lp-eco-features" style={{ '--eco-line': 'rgba(255,255,255,0.2)' } as React.CSSProperties}>
-              <li>BLE HR — Polar, Garmin, Wahoo, WHOOP</li>
+              <li>BLE HR — Polar, Garmin, Wahoo, Coospo</li>
               <li>Recovery score (0-100) z predykcją</li>
               <li>Strain & HR zones (TRIMP)</li>
               <li>Sleep tracking & hypnogram</li>
@@ -939,18 +939,18 @@ export default function LandingPage({ userId }: { userId: string | null }) {
       {/* ─── FOOTER ─── */}
       <footer className="lp-footer">
         <div className="lp-footer-inner">
-          <Link href="/" className="lp-footer-logo">Train<span>Mate</span></Link>
+          <Link href="/" className="lp-footer-logo">Athlix <span>TrainMate</span></Link>
           <ul className="lp-footer-links">
             <li><a href="#features">{t('landing_footer_features')}</a></li>
             <li><a href="#how">{t('landing_footer_how')}</a></li>
             <li><a href="https://trainpilot.vercel.app" target="_blank" rel="noopener noreferrer">TrainPilot</a></li>
-            <li><a href="https://athlix-health.vercel.app" target="_blank" rel="noopener noreferrer">TrainHealth</a></li>
+            <li><a href="https://athlix-health.vercel.app" target="_blank" rel="noopener noreferrer">Athlix Health</a></li>
             <li><a href="/login">{t('landing_footer_registration')}</a></li>
           </ul>
         </div>
         <div className="lp-footer-bottom">
           <span className="lp-footer-copy">
-            © 2026 TrainMate by <a href="https://programo.pl" target="_blank" rel="noopener noreferrer">Programo</a>
+            © 2026 Athlix TrainMate by <a href="https://programo.pl" target="_blank" rel="noopener noreferrer">Programo</a>
           </span>
           <span className="lp-footer-tagline">Athlete Social Platform</span>
         </div>
