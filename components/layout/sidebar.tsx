@@ -52,7 +52,7 @@ export function Sidebar() {
         <Link href="/" className="flex items-center gap-2.5">
           <div
             className="w-9 h-9 flex items-center justify-center rounded-[12px]"
-            style={{ background: 'linear-gradient(135deg, #6366F1, #818CF8)' }}
+            style={{ background: 'linear-gradient(135deg, #F97316, #FB923C)' }}
           >
             <Zap className="w-5 h-5 text-white" fill="white" />
           </div>
@@ -68,8 +68,8 @@ export function Sidebar() {
       <div className="px-4 pb-4">
         <Link
           href="/sessions/new"
-          className="flex items-center justify-center gap-2 w-full py-2.5 rounded-[14px] text-white text-sm font-semibold transition-all hover:shadow-[0_4px_20px_rgba(99,102,241,0.4)]"
-          style={{ background: 'linear-gradient(135deg, #6366F1, #818CF8)' }}
+          className="flex items-center justify-center gap-2 w-full py-2.5 rounded-[14px] text-white text-sm font-semibold transition-all hover:shadow-[0_4px_20px_rgba(249,115,22,0.4)]"
+          style={{ background: 'linear-gradient(135deg, #F97316, #FB923C)' }}
         >
           <Plus className="w-4 h-4" />
           {t('nav_new_session')}
@@ -88,7 +88,7 @@ export function Sidebar() {
               className={cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-[12px] text-sm font-medium transition-all duration-150 mb-0.5',
                 active
-                  ? 'text-[#6366F1] bg-[rgba(99,102,241,0.1)]'
+                  ? 'text-[#F97316] bg-[rgba(249,115,22,0.1)]'
                   : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-elevated)]'
               )}
             >
@@ -107,7 +107,7 @@ export function Sidebar() {
           rel="noopener noreferrer"
           className="flex items-center gap-3 px-3 py-2.5 rounded-[12px] text-sm font-medium transition-all text-[var(--text-muted)] hover:text-white hover:bg-[var(--bg-elevated)]"
         >
-          <Zap className="w-4 h-4 shrink-0 text-[#6366F1]" />
+          <Zap className="w-4 h-4 shrink-0 text-[#F97316]" />
           <span className="font-medium">TrainPilot</span>
           <ExternalLink className="w-3 h-3 ml-auto opacity-50" />
         </a>

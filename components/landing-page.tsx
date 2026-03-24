@@ -120,7 +120,7 @@ export default function LandingPage({ userId }: { userId: string | null }) {
           color: white;
           text-decoration: none;
         }
-        .lp-logo span { color: #6366F1; }
+        .lp-logo span { color: #F97316; }
         .lp-nav-links {
           display: flex; align-items: center; gap: 40px; list-style: none;
         }
@@ -134,7 +134,7 @@ export default function LandingPage({ userId }: { userId: string | null }) {
         .lp-nav-links a:hover { color: white; }
         .lp-nav-cta {
           font-size: 13px; font-weight: 700;
-          background: #6366F1; color: white;
+          background: #F97316; color: white;
           border: none; padding: 10px 24px;
           cursor: pointer; text-decoration: none;
           display: inline-block;
@@ -142,7 +142,7 @@ export default function LandingPage({ userId }: { userId: string | null }) {
           transition: background 0.2s, transform 0.1s;
           letter-spacing: 0.01em;
         }
-        .lp-nav-cta:hover { background: #5254cc; transform: translateY(-1px); }
+        .lp-nav-cta:hover { background: #EA580C; transform: translateY(-1px); }
         .lp-hamburger {
           display: none;
           flex-direction: column; gap: 5px;
@@ -165,8 +165,8 @@ export default function LandingPage({ userId }: { userId: string | null }) {
         .lp-hero-grid {
           position: absolute; inset: 0;
           background-image:
-            linear-gradient(rgba(99,102,241,0.04) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(99,102,241,0.04) 1px, transparent 1px);
+            linear-gradient(rgba(249,115,22,0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(249,115,22,0.04) 1px, transparent 1px);
           background-size: 80px 80px;
           mask-image: radial-gradient(ellipse 70% 80% at 60% 40%, black 0%, transparent 70%);
         }
@@ -175,7 +175,7 @@ export default function LandingPage({ userId }: { userId: string | null }) {
           top: 10%; right: -10%;
           width: 700px; height: 700px;
           border-radius: 50%;
-          background: radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(249,115,22,0.15) 0%, transparent 70%);
           pointer-events: none;
           animation: lpGlowPulse 8s ease-in-out infinite;
         }
@@ -186,18 +186,18 @@ export default function LandingPage({ userId }: { userId: string | null }) {
         .lp-hero-eyebrow {
           display: flex; align-items: center; gap: 10px;
           font-size: 12px; font-weight: 600; letter-spacing: 0.1em;
-          text-transform: uppercase; color: #6366F1;
+          text-transform: uppercase; color: #F97316;
           margin-bottom: 28px;
           position: relative; z-index: 1;
           animation: lpFadeUp 0.8s 0.1s ease both;
         }
         .lp-live-dot {
-          width: 7px; height: 7px; border-radius: 50%; background: #6366F1;
+          width: 7px; height: 7px; border-radius: 50%; background: #F97316;
           animation: lpLivePulse 2s ease-in-out infinite;
         }
         @keyframes lpLivePulse {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.6); }
-          50% { box-shadow: 0 0 0 8px rgba(99,102,241,0); }
+          0%, 100% { box-shadow: 0 0 0 0 rgba(249,115,22,0.6); }
+          50% { box-shadow: 0 0 0 8px rgba(249,115,22,0); }
         }
         .lp-hero-title {
           font-family: 'Syne', 'Inter', sans-serif;
@@ -209,7 +209,7 @@ export default function LandingPage({ userId }: { userId: string | null }) {
           position: relative; z-index: 1;
           animation: lpFadeUp 0.8s 0.2s ease both;
         }
-        .lp-hero-title .lp-accent { color: #6366F1; }
+        .lp-hero-title .lp-accent { color: #F97316; }
         .lp-hero-title .lp-stroke {
           -webkit-text-stroke: 2px rgba(255,255,255,0.25);
           color: transparent;
@@ -229,7 +229,7 @@ export default function LandingPage({ userId }: { userId: string | null }) {
         }
         .lp-btn-primary {
           font-size: 14px; font-weight: 700;
-          background: #6366F1; color: white;
+          background: #F97316; color: white;
           border: none; padding: 16px 40px;
           border-radius: 10px; cursor: pointer;
           text-decoration: none; display: inline-block;
@@ -237,9 +237,9 @@ export default function LandingPage({ userId }: { userId: string | null }) {
           letter-spacing: 0.01em;
         }
         .lp-btn-primary:hover {
-          background: #5254cc;
+          background: #EA580C;
           transform: translateY(-2px);
-          box-shadow: 0 12px 40px rgba(99,102,241,0.4);
+          box-shadow: 0 12px 40px rgba(249,115,22,0.4);
         }
         .lp-btn-outline {
           font-size: 14px; font-weight: 600;
@@ -268,7 +268,7 @@ export default function LandingPage({ userId }: { userId: string | null }) {
         /* ─── MARQUEE ─── */
         .lp-marquee-wrap {
           overflow: hidden;
-          background: #6366F1;
+          background: #F97316;
           padding: 16px 0;
           border-top: 1px solid rgba(255,255,255,0.1);
           border-bottom: 1px solid rgba(255,255,255,0.1);
@@ -304,12 +304,12 @@ export default function LandingPage({ userId }: { userId: string | null }) {
         }
         .lp-section-eyebrow {
           font-size: 11px; font-weight: 700; letter-spacing: 0.14em;
-          text-transform: uppercase; color: #6366F1;
+          text-transform: uppercase; color: #F97316;
           margin-bottom: 20px;
           display: flex; align-items: center; gap: 12px;
         }
         .lp-section-eyebrow::before {
-          content: ''; display: block; width: 32px; height: 1px; background: #6366F1;
+          content: ''; display: block; width: 32px; height: 1px; background: #F97316;
         }
         .lp-pillars-header {
           display: flex; align-items: flex-end; justify-content: space-between;
@@ -337,7 +337,7 @@ export default function LandingPage({ userId }: { userId: string | null }) {
         .lp-pillar-card::before {
           content: '';
           position: absolute; top: 0; left: 0; right: 0; height: 2px;
-          background: #6366F1;
+          background: #F97316;
           transform: scaleX(0); transform-origin: left;
           transition: transform 0.4s ease;
         }
@@ -346,7 +346,7 @@ export default function LandingPage({ userId }: { userId: string | null }) {
         .lp-pillar-num {
           font-family: 'Syne', 'Inter', sans-serif;
           font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
-          color: rgba(99,102,241,0.6);
+          color: rgba(249,115,22,0.6);
           margin-bottom: 40px;
           display: block;
         }
@@ -369,10 +369,10 @@ export default function LandingPage({ userId }: { userId: string | null }) {
         }
         .lp-pillar-tag {
           font-size: 11px; font-weight: 600; letter-spacing: 0.05em;
-          color: rgba(99,102,241,0.8);
-          border: 1px solid rgba(99,102,241,0.2);
+          color: rgba(249,115,22,0.8);
+          border: 1px solid rgba(249,115,22,0.2);
           padding: 4px 12px; border-radius: 4px;
-          background: rgba(99,102,241,0.05);
+          background: rgba(249,115,22,0.05);
         }
 
         /* ─── STATS ─── */
@@ -429,12 +429,12 @@ export default function LandingPage({ userId }: { userId: string | null }) {
         }
         .lp-feat-card:hover {
           background: #0e0e0e;
-          border-left-color: #6366F1;
+          border-left-color: #F97316;
         }
         .lp-feat-num {
           font-family: 'Syne', 'Inter', sans-serif;
           font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
-          color: rgba(99,102,241,0.5); margin-bottom: 28px; display: block;
+          color: rgba(249,115,22,0.5); margin-bottom: 28px; display: block;
         }
         .lp-feat-title {
           font-size: 20px; font-weight: 700;
@@ -464,7 +464,7 @@ export default function LandingPage({ userId }: { userId: string | null }) {
         .lp-step-num {
           font-family: 'Syne', 'Inter', sans-serif;
           font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
-          color: rgba(99,102,241,0.6); display: block; margin-bottom: 32px;
+          color: rgba(249,115,22,0.6); display: block; margin-bottom: 32px;
         }
         .lp-step-title {
           font-family: 'Syne', 'Inter', sans-serif;
@@ -489,8 +489,8 @@ export default function LandingPage({ userId }: { userId: string | null }) {
           position: relative; overflow: hidden;
         }
         .lp-eco-card-trainmate {
-          background: linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(99,102,241,0.04) 100%);
-          border: 1px solid rgba(99,102,241,0.2);
+          background: linear-gradient(135deg, rgba(249,115,22,0.1) 0%, rgba(249,115,22,0.04) 100%);
+          border: 1px solid rgba(249,115,22,0.2);
           border-radius: 2px 0 0 2px;
         }
         .lp-eco-card-trainpilot {
@@ -512,8 +512,8 @@ export default function LandingPage({ userId }: { userId: string | null }) {
           margin-bottom: 32px;
         }
         .lp-eco-badge-primary {
-          background: rgba(99,102,241,0.15); color: #6366F1;
-          border: 1px solid rgba(99,102,241,0.25);
+          background: rgba(249,115,22,0.15); color: #F97316;
+          border: 1px solid rgba(249,115,22,0.25);
         }
         .lp-eco-badge-secondary {
           background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.4);
@@ -538,11 +538,11 @@ export default function LandingPage({ userId }: { userId: string | null }) {
         }
         .lp-eco-features li::before {
           content: ''; display: block;
-          width: 16px; height: 1px; background: #6366F1; flex-shrink: 0;
+          width: 16px; height: 1px; background: #F97316; flex-shrink: 0;
         }
         .lp-eco-link {
           font-size: 13px; font-weight: 700;
-          color: #6366F1; text-decoration: none;
+          color: #F97316; text-decoration: none;
           display: inline-flex; align-items: center; gap: 8px;
           letter-spacing: 0.02em;
           transition: gap 0.2s;
@@ -567,12 +567,12 @@ export default function LandingPage({ userId }: { userId: string | null }) {
         .lp-cta-glow {
           position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
           width: 600px; height: 600px; border-radius: 50%;
-          background: radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(249,115,22,0.12) 0%, transparent 70%);
           pointer-events: none;
         }
         .lp-cta-label {
           font-size: 11px; font-weight: 700; letter-spacing: 0.14em;
-          text-transform: uppercase; color: rgba(99,102,241,0.7);
+          text-transform: uppercase; color: rgba(249,115,22,0.7);
           margin-bottom: 28px;
           position: relative; z-index: 1;
         }
@@ -583,7 +583,7 @@ export default function LandingPage({ userId }: { userId: string | null }) {
           margin-bottom: 40px;
           position: relative; z-index: 1;
         }
-        .lp-cta-title span { color: #6366F1; }
+        .lp-cta-title span { color: #F97316; }
         .lp-cta-sub {
           font-size: 17px; color: rgba(255,255,255,0.4);
           margin-bottom: 52px; max-width: 440px;
@@ -613,7 +613,7 @@ export default function LandingPage({ userId }: { userId: string | null }) {
           font-weight: 800; font-size: 18px;
           letter-spacing: -0.02em; color: white; text-decoration: none;
         }
-        .lp-footer-logo span { color: #6366F1; }
+        .lp-footer-logo span { color: #F97316; }
         .lp-footer-links {
           display: flex; gap: 32px; list-style: none; flex-wrap: wrap;
         }
@@ -634,7 +634,7 @@ export default function LandingPage({ userId }: { userId: string | null }) {
           font-size: 12px; color: rgba(255,255,255,0.2);
         }
         .lp-footer-copy a {
-          color: rgba(99,102,241,0.5); text-decoration: none;
+          color: rgba(249,115,22,0.5); text-decoration: none;
         }
         .lp-footer-tagline {
           font-size: 12px; color: rgba(255,255,255,0.15); letter-spacing: 0.06em;
@@ -704,7 +704,7 @@ export default function LandingPage({ userId }: { userId: string | null }) {
         <a href="#how" onClick={() => setMenuOpen(false)}>{t('landing_how_it_works')}</a>
         <a href="#features" onClick={() => setMenuOpen(false)}>{t('landing_features')}</a>
         <a href="#ecosystem" onClick={() => setMenuOpen(false)}>{t('landing_ecosystem')}</a>
-        <Link href="/login" onClick={() => setMenuOpen(false)} style={{ marginTop: 32, fontSize: 14, fontWeight: 700, background: '#6366F1', color: 'white', padding: '16px 40px', borderRadius: 10, textDecoration: 'none' }}>
+        <Link href="/login" onClick={() => setMenuOpen(false)} style={{ marginTop: 32, fontSize: 14, fontWeight: 700, background: '#F97316', color: 'white', padding: '16px 40px', borderRadius: 10, textDecoration: 'none' }}>
           {t('landing_join')}
         </Link>
       </div>
@@ -811,7 +811,7 @@ export default function LandingPage({ userId }: { userId: string | null }) {
           <div className="lp-section-eyebrow">{t('landing_features_eyebrow')}</div>
           <h2 className="lp-features-title">
             {t('landing_features_title_line1')}<br />
-            <span style={{ color: '#6366F1' }}>{t('landing_features_title_line2')}</span>
+            <span style={{ color: '#F97316' }}>{t('landing_features_title_line2')}</span>
           </h2>
           <p className="lp-features-desc">
             {t('landing_features_desc')}
@@ -829,7 +829,7 @@ export default function LandingPage({ userId }: { userId: string | null }) {
         <div className="lp-section-eyebrow">{t('landing_how_eyebrow')}</div>
         <h2 className="lp-features-title" style={{ marginBottom: 0 }}>
           {t('landing_how_title_line1')}<br />
-          {t('landing_how_title_line2')} <span style={{ color: '#6366F1' }}>{t('landing_how_title_line3')}</span>
+          {t('landing_how_title_line2')} <span style={{ color: '#F97316' }}>{t('landing_how_title_line3')}</span>
         </h2>
         <div className="lp-how-grid">
           {STEPS.map((step) => (
@@ -848,7 +848,7 @@ export default function LandingPage({ userId }: { userId: string | null }) {
         <div className="lp-section-eyebrow">{t('landing_eco_eyebrow')}</div>
         <h2 className="lp-features-title" style={{ marginBottom: 20 }}>
           {t('landing_eco_title_line1')}<br />
-          {t('landing_eco_title_line2')} <span style={{ color: '#6366F1' }}>{t('landing_eco_title_line3')}</span>
+          {t('landing_eco_title_line2')} <span style={{ color: '#F97316' }}>{t('landing_eco_title_line3')}</span>
         </h2>
         <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.4)', maxWidth: 560, lineHeight: 1.7 }}>
           {t('landing_eco_desc')}

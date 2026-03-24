@@ -43,12 +43,12 @@ export function Header({ title }: { title?: string }) {
         <Link href="/dashboard" className="md:hidden flex items-center gap-2 shrink-0">
           <div
             className="w-8 h-8 flex items-center justify-center rounded-[10px]"
-            style={{ background: 'linear-gradient(135deg, #6366F1, #818CF8)' }}
+            style={{ background: 'linear-gradient(135deg, #F97316, #FB923C)' }}
           >
             <Zap className="w-4 h-4 text-white" fill="white" />
           </div>
           <span className="font-bold text-base tracking-tight" style={{ color: 'var(--text)' }}>
-            Athlix <span style={{ color: '#6366F1' }}>TrainMate</span>
+            Athlix <span style={{ color: '#F97316' }}>TrainMate</span>
           </span>
         </Link>
 

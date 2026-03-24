@@ -75,8 +75,8 @@ export default function LoginPage() {
         .lp-grid {
           position: fixed; inset: 0;
           background-image:
-            linear-gradient(rgba(99,102,241,0.04) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(99,102,241,0.04) 1px, transparent 1px);
+            linear-gradient(rgba(249,115,22,0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(249,115,22,0.04) 1px, transparent 1px);
           background-size: 80px 80px;
           mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 0%, transparent 70%);
           -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 0%, transparent 70%);
@@ -92,7 +92,7 @@ export default function LoginPage() {
           width: 900px;
           height: 900px;
           border-radius: 50%;
-          background: radial-gradient(circle, rgba(99,102,241,0.15) 0%, rgba(99,102,241,0.04) 40%, transparent 70%);
+          background: radial-gradient(circle, rgba(249,115,22,0.15) 0%, rgba(249,115,22,0.04) 40%, transparent 70%);
           pointer-events: none;
           z-index: 0;
         }
@@ -103,7 +103,7 @@ export default function LoginPage() {
           width: 700px;
           height: 700px;
           border-radius: 50%;
-          background: radial-gradient(circle, rgba(99,102,241,0.10) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(249,115,22,0.10) 0%, transparent 70%);
           pointer-events: none;
           z-index: 0;
         }
@@ -142,7 +142,7 @@ export default function LoginPage() {
           letter-spacing: -0.01em;
         }
         .lp-topbar-brand span {
-          color: #6366F1;
+          color: #F97316;
         }
 
         /* Main card container */
@@ -180,7 +180,7 @@ export default function LoginPage() {
           display: flex;
           flex-direction: column;
           justify-content: center;
-          background: linear-gradient(160deg, rgba(99,102,241,0.06) 0%, transparent 60%);
+          background: linear-gradient(160deg, rgba(249,115,22,0.06) 0%, transparent 60%);
           border-right: 1px solid rgba(255,255,255,0.04);
           order: 0;
         }
@@ -190,11 +190,11 @@ export default function LoginPage() {
           gap: 8px;
           padding: 6px 14px;
           border-radius: 100px;
-          background: rgba(99,102,241,0.08);
-          border: 1px solid rgba(99,102,241,0.15);
+          background: rgba(249,115,22,0.08);
+          border: 1px solid rgba(249,115,22,0.15);
           font-size: 12px;
           font-weight: 600;
-          color: #818CF8;
+          color: #FB923C;
           letter-spacing: 0.02em;
           width: fit-content;
           margin-bottom: 28px;
@@ -203,7 +203,7 @@ export default function LoginPage() {
           width: 6px;
           height: 6px;
           border-radius: 50%;
-          background: #6366F1;
+          background: #F97316;
         }
         .lp-hero-title {
           font-family: 'Syne', 'Inter', sans-serif;
@@ -240,7 +240,7 @@ export default function LoginPage() {
           transition: border-color 0.2s;
         }
         .lp-bento:hover {
-          border-color: rgba(99,102,241,0.2);
+          border-color: rgba(249,115,22,0.2);
         }
         .lp-bento-icon {
           font-size: 22px;
@@ -266,13 +266,13 @@ export default function LoginPage() {
           letter-spacing: 0.02em;
         }
         .lp-left-footer a {
-          color: rgba(99,102,241,0.45);
+          color: rgba(249,115,22,0.45);
           text-decoration: none;
           font-weight: 600;
           transition: color 0.2s;
         }
         .lp-left-footer a:hover {
-          color: rgba(99,102,241,0.75);
+          color: rgba(249,115,22,0.75);
         }
 
         /* Right panel — form */
@@ -291,7 +291,7 @@ export default function LoginPage() {
           font-weight: 700;
           letter-spacing: 0.12em;
           text-transform: uppercase;
-          color: rgba(99,102,241,0.65);
+          color: rgba(249,115,22,0.65);
           margin-bottom: 12px;
         }
         .lp-form-title {
@@ -331,9 +331,9 @@ export default function LoginPage() {
           letter-spacing: 0.01em;
         }
         .lp-tab-active {
-          background: linear-gradient(135deg, #6366F1, #818CF8);
+          background: linear-gradient(135deg, #F97316, #FB923C);
           color: white;
-          box-shadow: 0 2px 12px rgba(99,102,241,0.35);
+          box-shadow: 0 2px 12px rgba(249,115,22,0.35);
         }
         .lp-tab-inactive {
           background: transparent;
@@ -381,8 +381,8 @@ export default function LoginPage() {
           color: rgba(255,255,255,0.2);
         }
         .lp-input:focus {
-          border-color: rgba(99,102,241,0.6);
-          box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+          border-color: rgba(249,115,22,0.6);
+          box-shadow: 0 0 0 3px rgba(249,115,22,0.12);
         }
         .lp-input-pw {
           padding-right: 48px;
@@ -438,16 +438,16 @@ export default function LoginPage() {
           gap: 8px;
         }
         .lp-submit-active {
-          background: linear-gradient(135deg, #6366F1 0%, #818CF8 100%);
+          background: linear-gradient(135deg, #F97316 0%, #FB923C 100%);
           cursor: pointer;
-          box-shadow: 0 8px 28px rgba(99,102,241,0.35);
+          box-shadow: 0 8px 28px rgba(249,115,22,0.35);
         }
         .lp-submit-active:hover {
-          box-shadow: 0 12px 40px rgba(99,102,241,0.45);
+          box-shadow: 0 12px 40px rgba(249,115,22,0.45);
           transform: translateY(-2px);
         }
         .lp-submit-disabled {
-          background: rgba(99,102,241,0.2);
+          background: rgba(249,115,22,0.2);
           cursor: not-allowed;
           box-shadow: none;
         }
@@ -462,7 +462,7 @@ export default function LoginPage() {
         .lp-mode-switch button {
           background: none;
           border: none;
-          color: #818CF8;
+          color: #FB923C;
           font-weight: 600;
           cursor: pointer;
           font-size: 13px;
@@ -470,7 +470,7 @@ export default function LoginPage() {
           padding: 0;
         }
         .lp-mode-switch button:hover {
-          color: #6366F1;
+          color: #F97316;
         }
 
         /* Ecosystem */
@@ -486,13 +486,13 @@ export default function LoginPage() {
           letter-spacing: 0.02em;
         }
         .lp-eco-link {
-          color: rgba(99,102,241,0.5);
+          color: rgba(249,115,22,0.5);
           text-decoration: none;
           font-weight: 600;
           transition: color 0.2s;
         }
         .lp-eco-link:hover {
-          color: rgba(99,102,241,0.8);
+          color: rgba(249,115,22,0.8);
         }
 
         /* Spinner */
@@ -557,7 +557,7 @@ export default function LoginPage() {
 
         {/* Top bar */}
         <div className="lp-topbar">
-          <Link href="/" className="lp-back" aria-label="Powrót">
+          <Link href="/" className="lp-back" aria-label={t('login_back_aria')}>
             <ArrowLeft size={18} />
           </Link>
           <div className="lp-topbar-brand">

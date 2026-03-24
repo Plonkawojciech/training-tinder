@@ -107,9 +107,9 @@ export function MobileBottomNav() {
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               padding: '15px', borderRadius: 16, marginBottom: 16,
-              background: 'linear-gradient(135deg, #6366F1 0%, #818CF8 100%)',
+              background: 'linear-gradient(135deg, #F97316 0%, #FB923C 100%)',
               textDecoration: 'none', color: 'white', fontWeight: 700, fontSize: 15,
-              boxShadow: '0 4px 20px rgba(99,102,241,0.35)',
+              boxShadow: '0 4px 20px rgba(249,115,22,0.35)',
             }}
           >
             <Plus style={{ width: 20, height: 20 }} />
@@ -130,8 +130,8 @@ export function MobileBottomNav() {
                     display: 'flex', flexDirection: 'column', alignItems: 'center',
                     gap: 6, padding: '16px 8px', borderRadius: 16,
                     textDecoration: 'none',
-                    background: active ? 'rgba(99,102,241,0.1)' : 'var(--bg-elevated)',
-                    color: active ? '#6366F1' : 'var(--text-muted)',
+                    background: active ? 'rgba(249,115,22,0.1)' : 'var(--bg-elevated)',
+                    color: active ? '#F97316' : 'var(--text-muted)',
                     transition: 'all 0.15s',
                   }}
                 >
@@ -153,9 +153,9 @@ export function MobileBottomNav() {
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               padding: '12px', borderRadius: 14, marginTop: 10,
-              background: 'rgba(99,102,241,0.08)',
-              border: '1px solid rgba(99,102,241,0.2)',
-              textDecoration: 'none', color: '#6366F1', fontWeight: 700, fontSize: 13,
+              background: 'rgba(249,115,22,0.08)',
+              border: '1px solid rgba(249,115,22,0.2)',
+              textDecoration: 'none', color: '#F97316', fontWeight: 700, fontSize: 13,
             }}
           >
             <Zap style={{ width: 16, height: 16 }} />
@@ -198,7 +198,7 @@ export function MobileBottomNav() {
                 gap: 4,
                 padding: '8px 4px',
                 textDecoration: 'none',
-                color: active ? '#6366F1' : 'var(--text-muted)',
+                color: active ? '#F97316' : 'var(--text-muted)',
                 transition: 'color 0.15s',
                 position: 'relative',
               }}
@@ -207,7 +207,7 @@ export function MobileBottomNav() {
                 width: 48, height: 44,
                 borderRadius: 99,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: active ? 'rgba(99,102,241,0.12)' : 'transparent',
+                background: active ? 'rgba(249,115,22,0.12)' : 'transparent',
                 transition: 'background 0.15s',
                 position: 'relative',
               }}>
@@ -253,14 +253,14 @@ export function MobileBottomNav() {
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             gap: 4, padding: '8px 4px',
             background: 'none', border: 'none', cursor: 'pointer',
-            color: (moreOpen || isMoreActive) ? '#6366F1' : 'var(--text-muted)',
+            color: (moreOpen || isMoreActive) ? '#F97316' : 'var(--text-muted)',
             transition: 'color 0.15s',
           }}
         >
           <div style={{
             width: 48, height: 44, borderRadius: 99,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: (moreOpen || isMoreActive) ? 'rgba(99,102,241,0.12)' : 'transparent',
+            background: (moreOpen || isMoreActive) ? 'rgba(249,115,22,0.12)' : 'transparent',
             transition: 'background 0.15s',
           }}>
             {moreOpen

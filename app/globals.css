@@ -17,7 +17,7 @@
   width: auto;
   height: auto;
   overflow: visible;
-  background: #6366F1;
+  background: #F97316;
   color: #fff;
   padding: 8px 16px;
   border-radius: 8px;
@@ -25,7 +25,7 @@
 }
 
 :root, [data-theme="dark"] {
-  /* Pilot-matched dark palette (zinc/indigo) */
+  /* Pilot-matched dark palette (zinc/orange) */
   --bg: #09090B;
   --bg-card: #111113;
   --bg-elevated: #18181B;
@@ -34,11 +34,11 @@
   --text: #FAFAFA;
   --text-muted: #A1A1AA;
   --text-dim: #71717A;
-  --accent: #6366F1;
-  --accent-light: rgba(99, 102, 241, 0.7);
+  --accent: #F97316;
+  --accent-light: rgba(249, 115, 22, 0.7);
   --bg-card-hover: #18181B;
-  --accent-glow: rgba(99, 102, 241, 0.3);
-  --accent-dim: rgba(99, 102, 241, 0.15);
+  --accent-glow: rgba(249, 115, 22, 0.3);
+  --accent-dim: rgba(249, 115, 22, 0.15);
   /* Pilot aliases */
   --surface: var(--bg-card);
   --surface-2: var(--bg-elevated);
@@ -70,11 +70,11 @@
   --text: #09090B;
   --text-muted: #52525B;
   --text-dim: #71717A;
-  --accent: #6366F1;
-  --accent-light: rgba(99, 102, 241, 0.6);
+  --accent: #F97316;
+  --accent-light: rgba(249, 115, 22, 0.6);
   --bg-card-hover: #F4F4F5;
-  --accent-glow: rgba(99, 102, 241, 0.2);
-  --accent-dim: rgba(99, 102, 241, 0.1);
+  --accent-glow: rgba(249, 115, 22, 0.2);
+  --accent-dim: rgba(249, 115, 22, 0.1);
   --surface: var(--bg-card);
   --surface-2: var(--bg-elevated);
   --text-secondary: var(--text-muted);
@@ -178,19 +178,19 @@ select {
 .glow-accent-sm { box-shadow: 0 0 12px var(--accent-glow); }
 
 /* Sport color pills */
-.sport-cycling    { background: rgba(99, 102, 241, 0.12); color: #818CF8; }
+.sport-cycling    { background: rgba(249, 115, 22, 0.12); color: #FB923C; }
 .sport-running    { background: rgba(20, 184, 166, 0.12); color: #2DD4BF; }
 .sport-triathlon  { background: rgba(251, 191, 36, 0.12); color: #FCD34D; }
 .sport-swimming   { background: rgba(59, 130, 246, 0.12); color: #60A5FA; }
 .sport-trail_running { background: rgba(34, 197, 94, 0.12); color: #4ADE80; }
-.sport-gravel     { background: rgba(99, 102, 241, 0.08); color: #A5B4FC; }
+.sport-gravel     { background: rgba(249, 115, 22, 0.08); color: #A5B4FC; }
 .sport-duathlon   { background: rgba(236, 72, 153, 0.12); color: #F472B6; }
 .sport-mtb        { background: rgba(34, 197, 94, 0.12); color: #86EFAC; }
 .sport-gym        { background: rgba(245, 158, 11, 0.12); color: #FCD34D; }
 
 .match-score-high   { color: #22C55E; }
 .match-score-medium { color: #F59E0B; }
-.match-score-low    { color: #818CF8; }
+.match-score-low    { color: #FB923C; }
 
 /* Ranks */
 .rank-1 { color: #FBBF24; }
@@ -267,7 +267,7 @@ input:focus-visible, textarea:focus-visible, select:focus-visible {
 [data-theme="dark"] input:focus-visible,
 [data-theme="dark"] textarea:focus-visible,
 [data-theme="dark"] select:focus-visible {
-  outline-color: #818CF8;
+  outline-color: #FB923C;
 }
 
 /* Frosted glass */
