@@ -1,5 +1,13 @@
 # Athlix TrainMate — Progress Log
 
+## 2026-03-24 — Landing page: "Dołącz wkrótce" coming soon mode
+- Replaced all non-authed login/register/join CTAs with "Dołącz wkrótce" spans (styled as primary CTA, opacity 0.7, cursor: default, not clickable)
+- Removed all /login links for non-authed users
+- Kept userId-based Dashboard/Discover links untouched
+- Affected areas: nav, hero, mobile menu, ecosystem card, final CTA section, footer
+- Removed registration link from footer
+- **File:** `components/landing-page.tsx`
+
 **Projekt:** Platforma społecznościowa dla sportowców — znajdowanie partnerów treningowych, organizacja grupowych ride/sesji, śledzenie siłowni, czat w czasie rzeczywistym. PWA z odkrywaniem przez swipe.
 
 ---

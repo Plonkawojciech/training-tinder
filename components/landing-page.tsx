@@ -704,9 +704,15 @@ export default function LandingPage({ userId }: { userId: string | null }) {
         <a href="#how" onClick={() => setMenuOpen(false)}>{t('landing_how_it_works')}</a>
         <a href="#features" onClick={() => setMenuOpen(false)}>{t('landing_features')}</a>
         <a href="#ecosystem" onClick={() => setMenuOpen(false)}>{t('landing_ecosystem')}</a>
-        <Link href="/login" onClick={() => setMenuOpen(false)} style={{ marginTop: 32, fontSize: 14, fontWeight: 700, background: '#F97316', color: 'white', padding: '16px 40px', borderRadius: 10, textDecoration: 'none' }}>
-          {t('landing_join')}
-        </Link>
+        {userId ? (
+          <Link href="/dashboard" onClick={() => setMenuOpen(false)} style={{ marginTop: 32, fontSize: 14, fontWeight: 700, background: '#F97316', color: 'white', padding: '16px 40px', borderRadius: 10, textDecoration: 'none' }}>
+            Dashboard
+          </Link>
+        ) : (
+          <span onClick={() => setMenuOpen(false)} style={{ marginTop: 32, fontSize: 14, fontWeight: 700, background: '#F97316', color: 'white', padding: '16px 40px', borderRadius: 10, textDecoration: 'none', opacity: 0.7, cursor: 'default', display: 'inline-block' }}>
+            Dołącz wkrótce
+          </span>
+        )}
       </div>
 
       {/* ─── NAV ─── */}
@@ -718,14 +724,15 @@ export default function LandingPage({ userId }: { userId: string | null }) {
           <li><a href="#ecosystem">{t('landing_ecosystem')}</a></li>
         </ul>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {!userId && (
-            <Link href="/login" className="lp-btn-outline" style={{ padding: '9px 20px', borderRadius: 8, fontSize: 13 }}>
-              {t('landing_login')}
+          {userId ? (
+            <Link href="/dashboard" className="lp-nav-cta">
+              Dashboard
             </Link>
+          ) : (
+            <span className="lp-nav-cta" style={{ opacity: 0.7, cursor: 'default' }}>
+              Dołącz wkrótce
+            </span>
           )}
-          <Link href={userId ? '/dashboard' : '/login'} className="lp-nav-cta">
-            {userId ? 'Dashboard' : t('landing_join')}
-          </Link>
         </div>
         <button className="lp-hamburger" onClick={() => setMenuOpen(true)}>
           <span /><span /><span />
@@ -749,12 +756,20 @@ export default function LandingPage({ userId }: { userId: string | null }) {
           {t('landing_hero_sub')}
         </p>
         <div className="lp-hero-ctas">
-          <Link href={userId ? '/dashboard' : '/login'} className="lp-btn-primary">
-            {userId ? t('landing_hero_cta_dashboard') : t('landing_hero_cta_join')}
-          </Link>
-          <Link href={userId ? '/discover' : '/login'} className="lp-btn-outline">
-            {userId ? t('landing_hero_cta_discover') : t('landing_login')}
-          </Link>
+          {userId ? (
+            <>
+              <Link href="/dashboard" className="lp-btn-primary">
+                {t('landing_hero_cta_dashboard')}
+              </Link>
+              <Link href="/discover" className="lp-btn-outline">
+                {t('landing_hero_cta_discover')}
+              </Link>
+            </>
+          ) : (
+            <span className="lp-btn-primary" style={{ opacity: 0.7, cursor: 'default' }}>
+              Dołącz wkrótce
+            </span>
+          )}
         </div>
         <div className="lp-hero-scroll">
           <span className="lp-scroll-line" />
@@ -867,9 +882,15 @@ export default function LandingPage({ userId }: { userId: string | null }) {
               <li>{t('landing_eco_tm_feat4')}</li>
               <li>{t('landing_eco_tm_feat5')}</li>
             </ul>
-            <Link href={userId ? '/dashboard' : '/login'} className="lp-eco-link">
-              {userId ? t('landing_eco_tm_cta_dashboard') : t('landing_eco_tm_cta_join')} →
-            </Link>
+            {userId ? (
+              <Link href="/dashboard" className="lp-eco-link">
+                {t('landing_eco_tm_cta_dashboard')} →
+              </Link>
+            ) : (
+              <span className="lp-eco-link" style={{ opacity: 0.7, cursor: 'default' }}>
+                Dołącz wkrótce
+              </span>
+            )}
           </div>
           <div className="lp-eco-card lp-eco-card-trainpilot">
             <div className="lp-eco-badge lp-eco-badge-secondary">{t('landing_eco_tp_badge')}</div>
@@ -921,17 +942,21 @@ export default function LandingPage({ userId }: { userId: string | null }) {
           {t('landing_cta_sub')}
         </p>
         <div className="lp-cta-actions">
-          <Link
-            href={userId ? '/dashboard' : '/login'}
-            className="lp-btn-primary"
-            style={{ fontSize: 15, padding: '18px 52px' }}
-          >
-            {userId ? t('landing_hero_cta_dashboard') : t('landing_hero_cta_join')}
-          </Link>
-          {!userId && (
-            <Link href="/login" className="lp-btn-outline" style={{ fontSize: 15, padding: '18px 36px' }}>
-              {t('landing_login')}
+          {userId ? (
+            <Link
+              href="/dashboard"
+              className="lp-btn-primary"
+              style={{ fontSize: 15, padding: '18px 52px' }}
+            >
+              {t('landing_hero_cta_dashboard')}
             </Link>
+          ) : (
+            <span
+              className="lp-btn-primary"
+              style={{ fontSize: 15, padding: '18px 52px', opacity: 0.7, cursor: 'default' }}
+            >
+              Dołącz wkrótce
+            </span>
           )}
         </div>
       </section>
@@ -945,7 +970,6 @@ export default function LandingPage({ userId }: { userId: string | null }) {
             <li><a href="#how">{t('landing_footer_how')}</a></li>
             <li><a href="https://athlix-trainpilot.vercel.app" target="_blank" rel="noopener noreferrer">TrainPilot</a></li>
             <li><a href="https://athlix-health.vercel.app" target="_blank" rel="noopener noreferrer">Athlix Health</a></li>
-            <li><a href="/login">{t('landing_footer_registration')}</a></li>
           </ul>
         </div>
         <div className="lp-footer-bottom">
