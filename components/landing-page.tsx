@@ -884,8 +884,8 @@ export default function LandingPage({ userId }: { userId: string | null }) {
               <li>{t('landing_eco_tp_feat4')}</li>
               <li>{t('landing_eco_tp_feat5')}</li>
             </ul>
-            <a href="https://trainpilot.vercel.app" target="_blank" rel="noopener noreferrer" className="lp-eco-link-muted">
-              trainpilot.vercel.app →
+            <a href="https://athlix-trainpilot.vercel.app" target="_blank" rel="noopener noreferrer" className="lp-eco-link-muted">
+              athlix-trainpilot.vercel.app →
             </a>
           </div>
           <div className="lp-eco-card lp-eco-card-trainhealth">
@@ -943,7 +943,7 @@ export default function LandingPage({ userId }: { userId: string | null }) {
           <ul className="lp-footer-links">
             <li><a href="#features">{t('landing_footer_features')}</a></li>
             <li><a href="#how">{t('landing_footer_how')}</a></li>
-            <li><a href="https://trainpilot.vercel.app" target="_blank" rel="noopener noreferrer">TrainPilot</a></li>
+            <li><a href="https://athlix-trainpilot.vercel.app" target="_blank" rel="noopener noreferrer">TrainPilot</a></li>
             <li><a href="https://athlix-health.vercel.app" target="_blank" rel="noopener noreferrer">Athlix Health</a></li>
             <li><a href="/login">{t('landing_footer_registration')}</a></li>
           </ul>

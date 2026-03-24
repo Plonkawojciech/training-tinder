@@ -440,7 +440,7 @@ export default function DashboardPage() {
         {/* TrainPilot integration banner */}
         <div style={{ padding: '0 16px 16px' }}>
           <a
-            href="https://trainpilot.vercel.app"
+            href="https://athlix-trainpilot.vercel.app"
             target="_blank"
             rel="noopener noreferrer"
             style={{
@@ -623,7 +623,7 @@ export default function DashboardPage() {
         {/* TrainPilot banner */}
         <div className="mb-8">
           <a
-            href="https://trainpilot.vercel.app"
+            href="https://athlix-trainpilot.vercel.app"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-4 p-5 rounded-[20px] transition-all hover:shadow-[0_8px_32px_rgba(99,102,241,0.2)]"

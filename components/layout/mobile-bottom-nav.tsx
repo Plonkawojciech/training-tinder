@@ -146,7 +146,7 @@ export function MobileBottomNav() {
 
           {/* TrainPilot external link */}
           <a
-            href="https://trainpilot.vercel.app"
+            href="https://athlix-trainpilot.vercel.app"
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => setMoreOpen(false)}

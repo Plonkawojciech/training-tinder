@@ -604,7 +604,7 @@ export default function LoginPage() {
               </div>
 
               <div className="lp-left-footer">
-                <a href="https://trainpilot.vercel.app" target="_blank" rel="noopener noreferrer">TrainPilot</a>
+                <a href="https://athlix-trainpilot.vercel.app" target="_blank" rel="noopener noreferrer">TrainPilot</a>
                 {' · '}
                 <a href="https://athlix-health.vercel.app" target="_blank" rel="noopener noreferrer">TrainHealth</a>
               </div>
@@ -744,7 +744,7 @@ export default function LoginPage() {
               <div className="lp-eco">
                 <span className="lp-eco-text">
                   {'Część ekosystemu Athlix · '}
-                  <a href="https://trainpilot.vercel.app" target="_blank" rel="noopener noreferrer" className="lp-eco-link">TrainPilot</a>
+                  <a href="https://athlix-trainpilot.vercel.app" target="_blank" rel="noopener noreferrer" className="lp-eco-link">TrainPilot</a>
                   {' · '}
                   <a href="https://athlix-health.vercel.app" target="_blank" rel="noopener noreferrer" className="lp-eco-link">TrainHealth</a>
                 </span>

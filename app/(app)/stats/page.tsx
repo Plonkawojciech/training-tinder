@@ -8,7 +8,7 @@ import { StravaStatsCard } from '@/components/strava/strava-stats-card';
 import { StravaActivityFeed } from '@/components/strava/strava-activity-feed';
 import { useLang } from '@/lib/lang';
 
-const TRAINPILOT_URL = 'https://trainpilot.vercel.app';
+const TRAINPILOT_URL = 'https://athlix-trainpilot.vercel.app';
 
 interface StatsSummary {
   totalWorkouts: number;
@@ -46,6 +46,7 @@ export default function StatsPage() {
   const [workouts, setWorkouts] = useState<WorkoutEntry[]>([]);
   const [selectedPRExercise, setSelectedPRExercise] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const TABS: { id: TabId; label: string }[] = [
     { id: 'strava',      label: 'Strava' },
@@ -82,6 +83,8 @@ export default function StatsPage() {
         const data = await wkRes.json() as WorkoutEntry[];
         setWorkouts(Array.isArray(data) ? data : []);
       }
+    } catch {
+      setError('Failed to load stats');
     } finally {
       setLoading(false);
     }
@@ -185,6 +188,10 @@ export default function StatsPage() {
 
     return { longestMin, mostInWeek, totalPRs };
   }, [workouts, allPRs]);
+
+  if (error) {
+    return <div className="p-4 text-center text-red-400">{error}</div>;
+  }
 
   return (
     <div className="p-4 md:p-6 max-w-5xl mx-auto">
@@ -580,7 +587,7 @@ export default function StatsPage() {
                   rel="noopener noreferrer"
                   className="text-sm text-[#6366F1] hover:text-[#818CF8] inline-flex items-center gap-1.5 transition-colors"
                 >
-                  trainpilot.vercel.app <ExternalLink className="w-3.5 h-3.5" />
+                  athlix-trainpilot.vercel.app <ExternalLink className="w-3.5 h-3.5" />
                 </a>
               </div>
             </div>

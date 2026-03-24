@@ -371,8 +371,8 @@ function TrainPilotSection() {
   }, [])
 
   const pilotUrl = email
-    ? `https://trainpilot.vercel.app/register?email=${encodeURIComponent(email)}`
-    : 'https://trainpilot.vercel.app'
+    ? `https://athlix-trainpilot.vercel.app/register?email=${encodeURIComponent(email)}`
+    : 'https://athlix-trainpilot.vercel.app'
 
   return (
     <div style={{ ...card, background: 'linear-gradient(135deg,rgba(99,102,241,0.06),rgba(129,140,248,0.04))', borderColor: 'rgba(99,102,241,0.2)' }}>

@@ -102,7 +102,7 @@ export function Sidebar() {
       {/* TrainPilot link */}
       <div className="px-3 pb-2" style={{ borderTop: '1px solid var(--border)', paddingTop: 12 }}>
         <a
-          href="https://trainpilot.vercel.app"
+          href="https://athlix-trainpilot.vercel.app"
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-3 px-3 py-2.5 rounded-[12px] text-sm font-medium transition-all text-[var(--text-muted)] hover:text-white hover:bg-[var(--bg-elevated)]"
