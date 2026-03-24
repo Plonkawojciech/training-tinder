@@ -1,5 +1,8 @@
-import LandingPage from '@/components/landing-page';
+import { cookies } from 'next/headers'
+import LandingPage from '@/components/landing-page'
 
-export default function HomePage() {
-  return <LandingPage userId={null} />;
+export default async function HomePage() {
+  const cookieStore = await cookies()
+  const authCookie = cookieStore.get('tt_auth')
+  return <LandingPage userId={authCookie?.value ? 'authenticated' : null} />
 }
